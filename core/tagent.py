@@ -3,7 +3,6 @@ import logging
 class TradingAgent():
     """
     This agent class is made to interact with a trading gym we made in here #TODO : add link that
-
     """
     def __init__(self, buy_commission=0.015, hold_commission=0.315, start_money=1000000, max_count_buyhold=100, ):
         self.buy_commission = 0.015

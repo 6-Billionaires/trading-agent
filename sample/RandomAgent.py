@@ -6,9 +6,9 @@ class RandomAgent(tagent) :
 
 
 if __name__ == '__main__' :
+
     """
     In here, we provide a very simple sample to help you to write your own agent based one this. 
-
     Create a market environment, instantiate a random agent, and run the agent for one episode.
     """
     # Samsung Electronics ticker = 005930 , 1-second bars by default
@@ -17,6 +17,7 @@ if __name__ == '__main__' :
     observation = env.reset()       # An observation is a numpy float array, values: time, bid, bidsize, ask, asksize, last, lastsize, lasttime, open, high, low, close, vwap, volume, open_interest, position, unrealized_gain
     done = False
     total_reward = 0.0              # Reward is the profit realized when a trade closes
+
     while not done:
         env.render()
         observation, reward, done, info = env.step(agent.act(observation))
