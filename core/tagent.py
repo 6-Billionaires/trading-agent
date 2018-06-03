@@ -45,4 +45,5 @@ class TradingAgent():
 
 
 
-    def _transform_obersvation
+    def _transform_obersvation(self):
+        pass

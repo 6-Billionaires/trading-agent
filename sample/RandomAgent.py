@@ -1,6 +1,7 @@
 import core.tagent as tagent
 import core.tenv as MarketEnv
 
+
 class RandomAgent(tagent) :
     pass
 
