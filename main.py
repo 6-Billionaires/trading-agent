@@ -1,5 +1,5 @@
 from dqn_agent import DQNAgent
-from trading_gym.core import tgym
+from gym_core import tgym
 
 
 if __name__ == '__main__':
