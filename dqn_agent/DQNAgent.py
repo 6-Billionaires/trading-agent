@@ -28,7 +28,7 @@ class DQNAgent(tagent.TradingAgent):
         self.batch_size = 256
         self.train_start = 10000
 
-        self.memory = deque(maxlen=100000)
+        self.memory = deque(maxlen=1000000)
         self.model = self._load_model()
         self.target_model = self._load_model()
 
@@ -57,6 +57,7 @@ class DQNAgent(tagent.TradingAgent):
         self.target_model.set_weights(self.model.get_weights())
 
     def get_action(self, state):
+        state = np.array([state])
         if self.no_buy > 0:
             self.no_buy -= 1
             return 0
@@ -111,13 +112,13 @@ class DQNAgent(tagent.TradingAgent):
 
         self.model.fit(states, target, batch_size=self.batch_size, epochs=1, verbose=0)
 
-    def calc_reward(self, info):
-        if info[0]['stop_loss']:
-            return -1
-        if info[0]['reached_profit']:
-            return 1
+    def calc_reward(self, info, action):
+        if action == 1:
+            if info[0]['stop_loss']:
+                return -1
+            if info[0]['reached_profit']:
+                return 1
         return 0
-
 
 # EPISODES = 10000
 # RENDER = False
