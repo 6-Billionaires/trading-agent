@@ -46,6 +46,7 @@ class DQNAgent(tagent.TradingAgent):
         model.add(Dense(100, input_dim=self.state_size, activation='relu', kernel_initializer='he_uniform'))
         model.add(Dense(100, activation='relu', kernel_initializer='he_uniform'))
         model.add(Dense(self.action_size, activation='relu', kernel_initializer='he_uniform'))
+        
         model.compile(loss='mse', optimizer=Adam(lr=self.learning_rate))
         return model
 

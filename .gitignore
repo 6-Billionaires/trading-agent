@@ -2,4 +2,5 @@ gipython
 *.pyc
 .idea
 *.iml
-docs/_build
+docs/_builid
+venv/
