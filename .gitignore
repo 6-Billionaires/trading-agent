@@ -2,5 +2,5 @@ gipython
 *.pyc
 .idea
 *.iml
-docs/_builid
+#docs/_builid
 venv/
