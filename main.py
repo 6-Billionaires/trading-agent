@@ -39,11 +39,18 @@ if __name__ == '__main__':
 
         hold_cnt = 0
         buy_cnt = 0
+        can_buy = True
         while not done:
             if RENDER:
                 env.render()
             action = agent.get_action(state)
+            if not can_buy:
+                action = 0
             next_state, _, done, info = env.step(action)
+            if info[0]['can_buy']:
+                can_buy = True
+            else:
+                can_buy = False
             next_state = edit_state(next_state[0], next_state[1], next_state[2])
             reward = agent.calc_reward(info, action)
             if reward == 0:
