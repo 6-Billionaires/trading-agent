@@ -119,36 +119,3 @@ class DQNAgent(tagent.TradingAgent):
             if info[0]['reached_profit']:
                 return 1
         return 0
-
-# EPISODES = 10000
-# RENDER = False
-# ACTION_SIZE = 2
-#
-# if __name__ == '__main__':
-#     env = TradingGymEnv(episode_type=0)
-#     agent = DQNAgent(state_size=env.get_state_size(), action_size=ACTION_SIZE)
-#
-#     for ep in range(EPISODES):
-#         profit = 0
-#         done = False
-#         state = env.reset()
-#
-#         while not done:
-#             if RENDER:
-#                 env.render()
-#
-#             action = agent.get_action(state)
-#             next_state, reward, done, info = env.step(action)
-#
-#             agent.append_sample(state, action, reward, next_state, done)
-#             if len(agent.memory) >= agent.train_start:
-#                 agent.train_model()
-#
-#             state = next_state
-#             profit += reward
-#
-#             if done:
-#                 agent.update_target_model()
-#                 agent.save_model()
-#                 print('profit :', profit, 'memory :', len(agent.memory), 'epsilon :', round(agent.epsilon, 5))
-

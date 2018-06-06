@@ -43,9 +43,7 @@ if __name__ == '__main__':
             if RENDER:
                 env.render()
             action = agent.get_action(state)
-            action = 1
             next_state, _, done, info = env.step(action)
-            # print(info)
             next_state = edit_state(next_state[0], next_state[1], next_state[2])
             reward = agent.calc_reward(info, action)
             if reward == 0:
@@ -59,22 +57,18 @@ if __name__ == '__main__':
             else:
                 buy_cnt += 1
 
-            if not reward == 0:
-                print(reward, info)
-
             agent.append_sample(state, action, reward, next_state, done)
             if len(agent.memory) >= agent.train_start:
                 agent.train_model()
-                # print(action, reward)
 
             state = next_state
             score += reward
 
             if done:
-                print('none :', r0, 'loss :', r1, 'profit :', r2)
-                print('hold :', hold_cnt, 'buy :', buy_cnt)
                 agent.update_target_model()
                 agent.save_model()
+                print('none :', r0, 'loss :', r1, 'profit :', r2)
+                print('hold :', hold_cnt, 'buy :', buy_cnt)
                 print('profit :', score, 'memory :', len(agent.memory), 'epsilon :', round(agent.epsilon, 5))
                 break
 
