@@ -22,12 +22,10 @@ class DQNAgent(tagent.TradingAgent):
         self.discount_factor = 0.999
         self.learning_rate = 0.0001
         self.epsilon = 1.
-        self.epsilon_min = 0.01
-        self.epsilon_decay = 0.9995
-        self.batch_size = 256
-        self.train_start = 10000
+        self.batch_size = 1024
+        self.train_start = 50000
 
-        self.memory = deque(maxlen=1000000)
+        self.memory = deque(maxlen=10000000)
         self.model = self._load_model()
         self.target_model = self._load_model()
 
@@ -81,9 +79,7 @@ class DQNAgent(tagent.TradingAgent):
         self.memory.append((state, action, reward, next_state, done))
 
     def _decay_epsilon(self):
-        self.epsilon *= self.epsilon_decay
-        if self.epsilon < self.epsilon_min:
-            self.epsilon = self.epsilon_min
+        pass
 
     def train_model(self):
         self._decay_epsilon()
@@ -118,36 +114,3 @@ class DQNAgent(tagent.TradingAgent):
             if info[0]['reached_profit']:
                 return 1
         return 0
-
-# EPISODES = 10000
-# RENDER = False
-# ACTION_SIZE = 2
-#
-# if __name__ == '__main__':
-#     env = TradingGymEnv(episode_type=0)
-#     agent = DQNAgent(state_size=env.get_state_size(), action_size=ACTION_SIZE)
-#
-#     for ep in range(EPISODES):
-#         profit = 0
-#         done = False
-#         state = env.reset()
-#
-#         while not done:
-#             if RENDER:
-#                 env.render()
-#
-#             action = agent.get_action(state)
-#             next_state, reward, done, info = env.step(action)
-#
-#             agent.append_sample(state, action, reward, next_state, done)
-#             if len(agent.memory) >= agent.train_start:
-#                 agent.train_model()
-#
-#             state = next_state
-#             profit += reward
-#
-#             if done:
-#                 agent.update_target_model()
-#                 agent.save_model()
-#                 print('profit :', profit, 'memory :', len(agent.memory), 'epsilon :', round(agent.epsilon, 5))
-
