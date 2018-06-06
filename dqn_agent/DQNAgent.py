@@ -23,12 +23,10 @@ class DQNAgent(tagent.TradingAgent):
         self.discount_factor = 0.999
         self.learning_rate = 0.0001
         self.epsilon = 1.
-        self.epsilon_min = 0.01
-        self.epsilon_decay = 0.9995
-        self.batch_size = 256
-        self.train_start = 10000
+        self.batch_size = 1024
+        self.train_start = 50000
 
-        self.memory = deque(maxlen=1000000)
+        self.memory = deque(maxlen=10000000)
         self.model = self._load_model()
         self.target_model = self._load_model()
 
@@ -82,9 +80,7 @@ class DQNAgent(tagent.TradingAgent):
         self.memory.append((state, action, reward, next_state, done))
 
     def _decay_epsilon(self):
-        self.epsilon *= self.epsilon_decay
-        if self.epsilon < self.epsilon_min:
-            self.epsilon = self.epsilon_min
+        pass
 
     def train_model(self):
         self._decay_epsilon()

@@ -27,6 +27,11 @@ if __name__ == '__main__':
     agent = DQNAgent.DQNAgent(state_size=len(state), action_size=ACTION_SIZE)
 
     for ep in range(EPISODES):
+        if ep % 10 == 0 and ep != 0:
+            agent.train_mode = False
+        else:
+            agent.train_mode = True
+
         score = 0
         done = False
         env.reset()
@@ -74,8 +79,10 @@ if __name__ == '__main__':
             if done:
                 agent.update_target_model()
                 agent.save_model()
-                print('none :', r0, 'loss :', r1, 'profit :', r2)
-                print('hold :', hold_cnt, 'buy :', buy_cnt)
+                if not agent.train_mode:
+                    print('==========Test Mode==========')
+                    print('none :', r0, 'loss :', r1, 'profit :', r2)
+                    print('hold :', hold_cnt, 'buy :', buy_cnt)
                 print('profit :', score, 'memory :', len(agent.memory), 'epsilon :', round(agent.epsilon, 5))
                 break
 
