@@ -4,3 +4,4 @@ gipython
 *.iml
 #docs/_builid
 venv/
+*.h5
