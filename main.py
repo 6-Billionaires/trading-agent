@@ -83,6 +83,6 @@ if __name__ == '__main__':
                     print('==========Test Mode==========')
                     print('none :', r0, 'loss :', r1, 'profit :', r2)
                     print('hold :', hold_cnt, 'buy :', buy_cnt)
-                print('episode : ', ep+1, 'profit :', score, 'memory :', len(agent.memory), 'epsilon :', round(agent.epsilon, 5))
+                print('episode :', ep+1, '| profit :', score, '| memory :', len(agent.memory), '| epsilon :', round(agent.epsilon, 5))
                 break
 
