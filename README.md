@@ -22,6 +22,10 @@ Trading Gym 과 연결하여 주식 단타 매매를 학습하는 Trading Agent 
 
 #### ENV 예시
 
+import sys
+
+sys.path.insert(0, 'trading-gym 경로')
+
 from gym_core import tgym
 
 class ENV(tgym.tradingGymEnv):
