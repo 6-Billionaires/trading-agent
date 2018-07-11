@@ -1,0 +1,5 @@
+DEBUG:root:start.
+DEBUG:root:It is loading pickle file instead of reading csv files for performance.
+DEBUG:root:There is no pickle file so that we are starting reading csv files.
+DEBUG:root:we are saving pickle file not to load files again..
+DEBUG:root:dqn agent start..
