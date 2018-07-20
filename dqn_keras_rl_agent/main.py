@@ -75,7 +75,7 @@ class myTGym(tgym.TradingGymEnv):
 def build_network():
 
     model = Sequential()
-    model.add( Flatten(input_shape=(1,)  + (111,) )  )
+    model.add(Flatten(input_shape=(1,) + (111,)))
     model.add(Dense(300))
     model.add(Activation('relu'))
     model.add(Dense(200))
