@@ -1,5 +1,12 @@
 from keras.models import Model
 from keras.layers import Input, Dense, Conv2D, Conv1D, Dense, Flatten, MaxPool1D, MaxPool2D
+from gym_core import tgym
+from gym_core import ioutil
+from collections import deque
+import config
+import pandas as pd
+import datetime
+import numpy as np
 
 def build_network():
 
@@ -54,7 +61,36 @@ def build_network():
 
     output = Dense(1,activation='linear')(i_concatenated_all_h)
 
-
     model = Model([input_price, input_order_sell, input_order_buy, input_tranx], output)
 
+    return model
 
+def prepare_dataset(secs=60):
+    l = ioutil.load_data_from_dicrectory('0', 1)
+    prepare_dataset(secs, l[0])
+
+def prepare_dataset(secs=60, d):
+
+    current_date = d['meta']['date']
+
+    # create observation information for price, transaction, order-book for last 60 seconds
+    d_price = deque(maxlen=secs)
+    d_tranx = deque(maxlen=secs)
+    d_order = deque(maxlen=secs)
+
+    c_start_datetime = datetime.datetime(int(current_date[0:4]), int(current_date[4:6]), int(current_date[6:8]), 9, 6)
+    c_range_timestamp = pd.date_range(c_start_datetime, periods=secs, freq='S')
+    p_current_step_in_episode = 0
+
+    start = datetime.datetime(int(current_date[0:4]), int(current_date[4:6]), int(current_date[6:8]), 9, 5)
+    end = datetime.datetime(int(current_date[0:4]), int(current_date[4:6]), int(current_date[6:8]), 15, 20)
+
+    read_rng = pd.date_range(start, end, freq='S')
+    start_idx = 0
+
+    for e in l:
+
+
+
+
+prepare_dataset()
