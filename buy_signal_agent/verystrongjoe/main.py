@@ -7,7 +7,11 @@ import config
 import pandas as pd
 import datetime
 import numpy as np
+import pickle
 
+"""
+build q newtork using cnn and dense layer
+"""
 def build_network():
 
     input_price = Input(shape=(60, 1, ))
@@ -65,32 +69,53 @@ def build_network():
 
     return model
 
-def prepare_dataset(secs=60):
+def prepare_datasets(secs=60):
     l = ioutil.load_data_from_dicrectory('0', 1)
-    prepare_dataset(secs, l[0])
+    for li in l:
+        prepare_dataset(li, secs)
 
-def prepare_dataset(secs=60, d):
+def prepare_dataset(d, secs):
+    current_date    = d['meta']['date']
+    current_ticker  = d['meta']['ticker']
 
-    current_date = d['meta']['date']
-
-    # create observation information for price, transaction, order-book for last 60 seconds
     d_price = deque(maxlen=secs)
-    d_tranx = deque(maxlen=secs)
-    d_order = deque(maxlen=secs)
 
-    c_start_datetime = datetime.datetime(int(current_date[0:4]), int(current_date[4:6]), int(current_date[6:8]), 9, 6)
-    c_range_timestamp = pd.date_range(c_start_datetime, periods=secs, freq='S')
-    p_current_step_in_episode = 0
+    c_start = datetime.datetime(int(current_date[0:4]), int(current_date[4:6]), int(current_date[6:8]), 9, 5)
+    c_end = datetime.datetime(int(current_date[0:4]), int(current_date[4:6]), int(current_date[6:8]), 15, 20)
+    c_rng_timestamp = pd.date_range(start=c_start, end=c_end, freq='S')
 
-    start = datetime.datetime(int(current_date[0:4]), int(current_date[4:6]), int(current_date[6:8]), 9, 5)
-    end = datetime.datetime(int(current_date[0:4]), int(current_date[4:6]), int(current_date[6:8]), 15, 20)
+    x_2d = []
+    x_1d = []
+    y_1d = []
 
-    read_rng = pd.date_range(start, end, freq='S')
-    start_idx = 0
+    for i, s in enumerate(c_rng_timestamp):
 
-    for e in l:
+        end = i+secs;
 
+        if len(c_rng_timestamp) < end:
+            break
+        else:
+            first_quote = d['quote'].loc[s]
+            first_order = d['order'].loc[s]
 
+            j = i
+            width = 0
+            # calculate Y
+            for j in range(secs):
+                if j == 0:
+                    price_at_signal = d['quote'].loc[c_rng_timestamp[j]]['Price(last excuted)']
+                else:
+                    price = d['quote'].loc[c_rng_timestamp[j]]['Price(last excuted)']
+                    gap = price - price_at_signal
+                    width += gap
+            x_2d.append(first_order)
+            x_1d.append(first_quote)
+            y_1d.append(width)
+    # return
+    pickle_name = current_date + '_' + current_ticker + '.pickle'
+    f = open('pickle_name', 'w')
+    pickle.dump([x_2d, x_1d, y_1d], f)
+    f.close()
 
-
-prepare_dataset()
+x_2d, x_1d, y_1d = prepare_datasets()
+print(y_1d)
