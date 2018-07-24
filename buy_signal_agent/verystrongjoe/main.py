@@ -70,7 +70,7 @@ def build_network():
     return model
 
 def prepare_datasets(secs=60):
-    l = ioutil.load_data_from_dicrectory('0', 1)
+    l = ioutil.load_data_from_dicrectory('0')
     for li in l:
         prepare_dataset(li, secs)
 
@@ -113,9 +113,8 @@ def prepare_dataset(d, secs):
             y_1d.append(width)
     # return
     pickle_name = current_date + '_' + current_ticker + '.pickle'
-    f = open('pickle_name', 'w')
+    f = open(pickle_name, 'wb')
     pickle.dump([x_2d, x_1d, y_1d], f)
     f.close()
 
-x_2d, x_1d, y_1d = prepare_datasets()
-print(y_1d)
+prepare_datasets()
