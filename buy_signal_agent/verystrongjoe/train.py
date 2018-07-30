@@ -49,6 +49,8 @@ def get_sample_data(count):
     ld_x2 = []
     ld_y = []
     d1 = []
+
+
     for i in range(count):
         # d1_1 = np.arange(start, start + 2 * 10 * 60).reshape([10, 2, 60])
         # start += 2 * 10 * 60
@@ -62,19 +64,19 @@ def get_sample_data(count):
         ld_x2.append(d2)
 
     for j in range(count):
-        d1 = np.arange(start, start + 60).reshape([60,])
+        d1 = np.arange(start, start + 1)
         ld_y.append(d1)
 
-    return ld_x1, ld_x2, ld_y
+    return np.asarray(ld_x1), np.asarray(ld_x2), np.asarray(ld_y)
 
 def train():
 
     x1, x2,  y = get_sample_data(10)
 
     model = build_network()
-    model.compile(optimizer='rmsprop', loss='categorical_crossentropy', metrics=['accuracy'])
+    model.compile(optimizer='rmsprop', loss='mse', metrics=['accuracy'])
     model.summary()
     # model.fit([x1, x2], y)
-    # model.fit({'x1': x1, 'x2': x2}, y)
+    model.fit({'x1': x2, 'x2': x1}, y)
 
 train()
