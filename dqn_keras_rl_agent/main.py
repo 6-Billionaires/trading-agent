@@ -107,7 +107,7 @@ if __name__ == '__main__':
     chk_point = ModelIntervalCheckpoint(filepath=model_path, interval=50000)
     obsprocesser = ObservationProcessor()
 
-    dqn = DQNAgent(model=model, nb_actions=2, memory=memory, nb_steps_warmup=10,
+    dqn = DQNAgent(model=model, nb_actions=2, memory=memory, nb_steps_warmup=10, enable_double_dqn=True, enable_dueling_network=True,
                    target_model_update=1e-2, policy=policy, processor=obsprocesser)
 
     dqn.compile(Adam(lr=1e-3), metrics=['mae'])
