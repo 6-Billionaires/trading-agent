@@ -3,7 +3,6 @@ from keras.layers import Input, Dense, Conv2D, Conv1D, Dense, Flatten, MaxPool1D
 from gym_core import tgym
 from gym_core import ioutil
 from collections import deque
-import config
 import pandas as pd
 import datetime
 import numpy as np
