@@ -1,6 +1,5 @@
 import os
 import sys
-
 newPath = os.path.dirname(os.path.abspath(os.path.dirname(os.path.abspath(os.path.dirname(os.path.abspath(os.path.dirname(__file__)))))))+ '\\trading-gym'
 sys.path.append(newPath)
 

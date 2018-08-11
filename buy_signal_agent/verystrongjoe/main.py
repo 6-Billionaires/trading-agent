@@ -42,9 +42,9 @@ def prepare_dataset(d, secs):
             # calculate Y
             for j in range(secs):
                 if j == 0:
-                    price_at_signal = d['quote'].loc[c_rng_timestamp[j]]['Price(last excuted)']
+                    price_at_signal = d['quote'].loc[c_rng_timestamp[i+j]]['Price(last excuted)']
                 else:
-                    price = d['quote'].loc[c_rng_timestamp[j]]['Price(last excuted)']
+                    price = d['quote'].loc[c_rng_timestamp[i+j]]['Price(last excuted)']
                     gap = price - price_at_signal
                     width += gap
 
