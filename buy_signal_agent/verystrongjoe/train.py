@@ -9,8 +9,8 @@ from gym_core import ioutil  # file i/o to load stock csv files
 build q newtork using cnn and dense layer
 """
 def build_network():
-    input_tranx = Input(shape=(120, 11), name="x1")
-    input_order = Input(shape=(10, 2, 120, 2), name="x2")
+    input_order = Input(shape=(10, 2, 120, 2), name="x1")
+    input_tranx = Input(shape=(120, 11), name="x2")
 
     h_conv1d_2 = Conv1D(filters=16, kernel_size=3, activation='relu')(input_tranx)
     h_conv1d_4 = MaxPooling1D(pool_size=3, strides=None, padding='valid')(h_conv1d_2)
@@ -116,13 +116,14 @@ def get_real_data(ticker='001470', date='20180420', train_all_periods=None):
                         x1[row][column][second][channel] = d[0][idx_second+second][key+value+str(row+1)]
         d_x1.append(x1)
 
+        np.zeros([120,11])
         for second in range(x2_dimension_info[0]):  #120 : seconds
             for feature in range(x2_dimension_info[1]):  #11 :features
                 x2[second, feature] = d[1][idx_second+second][feature]
-            d_x2.append(x2)
+        d_x2.append(x2)
 
-    # for second in range(y1_dimension_info[0]): #60 : seconds
-    d_y1.append(d[2][idx_second])
+        # for second in range(y1_dimension_info[0]): #60 : seconds
+        d_y1.append(d[2][idx_second])
 
     return np.asarray(d_x1), np.asarray(d_x2), np.asarray(d_y1)
 
@@ -135,7 +136,7 @@ def train_using_real_data(d):
     l = ioutil.load_ticker_yyyymmdd_list_from_directory(d)
     for (t,d) in l:
         print('ticker {}, yyyymmdd {} is started for training!'.format(t,d))
-        train_using_real_data(train_per_each_episode(t,d))
+        train_per_each_episode(t,d)
         print('ticker {}, yyyymmdd {} is finished for training!'.format(t,d))
 
 def train_per_each_episode(t,d,use_fake_data=False):
@@ -148,7 +149,7 @@ def train_per_each_episode(t,d,use_fake_data=False):
 
         # x1, x2, y = get_real_data(current_date,current_ticker,100)
         #if you give second as None, it will read every seconds in file.
-        x1, x2, y = get_real_data(current_ticker, current_date)
+        x1, x2, y = get_real_data(current_ticker, current_date, train_all_periods=130)
 
     model = build_network()
     model.compile(optimizer='adam', loss='mse', metrics=['accuracy'])
@@ -165,7 +166,7 @@ def train_per_each_episode(t,d,use_fake_data=False):
     callbacks += [FileLogger(log_filename, interval=100)]
 
     print('start to train.')
-    model.fit({'x1': x2, 'x2': x1}, y, epochs=5, verbose=2, batch_size=64, callbacks=callbacks)
+    model.fit({'x1': x1, 'x2': x2}, y, epochs=5, verbose=2, batch_size=64, callbacks=callbacks)
 
 
 # train_using_fake_data()
