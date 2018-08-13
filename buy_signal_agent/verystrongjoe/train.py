@@ -95,6 +95,9 @@ def get_real_data(ticker='001470', date='20180420', train_all_periods=None):
     d_y1 = []
 
     for idx_second in range(train_all_periods):
+        if idx_second + 120 > train_all_periods:
+            break
+        np.zeros([10,2,120,2])
         for row in range(x1_dimension_info[0]):  #10 : row
             for column in range(x1_dimension_info[1]):  #2 : column
                 for second in range(x1_dimension_info[2]):  #120 : seconds
@@ -111,12 +114,12 @@ def get_real_data(ticker='001470', date='20180420', train_all_periods=None):
                             value = 'Order'
 
                         x1[row][column][second][channel] = d[0][idx_second+second][key+value+str(row+1)]
-    d_x1.append(x1)
+        d_x1.append(x1)
 
-    for second in range(x2_dimension_info[0]):  #120 : seconds
-        for feature in range(x2_dimension_info[1]):  #11 :features
-            x2[second, feature] = d[1][idx_second+second][feature]
-    d_x2.append(x2)
+        for second in range(x2_dimension_info[0]):  #120 : seconds
+            for feature in range(x2_dimension_info[1]):  #11 :features
+                x2[second, feature] = d[1][idx_second+second][feature]
+            d_x2.append(x2)
 
     # for second in range(y1_dimension_info[0]): #60 : seconds
     d_y1.append(d[2][idx_second])
