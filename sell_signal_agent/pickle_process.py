@@ -11,11 +11,11 @@ newPath = os.path.dirname(os.path.abspath(os.path.dirname(os.path.abspath(os.pat
 sys.path.append(newPath)
 
 def prepare_datasets(max_secs=120):
-    l = ioutil.load_data_from_dicrectory('0')
-
-    with open('listfile.txt', 'w') as filehandle:
-        for listitem in l:
-            filehandle.write('%s\n' % listitem)
+    # l = ioutil.load_data_from_dicrectory('0')
+    l = ioutil.load_data_from_directory('0', max_n_episode=1)
+    # with open('listfile.txt', 'w') as filehandle:
+    #     for listitem in l:
+    #         filehandle.write('%s\n' % listitem)
 
 
     for li in l:
@@ -77,7 +77,7 @@ def prepare_dataset(d, max_secs):
 
     pickle_name = current_date + '_' + current_ticker + '.pickle'
     f = open('./pickles/'+pickle_name, 'wb')
-    pickle.dump([x_2d, x_1d, x_1d_lefttime, y_1d], f)
+    pickle.dump([x_2d, x_1d, y_1d], f)
     f.close()
 
 prepare_datasets()
