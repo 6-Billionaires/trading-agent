@@ -1,106 +1,98 @@
+import os
 from keras.models import Model
 from keras.layers import Input, Dense, Conv3D, Conv1D, Dense, Flatten, MaxPooling1D, MaxPooling2D,MaxPooling3D,Concatenate
+from keras.utils import to_categorical
 import numpy as np
 import pickle
+from rl.callbacks import FileLogger, ModelIntervalCheckpoint
+from gym_core import ioutil  # file i/o to load stock csv files
+import random
 
 """
 build q newtork using cnn and dense layer
 """
-def build_network():
 
-    input_tranx = Input(shape=(60, 11), name="x1")
-    input_order = Input(shape=(10, 2, 60, 2), name="x2")
 
-    h_conv1d_2 = Conv1D(filters=32, kernel_size=3, activation='relu')(input_tranx)
-    h_conv1d_4 = MaxPooling1D(pool_size=3, strides=None, padding='valid')(h_conv1d_2)
+def build_network(feature):
+    input_order = Input(shape=(feature, 120), name="x1")
+    order_price = Input(shape=(120, 1), name="x2")
+
+    h_conv1d_2 = Conv1D(filters=16, kernel_size=3, activation='relu')(input_order)
+    h_conv1d_4 = MaxPooling1D(pool_size=2, strides=None, padding='valid')(h_conv1d_2)
     h_conv1d_6 = Conv1D(filters=32, kernel_size=3, activation='relu')(h_conv1d_4)
-    h_conv1d_8 = MaxPooling1D(pool_size=2, strides=None, padding='valid')(h_conv1d_6)
+    h_conv1d_8 = MaxPooling1D(pool_size=1, strides=None, padding='valid')(h_conv1d_6)
+    # 풀사이즈를 줄이니까 에러 통과
 
-    h_conv3d_1_1 = Conv3D(filters=16, kernel_size=(2, 1, 5), activation='relu')(input_order)
-    h_conv3d_1_2 = Conv3D(filters=16, kernel_size=(1, 2, 5), activation='relu')(input_order)
+    o_concat1d_1 = Concatenate(axis=1)([h_conv1d_8, order_price])
+    o_concat1d_2 = Flatten()(o_concat1d_1)
 
-    h_conv3d_1_3 = MaxPooling3D(pool_size=(1, 1, 3))(h_conv3d_1_1)
-    h_conv3d_1_4 = MaxPooling3D(pool_size=(1, 1, 3))(h_conv3d_1_2)
+    output_1 = Dense(1, activation='linear')(o_concat1d_2)
+    output_2 = Dense(1, activation='linear')(output_1)
 
-    h_conv3d_1_5 = Conv3D(filters=32, kernel_size=(1, 2, 5), activation='relu')(h_conv3d_1_3)
-    h_conv3d_1_6 = Conv3D(filters=32, kernel_size=(2, 1, 5), activation='relu')(h_conv3d_1_4)
-
-    h_conv3d_1_7 = MaxPooling3D(pool_size=(1, 1, 5))(h_conv3d_1_5)
-    h_conv3d_1_8 = MaxPooling3D(pool_size=(1, 1, 5))(h_conv3d_1_6)
-    o_conv3d_1 = Concatenate(axis=-1)([h_conv3d_1_7, h_conv3d_1_8])
-
-    o_conv3d_1_1 = Flatten()(o_conv3d_1 )
-#    o_conv3d_1_2 = Flatten()(h_conv3d_1_8)
-#    o_conv3d_1 = Concatenate()([o_conv3d_1_1, o_conv3d_1_2])
-
-    i_concatenated_all_h_1 = Flatten()(h_conv1d_8)
-    # i_concatenated_all_h_2 = Flatten()(o_conv3d_1)
-
-    i_concatenated_all_h = Concatenate()([i_concatenated_all_h_1,o_conv3d_1_1])
-
-    output = Dense(1,activation='linear')(i_concatenated_all_h)
-
-    model = Model([input_order, input_tranx], output)
+    model = Model([input_order, order_price], output_2)
 
     return model
 
 
-def get_sample_data(count):
-    start = 0
+def get_sample_data(feature=5, count=2):
     ld_x1 = []
     ld_x2 = []
     ld_y = []
-    d1 = []
 
     for i in range(count):
-        # d1_1 = np.arange(start, start + 2 * 10 * 60).reshape([10, 2, 60])
-        # start += 2 * 10 * 60
-        d1_2 = np.arange(start, start + 2 * 10 * 60 * 2).reshape([10, 2, 60, 2])
-        start += 2 * 10 * 60
-        d2 = np.arange(start, start+11*60).reshape([60, 11])
-        start += 11 * 60
-        ld_x1.append(d1_2)
+        d1 = np.arange(0, feature * 120)
+        ld_x1.append(d1)
 
-        # ld_x1.append([d1_1, d1_2])
-        ld_x2.append(d2)
+        # y = np.array(y, dtype='int')
+        d2 = np.arange(120, dtype='int')
+        for j in range(120):
+            d2[j] = random.randint(-10, 10)
+
+        encoded = to_categorical(d2)
+        print(encoded)
+        ld_x2.append(encoded)
 
     for j in range(count):
-        d1 = np.arange(start, start + 1)
+        d1 = np.arange(120)
         ld_y.append(d1)
 
-    return np.asarray(ld_x1), np.asarray(ld_x2), np.asarray(ld_y)
+    # print(ld_x1, ld_x2, ld_y)
 
-def get_real_data(date='20180420', ticker='002410', seconds=None):
+    return np.asarray(ld_x1), np.asarray(ld_x2), np.asarray(ld_y), feature
 
-    current_date = date
+def get_real_data(ticker='001470', date='20180420', train_all_periods=None):
+
     current_ticker = ticker
+    current_date = date
 
-    ## (60, 11)  = a[1]
-    x1_dimension_info = (10, 2, 60, 2)
-    x2_dimension_info = (60, 11)
-    y1_dimension_info = (60,)
+    x1_dimension_info = (10, 2, 120, 2)  # 60 --> 120 (@ilzoo)
+    x2_dimension_info = (120, 11)
+    y1_dimension_info = (120,)
 
-    pickle_name = current_date + '_' + current_ticker + '.pickle'
+    pickle_name = current_ticker + '_' + current_date + '.pickle'
     f = open(pickle_name, 'rb')
-    d = pickle.load(f) # d[data_type][second] : mapobject!!
+    d = pickle.load(f)  # d[data_type][second] : mapobject!!
     f.close()
 
-    if seconds is None:
-        seconds = len(d[0])
+    if train_all_periods is None:
+        train_all_periods = len(d[0])
 
-    x1 = np.zeros([10,2,60,2])
-    x2 = np.zeros([60,11])
-    y1 = np.zeros([60])
+    x1 = np.zeros([10, 2, 120, 2])
+    x2 = np.zeros([120, 11])
+    y1 = np.zeros([120])
 
     d_x1 = []
     d_x2 = []
     d_y1 = []
 
-    for idx_second in range(seconds):
-        for row in range(x1_dimension_info[0]): #10 : row
-            for column in range(x1_dimension_info[1]): #2 : column
-                for second in range(x1_dimension_info[1]): #60 : seconds
-                    for channel in range(x1_dimension_info[1]): #2 : channel
+    for idx_second in range(train_all_periods):
+        if idx_second + 120 > train_all_periods:
+            break
+        np.zeros([10,2,120,2])
+        for row in range(x1_dimension_info[0]):  #10 : row
+            for column in range(x1_dimension_info[1]):  #2 : column
+                for second in range(x1_dimension_info[2]):  #120 : seconds
+                    for channel in range(x1_dimension_info[3]):  #2 : channel
                         key = ''
                         if channel == 1:
                             key = 'Buy'
@@ -114,7 +106,9 @@ def get_real_data(date='20180420', ticker='002410', seconds=None):
 
                         x1[row][column][second][channel] = d[0][idx_second+second][key+value+str(row+1)]
         d_x1.append(x1)
-        for second in range(x2_dimension_info[0]):  #60 : seconds
+
+        np.zeros([120,11])
+        for second in range(x2_dimension_info[0]):  #120 : seconds
             for feature in range(x2_dimension_info[1]):  #11 :features
                 x2[second, feature] = d[1][idx_second+second][feature]
         d_x2.append(x2)
@@ -125,19 +119,48 @@ def get_real_data(date='20180420', ticker='002410', seconds=None):
     return np.asarray(d_x1), np.asarray(d_x2), np.asarray(d_y1)
 
 
-def train():
-    # x1, x2, y = get_sample_data(10)
+def train_using_fake_data():
+    train_per_each_episode('', '', True)
 
-    current_date ='20180420' # date
-    current_ticker = '002410' # ticker
 
-    # x1, x2, y = get_real_data(current_date,current_ticker,100)
-    #if you give second as None, it will read every seconds in file.
-    x1, x2, y = get_real_data(current_date, current_ticker)
-    model = build_network()
-    model.compile(optimizer='rmsprop', loss='mse', metrics=['accuracy'])
+def train_using_real_data(d):
+    l = ioutil.load_ticker_yyyymmdd_list_from_directory(d)
+    for (t,d) in l:
+        print('ticker {}, yyyymmdd {} is started for training!'.format(t,d))
+        train_per_each_episode(t,d)
+        print('ticker {}, yyyymmdd {} is finished for training!'.format(t,d))
+
+
+def train_per_each_episode(ticker, date, use_fake_data=False):
+
+    if use_fake_data:
+        x1, x2, y, feature = get_sample_data(10)
+    else:
+        current_ticker = ticker
+        current_date = date
+
+        # x1, x2, y = get_real_data(current_date,current_ticker,100)
+        # if you give second as None, it will read every seconds in file.
+        x1, x2, y, feature = get_real_data(current_ticker, current_date, train_all_periods=120)
+
+    model = build_network(feature)
+    model.compile(optimizer='adam', loss='mse', metrics=['accuracy'])
     model.summary()
-    # model.fit([x1, x2], y)
-    model.fit({'x1': x2, 'x2': x1}, y)
 
-train()
+    # {steps} --> this file will be saved whenver it runs every steps as much as {step}
+    checkpoint_weights_filename = 'boa_' + 'fill_params_information_in_here' + '_weights_{step}.h5f'
+
+    # TODO: here we can add hyperparameters information like below!!
+    log_filename = 'boa_{}_log.json'.format('fill_params_information_in_here')
+    checkpoint_interval = 50000
+
+    callbacks = [ModelIntervalCheckpoint(checkpoint_weights_filename, interval=checkpoint_interval)]
+    callbacks += [FileLogger(log_filename, interval=100)]
+
+    print('start to train.')
+    model.fit({'x1': x1, 'x2': x2}, y, epochs=5, verbose=2, batch_size=64, callbacks=callbacks)
+
+
+train_using_fake_data()
+d = os.path.abspath(ioutil.make_dir(os.path.dirname(__file__), 'pickles'))
+# train_using_real_data(d)

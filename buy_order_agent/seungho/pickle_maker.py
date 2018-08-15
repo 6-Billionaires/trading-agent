@@ -8,6 +8,7 @@ import numpy as np
 import pickle
 import random
 
+
 def prepare_datasets(max_secs=120):
     l = ioutil.load_data_from_dicrectory('0')
 
@@ -16,8 +17,8 @@ def prepare_datasets(max_secs=120):
 
 
 def prepare_dataset(d, max_secs):
-    current_date    = d['meta']['date']
-    current_ticker  = d['meta']['ticker']
+    current_date = d['meta']['date']
+    current_ticker = d['meta']['ticker']
 
     c_start = datetime.datetime(int(current_date[0:4]), int(current_date[4:6]), int(current_date[6:8]), 9, 5)
     c_end = datetime.datetime(int(current_date[0:4]), int(current_date[4:6]), int(current_date[6:8]), 15, 20)
@@ -55,7 +56,7 @@ def prepare_dataset(d, max_secs):
 
     pickle_name = current_date + '_' + current_ticker + '.pickle'
     f = open('./pickles/'+pickle_name, 'wb')
-    pickle.dump([x_2d, x_1d, y_1d], f)
+    pickle.dump([x_2d, x_1d, x_1d_elapsed_secs, y_1d], f)
     f.close()
 
 
