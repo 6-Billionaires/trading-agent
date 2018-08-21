@@ -9,7 +9,7 @@ import pickle
 import random
 
 
-def prepare_datasets(max_secs=120):
+def prepare_datasets(max_secs=60):
     l = ioutil.load_data_from_dicrectory('0')
 
     for li in l:

@@ -60,6 +60,7 @@ def get_sample_data(feature=5, count=2):
 
     return np.asarray(ld_x1), np.asarray(ld_x2), np.asarray(ld_y), feature
 
+
 def get_real_data(ticker='001470', date='20180420', train_all_periods=None):
 
     current_ticker = ticker
