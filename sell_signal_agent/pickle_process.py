@@ -12,11 +12,7 @@ sys.path.append(newPath)
 
 def prepare_datasets(max_secs=120):
     # l = ioutil.load_data_from_dicrectory('0')
-    l = ioutil.load_data_from_directory('0', max_n_episode=2)
-    # with open('listfile.txt', 'w') as filehandle:
-    #     for listitem in l:
-    #         filehandle.write('%s\n' % listitem)
-
+    l = ioutil.load_data_from_directory('0', max_n_episode=1)
 
     for li in l:
         prepare_dataset(li, max_secs)
@@ -34,7 +30,13 @@ def prepare_dataset(d, max_secs):
 
     x_2d = []
     x_1d = []
-    x_1d_lefttime = []
+
+    # 경과시간
+    elapsed_time = []
+
+    # 남은시간
+    left_time = []
+
     y_1d = []
 
     width = 0
@@ -43,11 +45,11 @@ def prepare_dataset(d, max_secs):
         left_secs = random.randint(1, max_secs)
         # BSA 에서 시그널을 보낸 후 경과한 시간.
         bsa_elapsed_secs = max_secs - left_secs
-        # SSA 에서 시그널을 받고 실제 주문을 하는데 까지 걸린 시간을 랜덤 생성.
-        #elapsed_secs = random.randint(0, left_secs)
+        # SSA 에서 시그널 발생 하는데 까지 걸린 시간을 랜덤 생성.
+        elapsed_secs = random.randint(0, left_secs)
 
         # 장 시작보다 전에 시그널이 왔으면 skip
-        if i < bsa_elapsed_secs:
+        if i < bsa_elapsed_secs + elapsed_secs:
             continue
 
         # BSA 에서 시그널을 줄 수 있는 시간 이후에 시그널이 왔으면 skip
@@ -59,7 +61,7 @@ def prepare_dataset(d, max_secs):
             first_order = d['order'].loc[s]
 
             # calculate Y
-            price_at_signal = d['quote'].loc[c_rng_timestamp[i - bsa_elapsed_secs]]['Price(last excuted)']
+            price_at_signal = d['quote'].loc[c_rng_timestamp[i - elapsed_secs]]['Price(last excuted)']
             price = d['quote'].loc[c_rng_timestamp[i]]['Price(last excuted)']
 
             # sel signal을 발생시킨 시점 대비 2분간 가격이 차지하는 면적
@@ -70,14 +72,15 @@ def prepare_dataset(d, max_secs):
             continue
 
         # SOA 가 파는 시점의 X, Y 데이터
-        x_1d_lefttime.append(left_secs)
+        left_time.append(left_secs)
+        elapsed_time.append(elapsed_secs)
         x_2d.append(first_order)
         x_1d.append(first_quote)
         y_1d.append(width)
 
     pickle_name = current_date + '_' + current_ticker + '.pickle'
     f = open('./pickles/'+pickle_name, 'wb')
-    pickle.dump([x_2d, x_1d, x_1d_lefttime, y_1d], f)
+    pickle.dump([x_2d, x_1d, elapsed_time, left_time, y_1d], f)
     f.close()
 
 prepare_datasets()
