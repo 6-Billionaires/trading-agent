@@ -167,7 +167,7 @@ def train_per_each_episode(t,d,use_fake_data=False):
 
     print('start to train.')
     model.fit({'x1': x1, 'x2': x2}, y, epochs=5, verbose=2, batch_size=64, callbacks=callbacks)
-
+    model.save_weights('final_weight.h5f')
 
 # train_using_fake_data()
 d = 'C:\\Git\\trading-agent\\buy_signal_agent\\verystrongjoe'
