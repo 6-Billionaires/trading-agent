@@ -6,3 +6,5 @@ gipython
 venv/
 *.h5
 .log
+buy_order_agent/seungho/pickles
+buy_order_agent/seungho/pickles_max_secs
