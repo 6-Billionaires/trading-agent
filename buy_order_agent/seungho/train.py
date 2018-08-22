@@ -7,6 +7,7 @@ import pickle
 from rl.callbacks import FileLogger, ModelIntervalCheckpoint
 from gym_core import ioutil  # file i/o to load stock csv files
 import random
+from core import util
 
 """
 build q newtork using cnn and dense layer
@@ -14,25 +15,52 @@ build q newtork using cnn and dense layer
 
 
 def build_network(feature):
-    input_order = Input(shape=(feature, 120), name="x1")
-    order_price = Input(shape=(120, 1), name="x2")
+    """
+    here, seungho!!
 
-    h_conv1d_2 = Conv1D(filters=16, kernel_size=3, activation='relu')(input_order)
-    h_conv1d_4 = MaxPooling1D(pool_size=2, strides=None, padding='valid')(h_conv1d_2)
+    you need to use functions from core.util package
+
+    first, call get_maxlen_of_binary_array(max_seconds) to find out max length of input size.
+    seconds, below function make input data for remaining seconds directly feeding into model
+        def seconds_to_binary_array(seconds, max_len):
+
+    :param feature:
+    :return:
+    """
+    input_order = Input(shape=(10, 2, 120, 2), name="x1")
+    input_tranx = Input(shape=(120, 11), name="x2")
+    input_remained_secs =  Input(shape=(7), name="x3") # update. remained seconds up to 180 seconds ??
+
+    h_conv1d_2 = Conv1D(filters=16, kernel_size=3, activation='relu')(input_tranx)
+    h_conv1d_4 = MaxPooling1D(pool_size=3, strides=None, padding='valid')(h_conv1d_2)
     h_conv1d_6 = Conv1D(filters=32, kernel_size=3, activation='relu')(h_conv1d_4)
-    h_conv1d_8 = MaxPooling1D(pool_size=1, strides=None, padding='valid')(h_conv1d_6)
-    # 풀사이즈를 줄이니까 에러 통과
+    h_conv1d_8 = MaxPooling1D(pool_size=2, strides=None, padding='valid')(h_conv1d_6)
 
-    o_concat1d_1 = Concatenate(axis=1)([h_conv1d_8, order_price])
-    o_concat1d_2 = Flatten()(o_concat1d_1)
+    h_conv3d_1_1 = Conv3D(filters=16, kernel_size=(2, 1, 5), activation='relu')(input_order)
+    h_conv3d_1_2 = Conv3D(filters=16, kernel_size=(1, 2, 5), activation='relu')(input_order)
 
-    output_1 = Dense(1, activation='linear')(o_concat1d_2)
-    output_2 = Dense(1, activation='linear')(output_1)
+    h_conv3d_1_3 = MaxPooling3D(pool_size=(1, 1, 3))(h_conv3d_1_1)
+    h_conv3d_1_4 = MaxPooling3D(pool_size=(1, 1, 3))(h_conv3d_1_2)
 
-    model = Model([input_order, order_price], output_2)
+    h_conv3d_1_5 = Conv3D(filters=32, kernel_size=(1, 2, 5), activation='relu')(h_conv3d_1_3)
+    h_conv3d_1_6 = Conv3D(filters=32, kernel_size=(2, 1, 5), activation='relu')(h_conv3d_1_4)
+
+    h_conv3d_1_7 = MaxPooling3D(pool_size=(1, 1, 5))(h_conv3d_1_5)
+    h_conv3d_1_8 = MaxPooling3D(pool_size=(1, 1, 5))(h_conv3d_1_6)
+    o_conv3d_1 = Concatenate(axis=-1)([h_conv3d_1_7, h_conv3d_1_8])
+
+    o_conv3d_1_1 = Flatten()(o_conv3d_1)
+
+    i_concatenated_all_h_1 = Flatten()(h_conv1d_8)
+
+    i_concatenated_all_h = Concatenate()([i_concatenated_all_h_1, o_conv3d_1_1, input_remained_secs]) # update. remaining seconds will be concatenated with original data
+
+    i_concatenated_all_h = Dense(10, activation='linear')(i_concatenated_all_h)
+    output = Dense(1, activation='linear')(i_concatenated_all_h)
+
+    model = Model([input_order, input_tranx,input_remained_secs], output) # update. remaining seconds will be added into input parameters
 
     return model
-
 
 def get_sample_data(feature=5, count=2):
     ld_x1 = []
