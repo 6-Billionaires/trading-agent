@@ -9,6 +9,7 @@ from keras.layers import Input, Dense, Conv3D, Conv1D, Dense, Flatten, MaxPoolin
 import numpy as np
 import pickle
 from rl.callbacks import FileLogger, ModelIntervalCheckpoint
+from core import util
 
 """
 build q newtork using cnn and dense layer
@@ -16,7 +17,8 @@ build q newtork using cnn and dense layer
 def build_network():
     input_order = Input(shape=(10, 2, 120, 2), name="x1")
     input_tranx = Input(shape=(120, 11), name="x2")
-    input_lefttime = Input(shape=(120, 1), name="x3")
+    input_left_time = Input(shape=(120, 1), name="x3")
+    elapsed_time = Input(shape=(120, 1), name="x4")
 
     h_conv1d_2 = Conv1D(filters=16, kernel_size=3, activation='relu')(input_tranx)
     h_conv1d_4 = MaxPooling1D(pool_size=3, strides=None, padding='valid')(h_conv1d_2)
@@ -39,11 +41,11 @@ def build_network():
     o_conv3d_1_1 = Flatten()(o_conv3d_1)
 
     i_concatenated_all_h_1 = Flatten()(h_conv1d_8)
-    i_concatenated_all_h = Concatenate()([i_concatenated_all_h_1, o_conv3d_1_1, Flatten()(input_lefttime)])
+    i_concatenated_all_h = Concatenate()([i_concatenated_all_h_1, o_conv3d_1_1, Flatten()(input_left_time), Flatten()(elapsed_time)])
 
     output = Dense(1, activation='linear')(i_concatenated_all_h)
 
-    model = Model([input_order, input_tranx, input_lefttime], output)
+    model = Model([input_order, input_tranx, input_left_time, elapsed_time], output)
 
     return model
 
@@ -82,6 +84,7 @@ def get_real_data(ticker='001470', date='20180420', train_all_periods=None):
     x1_dimension_info = (10, 2, 120, 2)  # 60 --> 120 (@ilzoo)
     x2_dimension_info = (120, 11)
     x3_dimension_info = (120, 1)
+    x4_dimension_info = (120, 1)
     #y1_dimension_info = (120,)
 
     pickle_name = current_ticker + '_' + current_date + '.pickle'
@@ -95,11 +98,13 @@ def get_real_data(ticker='001470', date='20180420', train_all_periods=None):
     x1 = np.zeros([10,2,120,2])
     x2 = np.zeros([120,11])
     x3 = np.zeros([120, 1])
+    x4 = np.zeros([120, 1])
     #y1 = np.zeros([120])
 
     d_x1 = []
     d_x2 = []
     d_x3 = []
+    d_x4 = []
     d_y1 = []
 
     for idx_second in range(train_all_periods):
@@ -136,9 +141,14 @@ def get_real_data(ticker='001470', date='20180420', train_all_periods=None):
             x3[second, 0] = d[2][idx_second]
         d_x3.append(x3)
 
+        x4 = np.zeros([120, 1])
+        for second in range(x4_dimension_info[0]):  # 120 : seconds
+            x4[second, 0] = d[2][idx_second]
+        d_x4.append(x4)
+
         # for second in range(y1_dimension_info[0]): #60 : seconds
         d_y1.append(d[3][idx_second])
-    return np.asarray(d_x1), np.asarray(d_x2), np.asarray(d_x3), np.asarray(d_y1)
+    return np.asarray(d_x1), np.asarray(d_x2), np.asarray(d_x3), np.asarray(d_x4), np.asarray(d_y1)
 
 
 
@@ -155,14 +165,15 @@ def train_using_real_data(d):
 def train_per_each_episode(t,d,use_fake_data=False):
 
     if use_fake_data:
-        x1, x2, x3, y = get_sample_data(10)
+        x1, x2, x3, x4, y = get_sample_data(10)
     else:
         current_date = d
         current_ticker = t
 
         # x1, x2, y = get_real_data(current_date,current_ticker,100)
         #if you give second as None, it will read every seconds in file.
-        x1, x2, x3, y = get_real_data(current_ticker, current_date, train_all_periods=130)
+        #x1, x2, x3, x4, y = get_real_data(current_ticker, current_date, train_all_periods=130)
+        x1, x2, x3, x4, y = get_real_data(current_ticker, current_date)
 
     model = build_network()
     model.compile(optimizer='adam', loss='mse', metrics=['accuracy'])
@@ -179,7 +190,7 @@ def train_per_each_episode(t,d,use_fake_data=False):
     callbacks += [FileLogger(log_filename, interval=100)]
 
     print('start to train.')
-    model.fit({'x1': x1, 'x2': x2, 'x3': x3}, y, epochs=5, verbose=2, batch_size=64, callbacks=callbacks)
+    model.fit({'x1': x1, 'x2': x2, 'x3': x3, 'x4': x4}, y, epochs=5, verbose=2, batch_size=64, callbacks=callbacks)
 
 
 # train_using_fake_data()
