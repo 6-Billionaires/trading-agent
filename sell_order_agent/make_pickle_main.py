@@ -72,7 +72,7 @@ def prepare_dataset(d, max_secs):
             x_1d_left_time.append(left_secs)
             # 시그널을 받고 나서 경과한 시간
             x_1d_elapsed_time.append(elapsed_secs)
-            x_1d_second(s)
+            x_1d_second.append(s)
             #x_2d.append(first_order)
             #x_1d.append(first_quote)
             y_1d.append(price - price_at_signal)
