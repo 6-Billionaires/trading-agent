@@ -14,7 +14,7 @@ build q newtork using cnn and dense layer
 """
 
 
-def build_network(feature):
+def build_network():
     """
     here, seungho!!
 
@@ -27,9 +27,9 @@ def build_network(feature):
     :param feature:
     :return:
     """
-    input_order = Input(shape=(10, 2, 120, 2), name="x1")
-    input_tranx = Input(shape=(120, 11), name="x2")
-    input_remained_secs =  Input(shape=(7), name="x3") # update. remained seconds up to 180 seconds ??
+    input_order = Input(shape=(10, 2, 90, 2), name="x1")
+    input_tranx = Input(shape=(90, 11), name="x2")
+    input_remained_secs = Input(shape=(7), name="x3") # update. remained seconds up to 180 seconds ??
 
     h_conv1d_2 = Conv1D(filters=16, kernel_size=3, activation='relu')(input_tranx)
     h_conv1d_4 = MaxPooling1D(pool_size=3, strides=None, padding='valid')(h_conv1d_2)
@@ -62,18 +62,19 @@ def build_network(feature):
 
     return model
 
+
 def get_sample_data(feature=5, count=2):
     ld_x1 = []
     ld_x2 = []
     ld_y = []
 
     for i in range(count):
-        d1 = np.arange(0, feature * 120)
+        d1 = np.arange(0, feature * 90)
         ld_x1.append(d1)
 
         # y = np.array(y, dtype='int')
-        d2 = np.arange(120, dtype='int')
-        for j in range(120):
+        d2 = np.arange(90, dtype='int')
+        for j in range(90):
             d2[j] = random.randint(-10, 10)
 
         encoded = to_categorical(d2)
@@ -81,7 +82,7 @@ def get_sample_data(feature=5, count=2):
         ld_x2.append(encoded)
 
     for j in range(count):
-        d1 = np.arange(120)
+        d1 = np.arange(90)
         ld_y.append(d1)
 
     # print(ld_x1, ld_x2, ld_y)
@@ -94,33 +95,35 @@ def get_real_data(ticker='001470', date='20180420', train_all_periods=None):
     current_ticker = ticker
     current_date = date
 
-    x1_dimension_info = (10, 2, 120, 2)  # 60 --> 120 (@ilzoo)
-    x2_dimension_info = (120, 11)
-    y1_dimension_info = (120,)
+    x1_dimension_info = (10, 2, 90, 2)  # 60 --> 90 (@ilzoo)
+    x2_dimension_info = (90, 11)
+    y1_dimension_info = (90,)
 
     pickle_name = current_ticker + '_' + current_date + '.pickle'
-    f = open(pickle_name, 'rb')
-    d = pickle.load(f)  # d[data_type][second] : mapobject!!
+    f = open(directory + '/' + pickle_name, 'rb')
+    data = pickle.load(f)  # d[data_type][second] : mapobject!!
     f.close()
 
     if train_all_periods is None:
-        train_all_periods = len(d[0])
+        train_all_periods = len(data[0])
 
-    x1 = np.zeros([10, 2, 120, 2])
-    x2 = np.zeros([120, 11])
-    y1 = np.zeros([120])
+    x1 = np.zeros([10, 2, 90, 2])
+    x2 = np.zeros([90, 11])
+    x3 = np.zeros([90])
+    y1 = np.zeros([90])
 
     d_x1 = []
     d_x2 = []
+    d_x3 = []
     d_y1 = []
 
     for idx_second in range(train_all_periods):
-        if idx_second + 120 > train_all_periods:
+        if idx_second + 90 > train_all_periods:
             break
-        np.zeros([10,2,120,2])
+        np.zeros([10, 2, 90, 2])
         for row in range(x1_dimension_info[0]):  #10 : row
             for column in range(x1_dimension_info[1]):  #2 : column
-                for second in range(x1_dimension_info[2]):  #120 : seconds
+                for second in range(x1_dimension_info[2]):  #90 : seconds
                     for channel in range(x1_dimension_info[3]):  #2 : channel
                         key = ''
                         if channel == 1:
@@ -133,46 +136,47 @@ def get_real_data(ticker='001470', date='20180420', train_all_periods=None):
                         else:
                             value = 'Order'
 
-                        x1[row][column][second][channel] = d[0][idx_second+second][key+value+str(row+1)]
+                        x1[row][column][second][channel] = data[0][idx_second+second][key+value+str(row+1)]
         d_x1.append(x1)
 
-        np.zeros([120,11])
-        for second in range(x2_dimension_info[0]):  #120 : seconds
+        np.zeros([90, 11])
+        for second in range(x2_dimension_info[0]):  #90 : seconds
             for feature in range(x2_dimension_info[1]):  #11 :features
-                x2[second, feature] = d[1][idx_second+second][feature]
+                x2[second, feature] = data[1][idx_second+second][feature]
         d_x2.append(x2)
+        d_x3.append(data[2][idx_second])
 
         # for second in range(y1_dimension_info[0]): #60 : seconds
-        d_y1.append(d[2][idx_second])
+        d_y1.append(data[3][idx_second])
 
-    return np.asarray(d_x1), np.asarray(d_x2), np.asarray(d_y1)
+    return np.asarray(d_x1), np.asarray(d_x2), np.asarray(d_x3), np.asarray(d_y1)
 
 
 def train_using_fake_data():
     train_per_each_episode('', '', True)
 
 
-def train_using_real_data(d):
-    l = ioutil.load_ticker_yyyymmdd_list_from_directory(d)
-    for (t,d) in l:
-        print('ticker {}, yyyymmdd {} is started for training!'.format(t,d))
-        train_per_each_episode(t,d)
-        print('ticker {}, yyyymmdd {} is finished for training!'.format(t,d))
+def train_using_real_data(directory):
+    load = ioutil.load_ticker_yyyymmdd_list_from_directory(directory)
+    for (ticker, date) in load:
+        print('ticker {}, yyyymmdd {} is started for training!'.format(ticker, date))
+        train_per_each_episode(ticker, date)
+        print('ticker {}, yyyymmdd {} is finished for training!'.format(ticker, date))
 
 
 def train_per_each_episode(ticker, date, use_fake_data=False):
 
     if use_fake_data:
-        x1, x2, y, feature = get_sample_data(10)
+        x1, x2, x_min_secs, y = get_sample_data(10)
     else:
         current_ticker = ticker
         current_date = date
 
         # x1, x2, y = get_real_data(current_date,current_ticker,100)
         # if you give second as None, it will read every seconds in file.
-        x1, x2, y, feature = get_real_data(current_ticker, current_date, train_all_periods=120)
+        x1, x2, x3, y = get_real_data(current_ticker, current_date, train_all_periods=90)
 
-    model = build_network(feature)
+    model = build_network()
     model.compile(optimizer='adam', loss='mse', metrics=['accuracy'])
     model.summary()
 
@@ -187,9 +191,9 @@ def train_per_each_episode(ticker, date, use_fake_data=False):
     callbacks += [FileLogger(log_filename, interval=100)]
 
     print('start to train.')
-    model.fit({'x1': x1, 'x2': x2}, y, epochs=5, verbose=2, batch_size=64, callbacks=callbacks)
+    model.fit({'x1': x1, 'x2': x2, 'x3': x3}, y, epochs=5, verbose=2, batch_size=64, callbacks=callbacks)
 
 
-train_using_fake_data()
-d = os.path.abspath(ioutil.make_dir(os.path.dirname(__file__), 'pickles'))
-# train_using_real_data(d)
+# train_using_fake_data()
+directory = os.path.abspath(ioutil.make_dir(os.path.dirname(__file__), 'pickles_min_price'))
+train_using_real_data(directory)

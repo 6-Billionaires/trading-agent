@@ -23,6 +23,7 @@ def prepare_dataset(d, max_secs):
     c_end = datetime.datetime(int(current_date[0:4]), int(current_date[4:6]), int(current_date[6:8]), 15, 20)
     c_rng_timestamp = pd.date_range(start=c_start, end=c_end, freq='S')
 
+    x_time = []
     x_2d = []
     x_1d = []
     x_min_secs = []
@@ -71,6 +72,7 @@ def prepare_dataset(d, max_secs):
         if len(min_price_list) >= max_secs:
             price_at_signal = price_at_signal_list.pop(0)
             time_at_signal = time_at_signal_list.pop(0)
+            x_time.append(time_at_signal)
             x_min_secs.append(time_at_min_price_list.pop(0) - time_at_signal)
             y_1d.append(price_at_signal - min_price_list.pop(0))
 
@@ -78,12 +80,16 @@ def prepare_dataset(d, max_secs):
     for index in enumerate(price_at_signal_list):
         price_at_signal = price_at_signal_list.pop(0)
         time_at_signal = time_at_signal_list.pop(0)
+        x_time.append(time_at_signal)
         x_min_secs.append(time_at_min_price_list.pop(0) - time_at_signal)
         y_1d.append(min_price_list.pop(0) - price_at_signal)
 
     pickle_name = current_date + '_' + current_ticker + '.pickle'
-    f = open('./pickles_min_price/'+pickle_name, 'wb')
-    pickle.dump([x_2d, x_1d, x_min_secs, y_1d], f)
+    # f = open('./pickles_min_price/'+pickle_name, 'wb')
+    # pickle.dump([x_2d, x_1d, x_min_secs, y_1d], f)
+    f = open('./pickles_min_price_with_time/' + pickle_name, 'wb')
+    pickle.dump([x_time, x_min_secs, y_1d], f)
+
     f.close()
 
 
