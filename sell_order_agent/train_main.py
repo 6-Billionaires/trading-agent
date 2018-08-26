@@ -14,11 +14,11 @@ from core import util
 """
 build q newtork using cnn and dense layer
 """
-def build_network():
+def build_network(max_len):
     input_order = Input(shape=(10, 2, 120, 2), name="x1")
     input_tranx = Input(shape=(120, 11), name="x2")
-    input_left_time = Input(shape=(120, 1), name="x3")
-    elapsed_time = Input(shape=(120, 1), name="x4")
+    input_left_time = Input(shape=(120, max_len), name="x3")
+    elapsed_time = Input(shape=(120, max_len), name="x4")
 
     h_conv1d_2 = Conv1D(filters=16, kernel_size=3, activation='relu')(input_tranx)
     h_conv1d_4 = MaxPooling1D(pool_size=3, strides=None, padding='valid')(h_conv1d_2)
@@ -76,15 +76,16 @@ def get_sample_data(count):
 
     return np.asarray(ld_x1), np.asarray(ld_x2), np.asarray(ld_y)
 
-def get_real_data(ticker='001470', date='20180420', train_all_periods=None):
-
+def get_real_data(ticker, date, max_len, train_all_periods=None):
+    l = ioutil.load_data_from_directory('0')
+    
     current_ticker = ticker
     current_date = date
 
     x1_dimension_info = (10, 2, 120, 2)  # 60 --> 120 (@ilzoo)
     x2_dimension_info = (120, 11)
-    x3_dimension_info = (120, 1)
-    x4_dimension_info = (120, 1)
+    x3_dimension_info = (120, max_len)
+    x4_dimension_info = (120, max_len)
     #y1_dimension_info = (120,)
 
     pickle_name = current_ticker + '_' + current_date + '.pickle'
@@ -94,12 +95,6 @@ def get_real_data(ticker='001470', date='20180420', train_all_periods=None):
 
     if train_all_periods is None:
         train_all_periods = len(d[0])
-
-    x1 = np.zeros([10,2,120,2])
-    x2 = np.zeros([120,11])
-    x3 = np.zeros([120, 1])
-    x4 = np.zeros([120, 1])
-    #y1 = np.zeros([120])
 
     d_x1 = []
     d_x2 = []
@@ -133,17 +128,23 @@ def get_real_data(ticker='001470', date='20180420', train_all_periods=None):
         x2 = np.zeros([120,11])
         for second in range(x2_dimension_info[0]):  #120 : seconds
             for feature in range(x2_dimension_info[1]):  #11 :features
-                x2[second, feature] = d[1][idx_second+second][feature]
+                x2[second, feature] = d[0][idx_second+second][feature]
         d_x2.append(x2)
 
-        x3 = np.zeros([120, 1])
+        x3 = np.zeros([120, max_len])
         for second in range(x3_dimension_info[0]):  # 120 : seconds
-            x3[second, 0] = d[2][idx_second]
+            binarySecond = util.seconds_to_binary_array(d[1][idx_second], max_len)
+            for feature in range(x3_dimension_info[1]):  # max_len :features
+                x3[second] = binarySecond[feature]
+
         d_x3.append(x3)
 
-        x4 = np.zeros([120, 1])
+        x4 = np.zeros([120, max_len])
         for second in range(x4_dimension_info[0]):  # 120 : seconds
-            x4[second, 0] = d[2][idx_second]
+            binarySecond = util.seconds_to_binary_array(d[2][idx_second], max_len)
+            for feature in range(x4_dimension_info[1]):  # max_len :features
+                x4[second] = binarySecond[feature]
+
         d_x4.append(x4)
 
         # for second in range(y1_dimension_info[0]): #60 : seconds
@@ -155,14 +156,14 @@ def get_real_data(ticker='001470', date='20180420', train_all_periods=None):
 def train_using_fake_data():
     train_per_each_episode('','',True)
 
-def train_using_real_data(d):
+def train_using_real_data(d, max_len):
     l = ioutil.load_ticker_yyyymmdd_list_from_directory(d)
     for (t,d) in l:
         print('ticker {}, yyyymmdd {} is started for training!'.format(t,d))
         train_per_each_episode(t,d)
         print('ticker {}, yyyymmdd {} is finished for training!'.format(t,d))
 
-def train_per_each_episode(t,d,use_fake_data=False):
+def train_per_each_episode(t,d, max_len,use_fake_data=False):
 
     if use_fake_data:
         x1, x2, x3, x4, y = get_sample_data(10)
@@ -173,9 +174,9 @@ def train_per_each_episode(t,d,use_fake_data=False):
         # x1, x2, y = get_real_data(current_date,current_ticker,100)
         #if you give second as None, it will read every seconds in file.
         #x1, x2, x3, x4, y = get_real_data(current_ticker, current_date, train_all_periods=130)
-        x1, x2, x3, x4, y = get_real_data(current_ticker, current_date)
+        x1, x2, x3, x4, y = get_real_data(current_ticker, current_date, max_len)
 
-    model = build_network()
+    model = build_network(max_len)
     model.compile(optimizer='adam', loss='mse', metrics=['accuracy'])
     model.summary()
 
@@ -195,4 +196,5 @@ def train_per_each_episode(t,d,use_fake_data=False):
 
 # train_using_fake_data()
 d = os.path.abspath(ioutil.make_dir(os.path.dirname(__file__), 'pickles'))
-train_using_real_data(d)
+max_len = util.get_maxlen_of_binary_array(120)
+train_using_real_data(d, max_len)
