@@ -6,10 +6,9 @@ import pandas as pd
 import datetime
 import numpy as np
 import pickle
-import random
 
 
-def prepare_datasets(max_secs=60):
+def prepare_datasets(max_secs=90):
     l = ioutil.load_data_from_dicrectory('0')
 
     for li in l:
@@ -24,20 +23,26 @@ def prepare_dataset(d, max_secs):
     c_end = datetime.datetime(int(current_date[0:4]), int(current_date[4:6]), int(current_date[6:8]), 15, 20)
     c_rng_timestamp = pd.date_range(start=c_start, end=c_end, freq='S')
 
-    x_1d_elapsed_secs = []
+    x_time = []
     x_2d = []
     x_1d = []
+    x_min_secs = []
     y_1d = []
 
-    first_quote = d['quote'].loc[c_rng_timestamp[0]]
-    first_order = d['order'].loc[c_rng_timestamp[0]]
+    price_at_signal_list = []
+    time_at_signal_list = []
+    time_at_min_price_list = []
+    min_price_list = []
+
+    # for i in range(max_secs):
+    #     price_at_signal_list.append(d['quote'].loc[c_rng_timestamp[0]]['Price(last excuted)'])
+
+    # first_quote = d['quote'].loc[c_rng_timestamp[0]]
+    # first_order = d['order'].loc[c_rng_timestamp[0]]
 
     for i, s in enumerate(c_rng_timestamp):
         if i % 3600 == 0:
             print(current_date, current_ticker, s)
-
-        # SSA 에서 시그널을 받고 실제 주문을 하는데 까지 걸린 시간을 랜덤 생성.
-        elapsed_secs = random.randint(0, max_secs)
 
         try:
             first_quote = d['quote'].loc[s]
@@ -45,18 +50,46 @@ def prepare_dataset(d, max_secs):
         except KeyError as e:
             print('찾을 수 없는 key 값이 있습니다.', current_ticker, e)
 
-        # calculate Y
-        price_at_signal = d['quote'].loc[c_rng_timestamp[i-elapsed_secs]]['Price(last excuted)']
-        price = d['quote'].loc[c_rng_timestamp[i]]['Price(last excuted)']
+        # 현재 가격 확인 후
+        price_at_current = d['quote'].loc[c_rng_timestamp[i]]['Price(last excuted)']
 
-        x_1d_elapsed_secs.append(elapsed_secs)
+        # max_secs 동안의 최저값을 갱신함
+        for index, min_price in enumerate(min_price_list):
+            if min_price > price_at_current:
+                min_price_list[index] = price_at_current
+                time_at_min_price_list[index] = s
+
+        # 신규 데이터 추가
+        price_at_signal_list.append(price_at_current)
+        time_at_signal_list.append(s)
+        time_at_min_price_list.append(s)
+        min_price_list.append(price_at_current)
+
         x_2d.append(first_order)
         x_1d.append(first_quote)
-        y_1d.append(price - price_at_signal)
+
+        # max_sec 초과한 데이터는 적재 시작
+        if len(min_price_list) >= max_secs:
+            price_at_signal = price_at_signal_list.pop(0)
+            time_at_signal = time_at_signal_list.pop(0)
+            x_time.append(time_at_signal)
+            x_min_secs.append(time_at_min_price_list.pop(0) - time_at_signal)
+            y_1d.append(price_at_signal - min_price_list.pop(0))
+
+    # 남은 데이터 적재
+    for index in enumerate(price_at_signal_list):
+        price_at_signal = price_at_signal_list.pop(0)
+        time_at_signal = time_at_signal_list.pop(0)
+        x_time.append(time_at_signal)
+        x_min_secs.append(time_at_min_price_list.pop(0) - time_at_signal)
+        y_1d.append(min_price_list.pop(0) - price_at_signal)
 
     pickle_name = current_date + '_' + current_ticker + '.pickle'
-    f = open('./pickles/'+pickle_name, 'wb')
-    pickle.dump([x_2d, x_1d, x_1d_elapsed_secs, y_1d], f)
+    # f = open('./pickles_min_price/'+pickle_name, 'wb')
+    # pickle.dump([x_2d, x_1d, x_min_secs, y_1d], f)
+    f = open('./pickles_min_price_with_time/' + pickle_name, 'wb')
+    pickle.dump([x_time, x_min_secs, y_1d], f)
+
     f.close()
 
 
