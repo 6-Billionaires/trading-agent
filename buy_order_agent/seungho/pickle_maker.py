@@ -9,7 +9,7 @@ import pickle
 
 
 def prepare_datasets(max_secs=90):
-    l = ioutil.load_data_from_dicrectory('0')
+    l = ioutil.load_data_from_directory('0')
 
     for li in l:
         prepare_dataset(li, max_secs)
@@ -85,10 +85,12 @@ def prepare_dataset(d, max_secs):
         y_1d.append(min_price_list.pop(0) - price_at_signal)
 
     pickle_name = current_date + '_' + current_ticker + '.pickle'
-    # f = open('./pickles_min_price/'+pickle_name, 'wb')
-    # pickle.dump([x_2d, x_1d, x_min_secs, y_1d], f)
-    f = open('./pickles_min_price_with_time/' + pickle_name, 'wb')
-    pickle.dump([x_time, x_min_secs, y_1d], f)
+    f = open('./pickles/'+pickle_name, 'wb')
+    pickle.dump([x_2d, x_1d, x_min_secs, y_1d], f)
+
+    # 시간만 저장하도록 변경하는 코드
+    # f = open('./pickles_min_price_with_time/' + pickle_name, 'wb')
+    # pickle.dump([x_time, x_min_secs, y_1d], f)
 
     f.close()
 

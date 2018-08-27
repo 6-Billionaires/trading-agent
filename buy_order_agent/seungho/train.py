@@ -195,5 +195,5 @@ def train_per_each_episode(ticker, date, use_fake_data=False):
 
 
 # train_using_fake_data()
-directory = os.path.abspath(ioutil.make_dir(os.path.dirname(__file__), 'pickles_min_price'))
+directory = os.path.abspath(ioutil.make_dir(os.path.dirname(__file__), 'pickles'))
 train_using_real_data(directory)
