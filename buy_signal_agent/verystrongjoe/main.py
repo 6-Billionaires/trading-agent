@@ -22,7 +22,8 @@ def prepare_datasets(secs=120):
         max_n_episode : you can give maximum count to read file for quick test!!
     :return:
     """
-    l = ioutil.load_data_from_directory('0', max_n_episode=1) # episode type
+    # l = ioutil.load_data_from_directory('0', max_n_episode=1) # episode type
+    l = ioutil.load_data_from_directory('0')  # episode type
     for li in l:
         prepare_dataset(li, secs)
 
