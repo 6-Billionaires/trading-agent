@@ -148,7 +148,9 @@ def get_real_data(ticker='001470', date='20180420', train_all_periods=None):
         max_secs = 90
         remained_time = max_secs - elapsed_time.total_seconds()
         binary = '{0:07b}'.format(int(remained_time))
-        d_x3.append(binary)
+        binary_array = [int(d) for d in str(binary)]
+        # d_x3.append(binary) # 그냥 이진수로 넣어도 안되고
+        d_x3.append(binary_array) # 이진수를 배열로 넣어도 안되고...
 
         # for second in range(y1_dimension_info[0]): #60 : seconds
         d_y1.append(data[3][idx_second])
