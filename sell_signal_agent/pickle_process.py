@@ -11,8 +11,8 @@ newPath = os.path.dirname(os.path.abspath(os.path.dirname(os.path.abspath(os.pat
 sys.path.append(newPath)
 
 def prepare_datasets(max_secs=120):
-    # l = ioutil.load_data_from_dicrectory('0')
-    l = ioutil.load_data_from_directory('0', max_n_episode=1)
+    l = ioutil.load_data_from_directory('0')
+    # l = ioutil.load_data_from_directory('0', max_n_episode=1)
 
     for li in l:
         prepare_dataset(li, max_secs)
