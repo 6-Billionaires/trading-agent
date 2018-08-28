@@ -144,7 +144,11 @@ def get_real_data(ticker='001470', date='20180420', train_all_periods=None):
             for feature in range(x2_dimension_info[1]):  #11 :features
                 x2[second, feature] = data[1][idx_second+second][feature]
         d_x2.append(x2)
-        d_x3.append(data[2][idx_second])
+        elapsed_time = data[2][idx_second]
+        max_secs = 90
+        remained_time = max_secs - elapsed_time.total_seconds()
+        binary = '{0:07b}'.format(int(remained_time))
+        d_x3.append(binary)
 
         # for second in range(y1_dimension_info[0]): #60 : seconds
         d_y1.append(data[3][idx_second])
