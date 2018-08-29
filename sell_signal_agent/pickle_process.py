@@ -5,10 +5,13 @@ import pandas as pd
 import datetime
 import pickle
 import random
-from gym_core import ioutil
 
 newPath = os.path.dirname(os.path.abspath(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))) + '\\trading-gym'
 sys.path.append(newPath)
+
+from gym_core import ioutil
+
+
 
 def prepare_datasets(max_secs=120):
     l = ioutil.load_data_from_directory('0')
