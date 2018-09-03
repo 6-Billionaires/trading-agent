@@ -30,6 +30,7 @@ def prepare_dataset(d, max_secs):
 
     #x_2d = []
     #x_1d = []
+    second = []
     x_1d_second = []
     x_1d_left_time = []
     x_1d_elapsed_time = []
@@ -52,7 +53,7 @@ def prepare_dataset(d, max_secs):
             continue
 
         # elapsed_secs : SSA 에서 시그널을 받고 경과한 시간
-        for elapsed_secs in (0, left_secs):
+        for elapsed_secs in range(0, left_secs):
             # 장 시작보다 전에 시그널이 왔으면 skip
             if i < bsa_elapsed_secs + elapsed_secs:
                 continue
@@ -69,17 +70,20 @@ def prepare_dataset(d, max_secs):
 
             # SOA 가 파는 시점의 X, Y 데이터
             # 시그널 받은 시점의 남은 시간
-            x_1d_left_time.append(left_secs)
+            #x_1d_left_time.append(left_secs)
             # 시그널을 받고 나서 경과한 시간
-            x_1d_elapsed_time.append(elapsed_secs)
-            x_1d_second.append(s)
+            #x_1d_elapsed_time.append(elapsed_secs)
+            #x_1d_second.append(s)
             #x_2d.append(first_order)
             #x_1d.append(first_quote)
-            y_1d.append(price - price_at_signal)
+            #y_1d.append(price - price_at_signal)
+
+            second.append([s, left_secs, elapsed_secs, price - price_at_signal])
 
     pickle_name = current_date + '_' + current_ticker + '.pickle'
     f = open('./pickles/'+pickle_name, 'wb')
-    pickle.dump([x_1d_second, x_1d_left_time, x_1d_elapsed_time, y_1d], f)
+    #pickle.dump([x_1d_second, x_1d_left_time, x_1d_elapsed_time, y_1d], f)
+    pickle.dump(second, f)
     f.close()
 
 prepare_datasets()
