@@ -44,8 +44,8 @@ def prepare_dataset(d, max_secs):
         bsa_elapsed_secs = max_secs - left_secs
 
         try:
-            first_quote = d['quote'].loc[s]
-            first_order = d['order'].loc[s]
+            #first_quote = d['quote'].loc[s]
+            #first_order = d['order'].loc[s]
 
             price = d['quote'].loc[c_rng_timestamp[i]]['Price(last excuted)']
         except KeyError as e:
@@ -54,6 +54,10 @@ def prepare_dataset(d, max_secs):
 
         # elapsed_secs : SSA 에서 시그널을 받고 경과한 시간
         for elapsed_secs in range(0, left_secs):
+            # 너무 데이터가 많아서 30%만 저장.
+            if random.random() > 0.3:
+                continue
+
             # 장 시작보다 전에 시그널이 왔으면 skip
             if i < bsa_elapsed_secs + elapsed_secs:
                 continue

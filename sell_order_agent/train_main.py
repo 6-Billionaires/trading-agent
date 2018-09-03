@@ -10,6 +10,7 @@ import numpy as np
 import pickle
 from rl.callbacks import FileLogger, ModelIntervalCheckpoint
 from core import util
+import random
 
 """
 build q newtork using cnn and dense layer
@@ -49,7 +50,7 @@ def build_network(max_len):
 
     return model
 
-def get_real_data(max_len, csv, pickles, train_all_periods=None):
+def get_real_data(max_len, csv, pickles, max_size, train_all_periods=None):
     x1_dimension_info = (10, 2, 120, 2)  # 60 --> 120 (@ilzoo)
     x2_dimension_info = (120, 11)
     x3_dimension_info = (120, max_len)
@@ -62,55 +63,67 @@ def get_real_data(max_len, csv, pickles, train_all_periods=None):
     d_x4 = []
     d_y1 = []
 
-    pickles
+    keys = list(pickles.keys())
 
-    for idx_second in range(train_all_periods):
-        if idx_second + 120 > train_all_periods:
-            break
+    random.shuffle(keys)
 
-        x1 = np.zeros([10,2,120,2])
-        for row in range(x1_dimension_info[0]):  #10 : row
-            for column in range(x1_dimension_info[1]):  #2 : column
-                for second in range(x1_dimension_info[2]):  #120 : seconds
-                    for channel in range(x1_dimension_info[3]):  #2 : channel
-                        key = ''
-                        if channel == 1:
-                            key = 'Buy'
-                        else:
-                            key = 'Sell'
+    for idx in range(0, max_size):
+        for key in keys:
+            if len(pickles[key]) < idx:
+                continue
 
-                        if column  == 0:
-                            value = 'Hoga'
-                        else:
-                            value = 'Order'
+            # index (second) : second - 120 + i
+            #pickles[key][idx][0] - 120
+            # left_secs : 120 초간 동일
+            #pickles[key][idx][1]
+            # elapsed_secs : max(elapsed_secs - 120 + i, 0)
+            #pickles[key][idx][2]
+            # y
+            #pickles[key][idx][3]
 
-                        x1[row][column][second][channel] = pickles[0][idx_second+second][key+value+str(row+1)]
-        d_x1.append(x1)
+            x1 = np.zeros([10,2,120,2])
+            for row in range(x1_dimension_info[0]):  #10 : row
+                for column in range(x1_dimension_info[1]):  #2 : column
+                    for second in range(x1_dimension_info[2]):  #120 : seconds
+                        for channel in range(x1_dimension_info[3]):  #2 : channel
+                            buy_sell = ''
+                            if channel == 1:
+                                buy_sell = 'Buy'
+                            else:
+                                buy_sell = 'Sell'
 
-        x2 = np.zeros([120,11])
-        for second in range(x2_dimension_info[0]):  #120 : seconds
-            for feature in range(x2_dimension_info[1]):  #11 :features
-                x2[second, feature] = pickles[0][idx_second+second][feature]
-        d_x2.append(x2)
+                            if column  == 0:
+                                value = 'Hoga'
+                            else:
+                                value = 'Order'
 
-        x3 = np.zeros([120, max_len])
-        for second in range(x3_dimension_info[0]):  # 120 : seconds
-            binarySecond = util.seconds_to_binary_array(pickles[1][idx_second], max_len)
-            for feature in range(x3_dimension_info[1]):  # max_len :features
-                x3[second] = binarySecond[feature]
+                            x1[row][column][second][channel] = csv[key]['order'].loc[pickles[key][idx][0]-120+second][buy_sell+value+str(row+1)]
+            d_x1.append(x1)
 
-        d_x3.append(x3)
+            x2 = np.zeros([120,11])
+            for second in range(x2_dimension_info[0]):  #120 : seconds
+                for feature in range(x2_dimension_info[1]):  #11 :features
+                    x2[second, feature] = csv[key]['quote'].loc[pickles[key][idx][0]-120+second][feature]
+            d_x2.append(x2)
 
-        x4 = np.zeros([120, max_len])
-        for second in range(x4_dimension_info[0]):  # 120 : seconds
-            binarySecond = util.seconds_to_binary_array(pickles[2][idx_second], max_len)
-            for feature in range(x4_dimension_info[1]):  # max_len :features
-                x4[second] = binarySecond[feature]
+            x3 = np.zeros([120, max_len])
+            for second in range(x3_dimension_info[0]):  # 120 : seconds
+                binarySecond = util.seconds_to_binary_array(pickles[key][idx][1], max_len)
+                for feature in range(x3_dimension_info[1]):  # max_len :features
+                    x3[second] = binarySecond[feature]
 
-        d_x4.append(x4)
+            d_x3.append(x3)
 
-        # for second in range(y1_dimension_info[0]): #60 : seconds
-        d_y1.append(pickles[3][idx_second])
+            x4 = np.zeros([120, max_len])
+            for second in range(x4_dimension_info[0]):  # 120 : seconds
+                binarySecond = util.seconds_to_binary_array(max(pickles[key][idx][2] - 120 + second, 0), max_len)
+                for feature in range(x4_dimension_info[1]):  # max_len :features
+                    x4[second] = binarySecond[feature]
+
+            d_x4.append(x4)
+
+            # for second in range(y1_dimension_info[0]): #60 : seconds
+            d_y1.append(pickles[key][idx][3])
     return np.asarray(d_x1), np.asarray(d_x2), np.asarray(d_x3), np.asarray(d_x4), np.asarray(d_y1)
 
 
@@ -119,18 +132,18 @@ def train_using_fake_data():
     train_per_each_episode('','',True)
 
 def train_using_real_data(d, max_len):
-    # {종목코드 + 일자} : {meta, quote, order}
+    # {일자 + 종목코드} : {meta, quote, order}
     csv = ioutil.load_data_from_directory2('0')
-    # {종목코드 + 일자} : [second, left_time, elapsed_time, y]
-    pickles = ioutil.load_ticker_yyyymmdd_list_from_directory2(d)
-    train_per_each_episode(max_len, csv, pickles)
+    # {일자 + 종목코드} : [second, left_time, elapsed_time, y]
+    pickles, max_size = ioutil.load_ticker_yyyymmdd_list_from_directory2(d)
+    train_per_each_episode(max_len, csv, pickles, max_size)
 
-def train_per_each_episode(max_len, csv, pickles):
+def train_per_each_episode(max_len, csv, pickles, max_size):
 
     # x1, x2, y = get_real_data(current_date,current_ticker,100)
     #if you give second as None, it will read every seconds in file.
     #x1, x2, x3, x4, y = get_real_data(current_ticker, current_date, train_all_periods=130)
-    x1, x2, x3, x4, y = get_real_data(max_len, csv, pickles)
+    x1, x2, x3, x4, y = get_real_data(max_len, csv, pickles, max_size)
 
     model = build_network(max_len)
     model.compile(optimizer='adam', loss='mse', metrics=['accuracy'])
