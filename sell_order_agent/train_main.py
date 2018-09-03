@@ -49,58 +49,20 @@ def build_network(max_len):
 
     return model
 
-def get_sample_data(count):
-    start = 0
-    ld_x1 = []
-    ld_x2 = []
-    ld_y = []
-    d1 = []
-
-    # x1_dimension_info = (10, 2, 120, 2)  # 60 --> 120 (@ilzoo)
-    # x2_dimension_info = (120, 11)
-    # y1_dimension_info = (120,)
-
-    for i in range(count):
-        d1_2 = np.arange(start, start + 2 * 10 * 120 * 2).reshape([10, 2, 120, 2])
-        start += 2 * 10 * 120
-        d2 = np.arange(start, start+11*120).reshape([120, 11])
-        start += 11 * 120
-        ld_x1.append(d1_2)
-
-        # ld_x1.append([d1_1, d1_2])
-        ld_x2.append(d2)
-
-    for j in range(count):
-        d1 = np.arange(start, start + 1)
-        ld_y.append(d1)
-
-    return np.asarray(ld_x1), np.asarray(ld_x2), np.asarray(ld_y)
-
-def get_real_data(ticker, date, max_len, train_all_periods=None):
-    l = ioutil.load_data_from_directory('0')
-    
-    current_ticker = ticker
-    current_date = date
-
+def get_real_data(max_len, csv, pickles, train_all_periods=None):
     x1_dimension_info = (10, 2, 120, 2)  # 60 --> 120 (@ilzoo)
     x2_dimension_info = (120, 11)
     x3_dimension_info = (120, max_len)
     x4_dimension_info = (120, max_len)
     #y1_dimension_info = (120,)
 
-    pickle_name = current_ticker + '_' + current_date + '.pickle'
-    f = open('./pickles/'+pickle_name, 'rb')
-    d = pickle.load(f)  # d[data_type][second] : mapobject!!
-    f.close()
-
-    if train_all_periods is None:
-        train_all_periods = len(d[0])
-
     d_x1 = []
     d_x2 = []
     d_x3 = []
     d_x4 = []
     d_y1 = []
+
+    pickles
 
     for idx_second in range(train_all_periods):
         if idx_second + 120 > train_all_periods:
@@ -122,18 +84,18 @@ def get_real_data(ticker, date, max_len, train_all_periods=None):
                         else:
                             value = 'Order'
 
-                        x1[row][column][second][channel] = d[0][idx_second+second][key+value+str(row+1)]
+                        x1[row][column][second][channel] = pickles[0][idx_second+second][key+value+str(row+1)]
         d_x1.append(x1)
 
         x2 = np.zeros([120,11])
         for second in range(x2_dimension_info[0]):  #120 : seconds
             for feature in range(x2_dimension_info[1]):  #11 :features
-                x2[second, feature] = d[0][idx_second+second][feature]
+                x2[second, feature] = pickles[0][idx_second+second][feature]
         d_x2.append(x2)
 
         x3 = np.zeros([120, max_len])
         for second in range(x3_dimension_info[0]):  # 120 : seconds
-            binarySecond = util.seconds_to_binary_array(d[1][idx_second], max_len)
+            binarySecond = util.seconds_to_binary_array(pickles[1][idx_second], max_len)
             for feature in range(x3_dimension_info[1]):  # max_len :features
                 x3[second] = binarySecond[feature]
 
@@ -141,14 +103,14 @@ def get_real_data(ticker, date, max_len, train_all_periods=None):
 
         x4 = np.zeros([120, max_len])
         for second in range(x4_dimension_info[0]):  # 120 : seconds
-            binarySecond = util.seconds_to_binary_array(d[2][idx_second], max_len)
+            binarySecond = util.seconds_to_binary_array(pickles[2][idx_second], max_len)
             for feature in range(x4_dimension_info[1]):  # max_len :features
                 x4[second] = binarySecond[feature]
 
         d_x4.append(x4)
 
         # for second in range(y1_dimension_info[0]): #60 : seconds
-        d_y1.append(d[3][idx_second])
+        d_y1.append(pickles[3][idx_second])
     return np.asarray(d_x1), np.asarray(d_x2), np.asarray(d_x3), np.asarray(d_x4), np.asarray(d_y1)
 
 
@@ -157,24 +119,18 @@ def train_using_fake_data():
     train_per_each_episode('','',True)
 
 def train_using_real_data(d, max_len):
-    l = ioutil.load_ticker_yyyymmdd_list_from_directory(d)
-    for (t,d) in l:
-        print('ticker {}, yyyymmdd {} is started for training!'.format(t,d))
-        train_per_each_episode(t,d)
-        print('ticker {}, yyyymmdd {} is finished for training!'.format(t,d))
+    # {종목코드 + 일자} : {meta, quote, order}
+    csv = ioutil.load_data_from_directory2('0')
+    # {종목코드 + 일자} : [second, left_time, elapsed_time, y]
+    pickles = ioutil.load_ticker_yyyymmdd_list_from_directory2(d)
+    train_per_each_episode(max_len, csv, pickles)
 
-def train_per_each_episode(t,d, max_len,use_fake_data=False):
+def train_per_each_episode(max_len, csv, pickles):
 
-    if use_fake_data:
-        x1, x2, x3, x4, y = get_sample_data(10)
-    else:
-        current_date = d
-        current_ticker = t
-
-        # x1, x2, y = get_real_data(current_date,current_ticker,100)
-        #if you give second as None, it will read every seconds in file.
-        #x1, x2, x3, x4, y = get_real_data(current_ticker, current_date, train_all_periods=130)
-        x1, x2, x3, x4, y = get_real_data(current_ticker, current_date, max_len)
+    # x1, x2, y = get_real_data(current_date,current_ticker,100)
+    #if you give second as None, it will read every seconds in file.
+    #x1, x2, x3, x4, y = get_real_data(current_ticker, current_date, train_all_periods=130)
+    x1, x2, x3, x4, y = get_real_data(max_len, csv, pickles)
 
     model = build_network(max_len)
     model.compile(optimizer='adam', loss='mse', metrics=['accuracy'])
@@ -195,6 +151,8 @@ def train_per_each_episode(t,d, max_len,use_fake_data=False):
 
 
 # train_using_fake_data()
-d = os.path.abspath(ioutil.make_dir(os.path.dirname(__file__), 'pickles'))
+# picke path
+directory = os.path.abspath(ioutil.make_dir(os.path.dirname(__file__), 'pickles'))
+# max length of bit for 120
 max_len = util.get_maxlen_of_binary_array(120)
-train_using_real_data(d, max_len)
+train_using_real_data(directory, max_len)
