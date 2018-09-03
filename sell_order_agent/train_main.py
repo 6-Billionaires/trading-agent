@@ -50,7 +50,7 @@ def build_network(max_len):
 
     return model
 
-def get_real_data(max_len, csv, pickles, max_size, train_all_periods=None):
+def get_real_data(max_len, csv, pickles, str_episode, end_episode, train_all_periods=None):
     x1_dimension_info = (10, 2, 120, 2)  # 60 --> 120 (@ilzoo)
     x2_dimension_info = (120, 11)
     x3_dimension_info = (120, max_len)
@@ -67,7 +67,10 @@ def get_real_data(max_len, csv, pickles, max_size, train_all_periods=None):
 
     random.shuffle(keys)
 
-    for idx in range(0, max_size):
+    print(str_episode, end_episode, len(pickles), (end_episode - str_episode) * len(pickles))
+
+    for idx in range(str_episode, end_episode):
+        print(idx, '완료')
         for key in keys:
             if len(pickles[key]) < idx:
                 continue
@@ -82,9 +85,10 @@ def get_real_data(max_len, csv, pickles, max_size, train_all_periods=None):
             #pickles[key][idx][3]
 
             x1 = np.zeros([10,2,120,2])
-            for row in range(x1_dimension_info[0]):  #10 : row
-                for column in range(x1_dimension_info[1]):  #2 : column
-                    for second in range(x1_dimension_info[2]):  #120 : seconds
+            for second in range(x1_dimension_info[2]):  # 120 : seconds
+                tmp = csv[key]['order'].loc[pickles[key][idx][0]-120+second]
+                for row in range(x1_dimension_info[0]):  #10 : row
+                    for column in range(x1_dimension_info[1]):  #2 : column
                         for channel in range(x1_dimension_info[3]):  #2 : channel
                             buy_sell = ''
                             if channel == 1:
@@ -97,13 +101,14 @@ def get_real_data(max_len, csv, pickles, max_size, train_all_periods=None):
                             else:
                                 value = 'Order'
 
-                            x1[row][column][second][channel] = csv[key]['order'].loc[pickles[key][idx][0]-120+second][buy_sell+value+str(row+1)]
+                            x1[row][column][second][channel] = tmp[buy_sell+value+str(row+1)]
             d_x1.append(x1)
 
             x2 = np.zeros([120,11])
             for second in range(x2_dimension_info[0]):  #120 : seconds
+                tmp = csv[key]['quote'].loc[pickles[key][idx][0]-120+second]
                 for feature in range(x2_dimension_info[1]):  #11 :features
-                    x2[second, feature] = csv[key]['quote'].loc[pickles[key][idx][0]-120+second][feature]
+                    x2[second, feature] = tmp[feature]
             d_x2.append(x2)
 
             x3 = np.zeros([120, max_len])
@@ -136,14 +141,21 @@ def train_using_real_data(d, max_len):
     csv = ioutil.load_data_from_directory2('0')
     # {일자 + 종목코드} : [second, left_time, elapsed_time, y]
     pickles, max_size = ioutil.load_ticker_yyyymmdd_list_from_directory2(d)
-    train_per_each_episode(max_len, csv, pickles, max_size)
 
-def train_per_each_episode(max_len, csv, pickles, max_size):
+    # 전체를 몇 episode 로 할 것인가
+    max_episode_cnt = 10000
+    num_of_episode = int(max_size / max_episode_cnt)
+
+    for episode in range(0, max_episode_cnt):
+        train_per_each_episode(max_len, csv, pickles, episode * num_of_episode, (episode + 1) * num_of_episode)
+
+def train_per_each_episode(max_len, csv, pickles, str_episode, end_episode):
 
     # x1, x2, y = get_real_data(current_date,current_ticker,100)
     #if you give second as None, it will read every seconds in file.
     #x1, x2, x3, x4, y = get_real_data(current_ticker, current_date, train_all_periods=130)
-    x1, x2, x3, x4, y = get_real_data(max_len, csv, pickles, max_size)
+    x1, x2, x3, x4, y = get_real_data(max_len, csv, pickles, str_episode, end_episode)
+    print('get_real_data complete.')
 
     model = build_network(max_len)
     model.compile(optimizer='adam', loss='mse', metrics=['accuracy'])
@@ -165,7 +177,7 @@ def train_per_each_episode(max_len, csv, pickles, max_size):
 
 # train_using_fake_data()
 # picke path
-directory = os.path.abspath(ioutil.make_dir(os.path.dirname(__file__), 'pickles'))
+directory = os.path.abspath(ioutil.make_dir(os.path.dirname(os.path.abspath(__file__)), 'pickles'))
 # max length of bit for 120
 max_len = util.get_maxlen_of_binary_array(120)
 train_using_real_data(directory, max_len)
