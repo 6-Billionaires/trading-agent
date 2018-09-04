@@ -51,6 +51,20 @@ def build_network(max_len):
     return model
 
 def get_real_data(max_len, csv, pickles, str_episode, end_episode, train_all_periods=None):
+    '''
+    left_secs : SSA 에서 신호를 보낼때 남은 시간
+    elapsed_secs : SSA 에서 신호를 보낸 후 경과 시간
+    최초 pickle 을 생성할 때, left_secs 은 랜덤 생성 하고 elapsed_secs 를 0 ~ left_secs 만큼 생성 했었는데, 데이터가 너무 많아서 랜덤하게 30% 데이터만 생성하도록 하였음. (if random.random() > 0.3: continue)
+    한번 학습 시에 모든 종목에 대해 40개의 pickle 을 뽑아서 1개의 episode 를 구성함. 시간 순서를 random 으로 뽑지는 않음. (종목 수 36 * 피클 데이터 수 40 = 1440)
+    :param max_len:
+    :param csv:
+    :param pickles:
+    :param str_episode:
+    :param end_episode:
+    :param train_all_periods:
+    :return:
+    '''
+
     x1_dimension_info = (10, 2, 120, 2)  # 60 --> 120 (@ilzoo)
     x2_dimension_info = (120, 11)
     x3_dimension_info = (120, max_len)
@@ -70,7 +84,7 @@ def get_real_data(max_len, csv, pickles, str_episode, end_episode, train_all_per
     print(str_episode, end_episode, len(pickles), (end_episode - str_episode) * len(pickles))
 
     for idx in range(str_episode, end_episode):
-        sys.stdout.write("\r%i 완료" % idx)
+        sys.stdout.write("\r%i" % idx + " / %i 완료"  %end_episode)
         sys.stdout.flush()
         for key in keys:
             if len(pickles[key]) < idx:
@@ -130,6 +144,9 @@ def get_real_data(max_len, csv, pickles, str_episode, end_episode, train_all_per
 
             # for second in range(y1_dimension_info[0]): #60 : seconds
             d_y1.append(pickles[key][idx][3])
+
+    sys.stdout.write("\r")
+    sys.stdout.flush()
     return np.asarray(d_x1), np.asarray(d_x2), np.asarray(d_x3), np.asarray(d_x4), np.asarray(d_y1)
 
 
@@ -156,7 +173,9 @@ def train_per_each_episode(max_len, csv, pickles, max_size):
     model.summary()
 
     # {steps} --> this file will be saved whenver it runs every steps as much as {step}
-    checkpoint_weights_filename = 'soa_' + 'fill_params_information_in_here' + '_weights_{step}.h5f'
+    checkpoint_weights_filename = 'soa_weights_{step}.h5f'
+
+    #model.load_weights(filepath = checkpoint_weights_filename.format(step=0), by_name=True, skip_mismatch=True)
 
     # TODO: here we can add hyperparameters information like below!!
     log_filename = 'soa_{}_log.json'.format('fill_params_information_in_here')
@@ -172,9 +191,12 @@ def train_per_each_episode(max_len, csv, pickles, max_size):
     for episode in range(0, max_episode_cnt):
         x1, x2, x3, x4, y = get_real_data(max_len, csv, pickles, episode * num_of_episode, (episode + 1) * num_of_episode)
 
-        print('start to train.')
         model.fit({'x1': x1, 'x2': x2, 'x3': x3, 'x4': x4}, y, epochs=5, verbose=2, batch_size=64, callbacks=callbacks)
 
+        if episode % 10 == 9:
+            model.save_weights(filepath=checkpoint_weights_filename.format(step=episode))
+
+    model.save_weights(filepath=checkpoint_weights_filename.format(step='end'))
 
 # train_using_fake_data()
 # picke path
