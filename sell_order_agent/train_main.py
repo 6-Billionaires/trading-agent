@@ -70,7 +70,8 @@ def get_real_data(max_len, csv, pickles, str_episode, end_episode, train_all_per
     print(str_episode, end_episode, len(pickles), (end_episode - str_episode) * len(pickles))
 
     for idx in range(str_episode, end_episode):
-        print(idx, '완료')
+        sys.stdout.write("\r%i 완료" % idx)
+        sys.stdout.flush()
         for key in keys:
             if len(pickles[key]) < idx:
                 continue
@@ -142,20 +143,13 @@ def train_using_real_data(d, max_len):
     # {일자 + 종목코드} : [second, left_time, elapsed_time, y]
     pickles, max_size = ioutil.load_ticker_yyyymmdd_list_from_directory2(d)
 
-    # 전체를 몇 episode 로 할 것인가
-    max_episode_cnt = 10000
-    num_of_episode = int(max_size / max_episode_cnt)
+    train_per_each_episode(max_len, csv, pickles, max_size)
 
-    for episode in range(0, max_episode_cnt):
-        train_per_each_episode(max_len, csv, pickles, episode * num_of_episode, (episode + 1) * num_of_episode)
-
-def train_per_each_episode(max_len, csv, pickles, str_episode, end_episode):
+def train_per_each_episode(max_len, csv, pickles, max_size):
 
     # x1, x2, y = get_real_data(current_date,current_ticker,100)
     #if you give second as None, it will read every seconds in file.
     #x1, x2, x3, x4, y = get_real_data(current_ticker, current_date, train_all_periods=130)
-    x1, x2, x3, x4, y = get_real_data(max_len, csv, pickles, str_episode, end_episode)
-    print('get_real_data complete.')
 
     model = build_network(max_len)
     model.compile(optimizer='adam', loss='mse', metrics=['accuracy'])
@@ -171,8 +165,15 @@ def train_per_each_episode(max_len, csv, pickles, str_episode, end_episode):
     callbacks = [ModelIntervalCheckpoint(checkpoint_weights_filename, interval=checkpoint_interval)]
     callbacks += [FileLogger(log_filename, interval=100)]
 
-    print('start to train.')
-    model.fit({'x1': x1, 'x2': x2, 'x3': x3, 'x4': x4}, y, epochs=5, verbose=2, batch_size=64, callbacks=callbacks)
+    # 전체를 몇 episode 로 할 것인가
+    max_episode_cnt = 10000
+    num_of_episode = int(max_size / max_episode_cnt)
+
+    for episode in range(0, max_episode_cnt):
+        x1, x2, x3, x4, y = get_real_data(max_len, csv, pickles, episode * num_of_episode, (episode + 1) * num_of_episode)
+
+        print('start to train.')
+        model.fit({'x1': x1, 'x2': x2, 'x3': x3, 'x4': x4}, y, epochs=5, verbose=2, batch_size=64, callbacks=callbacks)
 
 
 # train_using_fake_data()
