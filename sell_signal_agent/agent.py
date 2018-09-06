@@ -180,7 +180,8 @@ def train_per_each_episode(t,d,use_fake_data=False):
 
         # x1, x2, y = get_real_data(current_date,current_ticker,100)
         #if you give second as None, it will read every seconds in file.
-        x1, x2, x3, x4, y = get_real_data(current_ticker, current_date, train_all_periods=130)
+        # x1, x2, x3, x4, y = get_real_data(current_ticker, current_date, train_all_periods=130)
+        x1, x2, x3, x4, y = get_real_data(current_ticker, current_date)
 
     model = build_network()
     model.compile(optimizer='adam', loss='mse', metrics=['accuracy'])
