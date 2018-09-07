@@ -18,8 +18,8 @@ build q newtork using cnn and dense layer
 def build_network(max_len):
     input_order = Input(shape=(10, 2, 120, 2), name="x1")
     input_tranx = Input(shape=(120, 11), name="x2")
-    input_left_time = Input(shape=(120, max_len), name="x3")
-    elapsed_time = Input(shape=(120, max_len), name="x4")
+    input_left_time = Input(shape=(max_len,), name="x3")
+    elapsed_time = Input(shape=(max_len,), name="x4")
 
     h_conv1d_2 = Conv1D(filters=16, kernel_size=3, activation='relu')(input_tranx)
     h_conv1d_4 = MaxPooling1D(pool_size=3, strides=None, padding='valid')(h_conv1d_2)
@@ -42,7 +42,7 @@ def build_network(max_len):
     o_conv3d_1_1 = Flatten()(o_conv3d_1)
 
     i_concatenated_all_h_1 = Flatten()(h_conv1d_8)
-    i_concatenated_all_h = Concatenate()([i_concatenated_all_h_1, o_conv3d_1_1, Flatten()(input_left_time), Flatten()(elapsed_time)])
+    i_concatenated_all_h = Concatenate()([i_concatenated_all_h_1, o_conv3d_1_1, input_left_time, elapsed_time])
 
     output = Dense(1, activation='linear')(i_concatenated_all_h)
 
@@ -67,8 +67,8 @@ def get_real_data(max_len, csv, pickles, str_episode, end_episode, train_all_per
 
     x1_dimension_info = (10, 2, 120, 2)  # 60 --> 120 (@ilzoo)
     x2_dimension_info = (120, 11)
-    x3_dimension_info = (120, max_len)
-    x4_dimension_info = (120, max_len)
+    x3_dimension_info = (max_len,)
+    x4_dimension_info = (max_len,)
     #y1_dimension_info = (120,)
 
     d_x1 = []
@@ -82,7 +82,6 @@ def get_real_data(max_len, csv, pickles, str_episode, end_episode, train_all_per
     random.shuffle(keys)
 
     print(str_episode, end_episode, len(pickles), (end_episode - str_episode) * len(pickles))
-
     for idx in range(str_episode, end_episode):
         sys.stdout.write("\r%i" % idx + " / %i 완료"  %end_episode)
         sys.stdout.flush()
@@ -126,19 +125,17 @@ def get_real_data(max_len, csv, pickles, str_episode, end_episode, train_all_per
                     x2[second, feature] = tmp[feature]
             d_x2.append(x2)
 
-            x3 = np.zeros([120, max_len])
-            for second in range(x3_dimension_info[0]):  # 120 : seconds
-                binarySecond = util.seconds_to_binary_array(pickles[key][idx][1], max_len)
-                for feature in range(x3_dimension_info[1]):  # max_len :features
-                    x3[second] = binarySecond[feature]
+            x3 = np.zeros([max_len])
+            binary_second = util.seconds_to_binary_array(pickles[key][idx][1], max_len)
+            for feature in range(x3_dimension_info[0]):  # max_len :features
+                x3[feature] = binary_second[feature]
 
             d_x3.append(x3)
 
-            x4 = np.zeros([120, max_len])
-            for second in range(x4_dimension_info[0]):  # 120 : seconds
-                binarySecond = util.seconds_to_binary_array(max(pickles[key][idx][2] - 120 + second, 0), max_len)
-                for feature in range(x4_dimension_info[1]):  # max_len :features
-                    x4[second] = binarySecond[feature]
+            x4 = np.zeros([max_len])
+            binary_second = util.seconds_to_binary_array(pickles[key][idx][2], max_len)
+            for feature in range(x4_dimension_info[0]):  # max_len :features
+                x4[feature] = binary_second[feature]
 
             d_x4.append(x4)
 
@@ -185,13 +182,13 @@ def train_per_each_episode(max_len, csv, pickles, max_size):
     callbacks += [FileLogger(log_filename, interval=100)]
 
     # 전체를 몇 episode 로 할 것인가
-    max_episode_cnt = 10000
+    max_episode_cnt = 40000
     num_of_episode = int(max_size / max_episode_cnt)
 
     for episode in range(0, max_episode_cnt):
         x1, x2, x3, x4, y = get_real_data(max_len, csv, pickles, episode * num_of_episode, (episode + 1) * num_of_episode)
 
-        model.fit({'x1': x1, 'x2': x2, 'x3': x3, 'x4': x4}, y, epochs=5, verbose=2, batch_size=64, callbacks=callbacks)
+        model.fit({'x1': x1, 'x2': x2, 'x3': x3, 'x4': x4}, y, epochs=10, verbose=2, batch_size=64, callbacks=callbacks)
 
         if episode % 10 == 9:
             model.save_weights(filepath=checkpoint_weights_filename.format(step=episode))
