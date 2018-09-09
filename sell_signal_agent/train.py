@@ -6,7 +6,6 @@ from rl.callbacks import FileLogger, ModelIntervalCheckpoint
 from gym_core.ioutil import *  # file i/o to load stock csv files
 import logging
 
-
 """
 it will prevent process not to occupying 100% of gpu memory for the first time. 
 Instead, it will use memory incrementally.
@@ -59,10 +58,11 @@ def build_network():
 build q newtork using cnn and dense layer
 """
 def build_network_for_sparsed():
+
     input_order = Input(shape=(10, 2, 60, 2), name="x1")
     input_tranx = Input(shape=(60, 11), name="x2")
-    input_elapedtime = Input(shape=(7,), name="x3")
-    input_lefttime = Input(shape=(7,), name="x4")
+    input_elapedtime = Input(shape=(max_len,), name="x3")
+    input_lefttime = Input(shape=(max_len,), name="x4")
 
     h_conv1d_2 = Conv1D(filters=16, kernel_size=3, activation='relu')(input_tranx)
     h_conv1d_4 = MaxPooling1D(pool_size=3, strides=None, padding='valid')(h_conv1d_2)
@@ -143,8 +143,8 @@ def get_real_data_sparsed(ticker='001470', date='20180420', train_data_rows=None
 
     x1_dimension_info = (10, 2, 60, 2)  # 60 --> 120 (@iljoo)
     x2_dimension_info = (60, 11)
-    x3_dimension_info = (7,)
-    x4_dimension_info = (7,)
+    x3_dimension_info = (max_len,)
+    x4_dimension_info = (max_len,)
     # y1_dimension_info = (120,)
 
     pickle_name = save_dir + os.path.sep + current_ticker + '_' + current_date + '.pickle'
@@ -159,8 +159,8 @@ def get_real_data_sparsed(ticker='001470', date='20180420', train_data_rows=None
 
     x1 = np.zeros([10, 2, 60, 2])
     x2 = np.zeros([60, 11])
-    x3 = np.zeros([7,])
-    x4 = np.zeros([7,])
+    x3 = np.zeros([max_len,])
+    x4 = np.zeros([max_len,])
     y1 = np.zeros([120])
 
     d_x1 = []
@@ -182,16 +182,19 @@ def get_real_data_sparsed(ticker='001470', date='20180420', train_data_rows=None
                 x2[second, feature] = d[1][idx][second][feature]
         d_x2.append(x2)
 
-        for second in range(x3_dimension_info[0]):
-            x3[second] = d[2][idx]
+        binary_second = seconds_to_binary_array(d[2][idx], max_len)
+        for feature in range(x3_dimension_info[0]):  # max_len :features
+            x3[feature] = binary_second[feature]
         d_x3.append(x3)
 
-        for second in range(x4_dimension_info[0]):
-            x3[second] = d[3][idx]
+        binary_second = seconds_to_binary_array(d[3][idx], max_len)
+        for feature in range(x4_dimension_info[0]):  # max_len :features
+            x4[feature] = binary_second[feature]
         d_x4.append(x4)
 
+
         # for second in range(y1_dimension_info[0]): # 60 : seconds
-        d_y1.append(d[2][idx])
+        d_y1.append(d[4][idx])
 
     return np.asarray(d_x1), np.asarray(d_x2), np.asarray(d_x3), np.asarray(d_x4), np.asarray(d_y1)
 
@@ -372,5 +375,21 @@ def load_data_sparsed(t, d, use_fake_data=False, save_dir =''):
 
 # train_using_fake_data()
 d  = os.path.abspath(os.path.dirname(__file__)) + "\\sparse"
+
+dat = np.arange(1, 13) / 2.0
+def discretize(data, bins):
+    split = np.array_split(np.sort(data), bins)
+    cutoffs = [x[-1] for x in split]
+    cutoffs = cutoffs[:-1]
+    discrete = np.digitize(data, cutoffs, right=True)
+    return discrete, cutoffs
+def get_maxlen_of_binary_array(max_seconds):
+    return len(np.binary_repr(max_seconds))
+def seconds_to_binary_array(seconds, max_len):
+    return np.binary_repr(seconds).zfill(max_len)
+
 # train_using_real_data(d, 'sparse')
+max_len = get_maxlen_of_binary_array(120)
 train_using_real_data_sparsed(d, 'sparse')
+
+
