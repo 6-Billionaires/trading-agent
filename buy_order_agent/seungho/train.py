@@ -65,7 +65,7 @@ def build_network(max_secs, max_len):
     return model
 
 
-def get_real_data(max_secs, max_len, csv, pickles, str_episode = 0, end_episode = 1):
+def get_real_data(max_secs, max_len, csv, pickles, max_stock = 5):
     x1_dimension_info = (10, 2, max_secs, 2)
     x2_dimension_info = (max_secs, 11)
     # x3_dimension_info = (max_len,)
@@ -79,13 +79,13 @@ def get_real_data(max_secs, max_len, csv, pickles, str_episode = 0, end_episode 
 
     random.shuffle(keys)
     # print('------', str_episode, end_episode)
-    for episode in range(str_episode, end_episode + 1):
+    for stock in range(1, max_stock):
 
-        sys.stdout.write("\r%i" % episode + " / %i 완료"  %end_episode)
+        sys.stdout.write("\r%i" % stock + " / %i 완료"  %max_stock)
         sys.stdout.flush()
         for key in keys:
             # print('------1', episode, key)
-            if len(pickles) < episode:
+            if len(pickles) < stock:
                 continue
 
             # index (second) : second - 120 + i
@@ -99,7 +99,7 @@ def get_real_data(max_secs, max_len, csv, pickles, str_episode = 0, end_episode 
 
             start_sec = 0
             # print('++++', key, episode, pickles[key][0], len(csv[key]['order']))
-            x1 = np.zeros([10,2,max_secs,2])
+            x1 = np.zeros([10, 2, max_secs, 2])
             for second in range(x1_dimension_info[2]):  # 90 : seconds
 
                 tmp = csv[key]['order'].loc[pickles[key][0][start_sec]+second]
@@ -165,17 +165,17 @@ def train_per_each_episode(max_secs, max_len, csv, pickles, max_size):
     callbacks += [FileLogger(log_filename, interval=100)]
 
     # 전체를 몇 episode 로 할 것인가
-    max_episode_cnt = 100
+    max_episode_cnt = 5000
     # num_of_episode = int(max_size / max_episode_cnt)
 
     for episode in range(0, max_episode_cnt):
-        x1, x2, y = get_real_data(max_secs, max_len, csv, pickles, 0, 1)
+        x1, x2, y = get_real_data(max_secs, max_len, csv, pickles)
 
         print('shape : ', x1.shape, x2.shape, y.shape)
         # model.fit({'x1': x1, 'x2': x2, 'x3': x3}, y, epochs=10, verbose=2, batch_size=64, callbacks=callbacks)
         model.fit({'x1': x1, 'x2': x2}, y, epochs=10, verbose=2, batch_size=64, callbacks=callbacks)
 
-        if episode % 10 == 5:
+        if episode % 50 == 0:
             model.save_weights(filepath=checkpoint_weights_filename.format(step=episode))
 
     model.save_weights(filepath=checkpoint_weights_filename.format(step='end'))
