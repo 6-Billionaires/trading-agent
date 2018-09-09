@@ -11,6 +11,7 @@ import pickle
 def prepare_datasets(max_secs=90):
     l = ioutil.load_data_from_directory('0')
 
+    # prepare_dataset(l[0], max_secs)
     for li in l:
         prepare_dataset(li, max_secs)
 
@@ -24,9 +25,9 @@ def prepare_dataset(d, max_secs):
     c_rng_timestamp = pd.date_range(start=c_start, end=c_end, freq='S')
 
     x_time = []
-    x_2d = []
-    x_1d = []
-    x_min_secs = []
+    # x_2d = []
+    # x_1d = []
+    x_elapsed_secs = []
     y_1d = []
 
     price_at_signal_list = []
@@ -40,7 +41,10 @@ def prepare_dataset(d, max_secs):
     # first_quote = d['quote'].loc[c_rng_timestamp[0]]
     # first_order = d['order'].loc[c_rng_timestamp[0]]
 
+    # print(c_rng_timestamp)
     for i, s in enumerate(c_rng_timestamp):
+        # if i > 3600:
+        #     break
         if i % 3600 == 0:
             print(current_date, current_ticker, s)
 
@@ -65,32 +69,36 @@ def prepare_dataset(d, max_secs):
         time_at_min_price_list.append(s)
         min_price_list.append(price_at_current)
 
-        x_2d.append(first_order)
-        x_1d.append(first_quote)
+        # x_2d.append(first_order)
+        # x_1d.append(first_quote)
 
         # max_sec 초과한 데이터는 적재 시작
         if len(min_price_list) >= max_secs:
             price_at_signal = price_at_signal_list.pop(0)
             time_at_signal = time_at_signal_list.pop(0)
+            elapsed_secs = int((time_at_min_price_list.pop(0) - time_at_signal).total_seconds())
+            y = price_at_signal - min_price_list.pop(0)
             x_time.append(time_at_signal)
-            x_min_secs.append(time_at_min_price_list.pop(0) - time_at_signal)
-            y_1d.append(price_at_signal - min_price_list.pop(0))
+            x_elapsed_secs.append(elapsed_secs)
+            y_1d.append(y)
+            # print(time_at_signal, elapsed_secs, y)
 
     # 남은 데이터 적재
     for index in enumerate(price_at_signal_list):
         price_at_signal = price_at_signal_list.pop(0)
         time_at_signal = time_at_signal_list.pop(0)
+        elapsed_secs = int((time_at_min_price_list.pop(0) - time_at_signal).total_seconds())
+        y = price_at_signal - min_price_list.pop(0)
         x_time.append(time_at_signal)
-        x_min_secs.append(time_at_min_price_list.pop(0) - time_at_signal)
-        y_1d.append(min_price_list.pop(0) - price_at_signal)
+        x_elapsed_secs.append(elapsed_secs)
+        y_1d.append(y)
+        # print(time_at_signal, elapsed_secs, y)
 
     pickle_name = current_date + '_' + current_ticker + '.pickle'
-    f = open('./pickles/'+pickle_name, 'wb')
-    pickle.dump([x_2d, x_1d, x_min_secs, y_1d], f)
 
     # 시간만 저장하도록 변경하는 코드
-    # f = open('./pickles_min_price_with_time/' + pickle_name, 'wb')
-    # pickle.dump([x_time, x_min_secs, y_1d], f)
+    f = open('./pickles/' + pickle_name, 'wb')
+    pickle.dump([x_time, x_elapsed_secs, y_1d], f)
 
     f.close()
 

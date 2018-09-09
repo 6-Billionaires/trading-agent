@@ -326,7 +326,7 @@ def train_using_real_data_sparsed(d, save_dir=''):
 
 
 
-@runtime
+# @runtime
 def load_data(t, d, use_fake_data=False, save_dir =''):
     if use_fake_data:
         x1, x2, y = get_sample_data(10)
@@ -339,7 +339,7 @@ def load_data(t, d, use_fake_data=False, save_dir =''):
     return x1, x2, y
 
 
-@runtime
+# @runtime
 def load_data_sparsed(t, d, use_fake_data=False, save_dir =''):
     if use_fake_data:
         x1, x2, y = get_sample_data(10)
