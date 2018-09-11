@@ -22,7 +22,7 @@ class DDQNAgent:
         self.model_dir = model_dir
 
         self.epsilon = 1.
-        self.epsilon_min = 0.1
+        self.epsilon_min = 0.05
         self.epsilon_decay = 0.9999
         self.batch_size = 32
         self.state_size = state_size
@@ -80,7 +80,7 @@ class DDQNAgent:
 
 class Agents:
     agent_name = ['BSA', 'BOA', 'SSA', 'SOA']
-    step_limit = [0, 30, 15, 0]
+    step_limit = [60, 59, 1, 0]
     additional_reward_rate = 0.1
 
     def __init__(self, bsa, boa, ssa, soa):
