@@ -29,7 +29,7 @@ def build_network(max_secs, max_len):
     """
     input_order = Input(shape=(10, 2, max_secs, 2), name="x1")
     input_tranx = Input(shape=(max_secs, 11), name="x2")
-    # input_elapsed_secs = Input(shape=(max_len, ), name="x3") # update. remained seconds up to 180 seconds ??
+    input_elapsed_secs = Input(shape=(max_len, ), name="x3") # update. remained seconds up to 180 seconds ??
 
     h_conv1d_2 = Conv1D(filters=16, kernel_size=3, activation='relu')(input_tranx)
     h_conv1d_4 = MaxPooling1D(pool_size=3, strides=None, padding='valid')(h_conv1d_2)
@@ -53,14 +53,14 @@ def build_network(max_secs, max_len):
 
     i_concatenated_all_h_1 = Flatten()(h_conv1d_8)
 
-    # i_concatenated_all_h = Concatenate()([i_concatenated_all_h_1, o_conv3d_1_1, input_elapsed_secs])
-    i_concatenated_all_h = Concatenate()([i_concatenated_all_h_1, o_conv3d_1_1])
+    i_concatenated_all_h = Concatenate()([i_concatenated_all_h_1, o_conv3d_1_1, input_elapsed_secs])
+    # i_concatenated_all_h = Concatenate()([i_concatenated_all_h_1, o_conv3d_1_1])
 
     i_concatenated_all_h = Dense(10, activation='linear')(i_concatenated_all_h)
     output = Dense(1, activation='linear')(i_concatenated_all_h)
 
-    # model = Model([input_order, input_tranx, input_elapsed_secs], output)
-    model = Model([input_order, input_tranx], output)
+    model = Model([input_order, input_tranx, input_elapsed_secs], output)
+    # model = Model([input_order, input_tranx], output)
 
     return model
 
@@ -68,11 +68,11 @@ def build_network(max_secs, max_len):
 def get_real_data(max_secs, max_len, csv, pickles, max_stock = 5):
     x1_dimension_info = (10, 2, max_secs, 2)
     x2_dimension_info = (max_secs, 11)
-    # x3_dimension_info = (max_len,)
+    x3_dimension_info = (max_len,)
 
     d_x1 = []
     d_x2 = []
-    # d_x3 = []
+    d_x3 = []
     d_y1 = []
 
     keys = list(pickles.keys())
@@ -128,6 +128,13 @@ def get_real_data(max_secs, max_len, csv, pickles, max_stock = 5):
                     x2[second, feature] = tmp[feature]
             d_x2.append(x2)
 
+            x3 = np.zeros([max_len])
+            binary_second = util.seconds_to_binary_array(max_secs, max_len)
+            for feature in range(x3_dimension_info[0]):  # max_len :features
+                x3[feature] = binary_second[feature]
+
+            d_x3.append(x3)
+
             # for second in range(y1_dimension_info[0]): #60 : seconds
             d_y1.append(pickles[key][2][start_sec])
 
@@ -169,16 +176,18 @@ def train_per_each_episode(max_secs, max_len, csv, pickles, max_size):
     # num_of_episode = int(max_size / max_episode_cnt)
 
     for episode in range(0, max_episode_cnt):
-        x1, x2, y = get_real_data(max_secs, max_len, csv, pickles)
+        x1, x2, x3, y = get_real_data(max_secs, max_len, csv, pickles)
 
         print('shape : ', x1.shape, x2.shape, y.shape)
-        # model.fit({'x1': x1, 'x2': x2, 'x3': x3}, y, epochs=10, verbose=2, batch_size=64, callbacks=callbacks)
-        model.fit({'x1': x1, 'x2': x2}, y, epochs=10, verbose=2, batch_size=64, callbacks=callbacks)
+        model.fit({'x1': x1, 'x2': x2, 'x3': x3}, y, epochs=10, verbose=2, batch_size=64, callbacks=callbacks)
+        # model.fit({'x1': x1, 'x2': x2}, y, epochs=10, verbose=2, batch_size=64, callbacks=callbacks)
 
         if episode % 50 == 0:
-            model.save_weights(filepath=checkpoint_weights_filename.format(step=episode))
+            # model.save_weights(filepath=checkpoint_weights_filename.format(step=episode))
+            model.save(filepath=checkpoint_weights_filename.format(step=episode))
 
-    model.save_weights(filepath=checkpoint_weights_filename.format(step='end'))
+    # model.save_weights(filepath=checkpoint_weights_filename.format(step='end'))
+    model.save(filepath=checkpoint_weights_filename.format(step='end'))
 
 
 def main():
