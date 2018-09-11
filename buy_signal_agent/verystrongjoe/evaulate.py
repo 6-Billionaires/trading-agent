@@ -196,7 +196,7 @@ def get_sample_data(count):
     return np.asarray(ld_x1), np.asarray(ld_x2), np.asarray(ld_y)
 
 model = build_network_for_sparsed()
-model.compile(optimizer='adam', loss='mse', metrics=['accuracy'])
+model.compile(optimizer='adam', loss='mse', metrics=['mae'])
 model.summary()
 
 # load weight

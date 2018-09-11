@@ -5,6 +5,9 @@ import pickle
 from rl.callbacks import FileLogger, ModelIntervalCheckpoint
 from gym_core.ioutil import *  # file i/o to load stock csv files
 import logging
+from core.scikit_learn_multi_input import KerasRegressor
+from sklearn.model_selection import GridSearchCV
+
 
 
 """
@@ -58,23 +61,23 @@ def build_network():
 """
 build q newtork using cnn and dense layer
 """
-def build_network_for_sparsed():
+def build_network_for_sparsed(optimizer='adam',init_mode='uniform', filters=16, neurons=20):
     input_order = Input(shape=(10, 2, 60, 2), name="x1")
     input_tranx = Input(shape=(60, 11), name="x2")
 
-    h_conv1d_2 = Conv1D(filters=16, kernel_size=3, activation='relu')(input_tranx)
-    h_conv1d_4 = MaxPooling1D(pool_size=3, strides=None, padding='valid')(h_conv1d_2)
-    h_conv1d_6 = Conv1D(filters=32, kernel_size=3, activation='relu')(h_conv1d_4)
+    h_conv1d_2 = Conv1D(filters=16, kernel_initializer=init_mode, kernel_size=3, activation='relu')(input_tranx)
+    h_conv1d_4 = MaxPooling1D(pool_size=3,  strides=None, padding='valid')(h_conv1d_2)
+    h_conv1d_6 = Conv1D(filters=32, kernel_initializer=init_mode, kernel_size=3, activation='relu')(h_conv1d_4)
     h_conv1d_8 = MaxPooling1D(pool_size=2, strides=None, padding='valid')(h_conv1d_6)
 
-    h_conv3d_1_1 = Conv3D(filters=16, kernel_size=(2, 1, 5), activation='relu')(input_order)
-    h_conv3d_1_2 = Conv3D(filters=16, kernel_size=(1, 2, 5), activation='relu')(input_order)
+    h_conv3d_1_1 = Conv3D(filters=filters, kernel_initializer=init_mode, kernel_size=(2, 1, 5), activation='relu')(input_order)
+    h_conv3d_1_2 = Conv3D(filters=filters,  kernel_initializer=init_mode,kernel_size=(1, 2, 5), activation='relu')(input_order)
 
     h_conv3d_1_3 = MaxPooling3D(pool_size=(1, 1, 3))(h_conv3d_1_1)
     h_conv3d_1_4 = MaxPooling3D(pool_size=(1, 1, 3))(h_conv3d_1_2)
 
-    h_conv3d_1_5 = Conv3D(filters=32, kernel_size=(1, 2, 5), activation='relu')(h_conv3d_1_3)
-    h_conv3d_1_6 = Conv3D(filters=32, kernel_size=(2, 1, 5), activation='relu')(h_conv3d_1_4)
+    h_conv3d_1_5 = Conv3D(kernel_initializer=init_mode, filters=filters*2, kernel_size=(1, 2, 5), activation='relu')(h_conv3d_1_3)
+    h_conv3d_1_6 = Conv3D(kernel_initializer=init_mode, filters=filters*2, kernel_size=(2, 1, 5), activation='relu')(h_conv3d_1_4)
 
     h_conv3d_1_7 = MaxPooling3D(pool_size=(1, 1, 5))(h_conv3d_1_5)
     h_conv3d_1_8 = MaxPooling3D(pool_size=(1, 1, 5))(h_conv3d_1_6)
@@ -86,13 +89,15 @@ def build_network_for_sparsed():
 
     i_concatenated_all_h = Concatenate()([i_concatenated_all_h_1, o_conv3d_1_1])
 
-    output = Dense(1, activation='linear')(i_concatenated_all_h)
+    i_concatenated_all_h = Dense(neurons, kernel_initializer=init_mode, activation='linear')(i_concatenated_all_h)
+
+    output = Dense(1, kernel_initializer=init_mode, activation='linear')(i_concatenated_all_h)
 
     model = Model([input_order, input_tranx], output)
+    model.compile(optimizer=optimizer, loss='mse', metrics=['mae'])
+    model.summary()
 
     return model
-
-
 
 
 
@@ -288,9 +293,7 @@ def train_using_real_data(d, save_dir=''):
 
 def train_using_real_data_sparsed(d, save_dir=''):
 
-    model = build_network_for_sparsed()
-    model.compile(optimizer='adam', loss='mse', metrics=['accuracy'])
-    model.summary()
+    # model = build_network_for_sparsed()
 
     l = load_ticker_yyyymmdd_list_from_directory(d)
 
@@ -321,8 +324,36 @@ def train_using_real_data_sparsed(d, save_dir=''):
     callbacks += [FileLogger(log_filename, interval=100)]
 
     print('start to train.')
-    model.fit({'x1': t_x1, 'x2': t_x2}, t_y1, epochs=50, verbose=2, batch_size=64, callbacks=callbacks)
-    model.save_weights('final_weight.h5f')
+    # model.fit({'x1': t_x1, 'x2': t_x2}, t_y1, epochs=50, verbose=2, batch_size=64, callbacks=callbacks)
+    # model.save_weights('final_weight.h5f')
+
+    # create model
+    model = KerasRegressor(build_fn=build_network_for_sparsed, verbose=0)
+    # define the grid search parameters
+    batch_size = [10, 20, 40, 60, 80, 100]
+    epochs = [10, 50, 100]
+    neurons = [15, 20, 25, 30]
+    param_grid = dict(batch_size=batch_size, epochs=epochs, neurons=neurons)
+
+    grid = GridSearchCV(estimator=model, param_grid=param_grid, n_jobs=1)
+    # grid_result = grid.fit({'x1': t_x1, 'x2': t_x2}, t_y1)
+
+    grid_result = grid.fit(
+        np.array(  [ {'x1': a, 'x2': b}  for a, b in zip(t_x1, t_x2)]),
+        t_y1)
+
+    # grid_result = grid.fit(
+    #     np.array([{'x1': a, 'x2': b}] for a, b in zip(t_x1, t_x2)),
+    #     t_y1)
+
+
+    # summarize results
+    print("Best: %f using %s" % (grid_result.best_score_, grid_result.best_params_))
+    means = grid_result.cv_results_['mean_test_score']
+    stds = grid_result.cv_results_['std_test_score']
+    params = grid_result.cv_results_['params']
+    for mean, stdev, param in zip(means, stds, params):
+        print("%f (%f) with: %r" % (mean, stdev, param))
 
 
 
@@ -352,7 +383,13 @@ def load_data_sparsed(t, d, use_fake_data=False, save_dir =''):
     return x1, x2, y
 
 # train_using_fake_data()
-d  = 'D:\\dev\\workspace\\trading-agent\\buy_signal_agent\\verystrongjoe\\sparse'
+d  = 'D:\\dev\\workspace\\trading-agent\\buy_signal_agent\\verystrongjoe\\sparse_'
 #d = 'C:\\Git\\trading-agent\\buy_signal_agent\\verystrongjoe'
 # train_using_real_data(d, 'sparse')
-train_using_real_data_sparsed(d, 'sparse')
+train_using_real_data_sparsed(d, 'sparse_')
+
+
+
+# if __name__ == '__main__' :
+#     batch_size = [10, 20, 40, 60, 80, 100]
+#     epochs = [10, 50, 100]
