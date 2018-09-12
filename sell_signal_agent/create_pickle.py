@@ -1,3 +1,10 @@
+
+import os
+import sys
+newPath = os.path.dirname(os.path.abspath(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))) + '/trading-gym'
+sys.path.append(newPath)
+
+
 from gym_core import ioutil  # file i/o to load stock csv files
 from collections import deque
 import config

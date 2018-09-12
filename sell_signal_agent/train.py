@@ -1,3 +1,9 @@
+
+import os
+import sys
+newPath = os.path.dirname(os.path.abspath(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))) + '/trading-gym'
+sys.path.append(newPath)
+
 from keras.models import Model
 from keras.layers import Input, Dense, Conv3D, Conv1D, Dense, Flatten, MaxPooling1D, MaxPooling2D,MaxPooling3D,Concatenate
 import numpy as np
