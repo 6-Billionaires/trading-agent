@@ -58,7 +58,7 @@ def prepare_sparse_dataset(d, interval=120, len_sequence_of_secs=120, len_observ
     c_end = datetime.datetime(int(current_date[0:4]), int(current_date[4:6]),
                               int(current_date[6:8]), 15, 20)  # 15hr 20min 0sec, finish time
     c_rng_ts = pd.date_range(start=c_start, end=c_end,
-                                    freq=str(interval)+'S')  # range between c_start and c_end saving each seconds' data
+                                    freq='S')  # range between c_start and c_end saving each seconds' data
 
     max_idx = len(c_rng_ts) - 1
 
@@ -67,6 +67,9 @@ def prepare_sparse_dataset(d, interval=120, len_sequence_of_secs=120, len_observ
     y_1d = []  # width
 
     for i, s in enumerate(c_rng_ts):
+
+        if i % interval != 0:
+            continue
 
         d_x2d = deque(maxlen=len_observation)
         d_x1d = deque(maxlen=len_observation)
@@ -127,7 +130,7 @@ def prepare_dataset(d, interval=1, len_sequence_of_secs=120):
     c_end = datetime.datetime(int(current_date[0:4]), int(current_date[4:6]),
                               int(current_date[6:8]), 15, 20)  # 15hr 20min 0sec, finish time
     c_rng_ts = pd.date_range(start=c_start, end=c_end,
-                                    freq=str(interval)+'S')  # range between c_start and c_end saving each seconds' data
+                                    freq='S')  # range between c_start and c_end saving each seconds' data
 
     x_2d = []  # orderbook
     x_1d = []  # transactions
@@ -136,6 +139,10 @@ def prepare_dataset(d, interval=1, len_sequence_of_secs=120):
     max_idx = len(c_rng_ts) - 1
 
     for i, s in enumerate(c_rng_ts):
+
+        if i % interval != 0:
+            continue
+
         if c_rng_ts[max_idx] < c_rng_ts[i] + len_sequence_of_secs or i >= max_idx:
             break
         elif s - len_sequence_of_secs < c_rng_ts[0]:
@@ -166,7 +173,7 @@ def prepare_dataset(d, interval=1, len_sequence_of_secs=120):
     f.close()
 
 
-save_dir = 'sparse_'
+save_dir = 'sparse_2'
 
 if not os.path.isdir(save_dir):
     os.makedirs(save_dir)
