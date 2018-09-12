@@ -273,6 +273,7 @@ def train_using_real_data(d, save_dir=''):
 
     model = build_network()
     model.compile(optimizer='adam', loss='mse', metrics=['accuracy'])
+    model.compile(optimizer='adam', loss='mse', metrics=['accuracy'])
     model.summary()
 
     l = load_ticker_yyyymmdd_list_from_directory(d)
@@ -306,7 +307,8 @@ def train_using_real_data(d, save_dir=''):
 def train_using_real_data_sparsed(d, save_dir=''):
 
     model = build_network_for_sparsed()
-    model.compile(optimizer='adam', loss='mse', metrics=['accuracy'])
+    model.compile(optimizer='adam', loss='mse', metrics=['mae'])
+    # model.compile(optimizer='adam', loss='mse', metrics=['accuracy'])
     # model.summary()
 
     l = load_ticker_yyyymmdd_list_from_directory(d)
@@ -329,7 +331,7 @@ def train_using_real_data_sparsed(d, save_dir=''):
 
     t_y1 = np.concatenate(t_y1)
 
-    print('total x1 : {}, total x2 : {}, total y1 : {}'.format(len(t_x1), len(t_x2), len(t_y1)))
+    print('total x1 : {}, total x2 : {}, total x3 : {}, total x4 : {}, total y1 : {}'.format(len(t_x1), len(t_x2), len(t_x3), len(t_x4), len(t_y1)))
     # np.append(t_x1,values=(36,8,10,2,60))
 
     # {steps} --> this file will be saved whenever it runs every steps as much as {step}
@@ -343,8 +345,9 @@ def train_using_real_data_sparsed(d, save_dir=''):
     callbacks += [FileLogger(log_filename, interval=100)]
 
     print('start to train.')
-    model.fit({'x1': t_x1, 'x2': t_x2, 'x3': t_x3, 'x4': t_x4}, t_y1, epochs=50, verbose=2, batch_size=64, callbacks=callbacks)
+    model.fit({'x1': t_x1, 'x2': t_x2, 'x3': t_x3, 'x4': t_x4}, t_y1, epochs=100, verbose=2, batch_size=128, callbacks=callbacks)
     model.save_weights('final_weight.h5f')
+    model.save('final_model.h5f')
 
 
 
@@ -373,9 +376,6 @@ def load_data_sparsed(t, d, use_fake_data=False, save_dir =''):
         x1, x2, x3, x4, y = get_real_data_sparsed(current_ticker, current_date, save_dir=save_dir)
     return x1, x2, x3, x4, y
 
-# train_using_fake_data()
-d  = os.path.abspath(os.path.dirname(__file__)) + "\\sparse"
-
 dat = np.arange(1, 13) / 2.0
 def discretize(data, bins):
     split = np.array_split(np.sort(data), bins)
@@ -388,8 +388,8 @@ def get_maxlen_of_binary_array(max_seconds):
 def seconds_to_binary_array(seconds, max_len):
     return np.binary_repr(seconds).zfill(max_len)
 
-# train_using_real_data(d, 'sparse')
+d  = os.path.abspath(os.path.dirname(__file__)) + "\\sparse_\\train"
 max_len = get_maxlen_of_binary_array(120)
-train_using_real_data_sparsed(d, 'sparse')
+train_using_real_data_sparsed(d, 'sparse_\\train')
 
 
