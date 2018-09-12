@@ -301,7 +301,7 @@ def train_using_real_data(d, save_dir=''):
     callbacks += [FileLogger(log_filename, interval=100)]
 
     print('start to train.')
-    model.fit({'x1': t_x1, 'x2': t_x2}, t_y1, epochs=10, verbose=2, batch_size=64, callbacks=callbacks)
+    model.fit({'x1': t_x1, 'x2': t_x2}, t_y1, epochs=30, verbose=2, batch_size=64, callbacks=callbacks)
     model.save_weights('final_weight.h5f')
 
 def train_using_real_data_sparsed(d, save_dir=''):
@@ -345,7 +345,7 @@ def train_using_real_data_sparsed(d, save_dir=''):
     callbacks += [FileLogger(log_filename, interval=100)]
 
     print('start to train.')
-    model.fit({'x1': t_x1, 'x2': t_x2, 'x3': t_x3, 'x4': t_x4}, t_y1, epochs=100, verbose=2, batch_size=128, callbacks=callbacks)
+    model.fit({'x1': t_x1, 'x2': t_x2, 'x3': t_x3, 'x4': t_x4}, t_y1, epochs=30, verbose=2, batch_size=64, callbacks=callbacks)
     model.save_weights('final_weight.h5f')
     model.save('final_model.h5f')
 
@@ -388,8 +388,8 @@ def get_maxlen_of_binary_array(max_seconds):
 def seconds_to_binary_array(seconds, max_len):
     return np.binary_repr(seconds).zfill(max_len)
 
-d  = os.path.abspath(os.path.dirname(__file__)) + "\\sparse_\\train"
+d  = os.path.abspath(os.path.dirname(__file__)) + "/sparse/train"
 max_len = get_maxlen_of_binary_array(120)
-train_using_real_data_sparsed(d, 'sparse_\\train')
+train_using_real_data_sparsed(d, 'sparse/train')
 
 

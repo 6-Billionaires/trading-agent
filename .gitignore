@@ -1,7 +1,7 @@
 gipython
 *.pyc
 .idea
-*.iml
+*.imld
 #docs/_builid
 venv/
 *.h5

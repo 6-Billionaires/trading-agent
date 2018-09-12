@@ -76,24 +76,22 @@ def prepare_sparse_dataset(d, interval=120, len_sequence_of_secs=120, len_observ
         d_x2d = deque(maxlen=len_observation)
         d_x1d = deque(maxlen=len_observation)
 
-        # if c_rng_ts[max_idx] < s + pd.Timedelta(seconds=len_sequence_of_secs) or i >= max_idx:
-        if c_rng_ts[max_idx] < s + len_sequence_of_secs or i >= max_idx:
+        if c_rng_ts[max_idx] < s + pd.Timedelta(seconds=len_sequence_of_secs) or i >= max_idx:
+        # if c_rng_ts[max_idx] < s + len_sequence_of_secs or i >= max_idx:
             break
-        # elif s - pd.Timedelta(seconds=len_observation) < c_rng_ts[0]:
-        elif s - len_observation < c_rng_ts[0]:
+        elif s - pd.Timedelta(seconds=len_observation) < c_rng_ts[0]:
+        # elif s - len_observation < c_rng_ts[0]:
             continue
         else:
-            # first_quote = d['quote'].loc[s]
-            # first_order = d['order'].loc[s]
             width = 0
             threshold = 0.33
 
             # assemble observation for len_observation
             for i in reversed(range(len_observation)):
-                # d_x2d.append(d['order'].loc[s-pd.Timedelta(seconds=i)])
-                # d_x1d.append(d['quote'].loc[s-pd.Timedelta(seconds=i)])
-                d_x2d.append(d['order'].loc[s-i])
-                d_x1d.append(d['quote'].loc[s-i])
+                d_x2d.append(d['order'].loc[s-pd.Timedelta(seconds=i)])
+                d_x1d.append(d['quote'].loc[s-pd.Timedelta(seconds=i)])
+                # d_x2d.append(d['order'].loc[s-i])
+                # d_x1d.append(d['quote'].loc[s-i])
 
             # price_at_signal is the price when the current stock received signal
             price_at_signal = d['quote'].loc[c_rng_ts[i-elapsed_secs]]['Price(last excuted)']
@@ -188,7 +186,7 @@ def prepare_dataset(d, interval=1, len_sequence_of_secs=120):
     f.close()
 
 
-save_dir = 'sparse_'
+save_dir = 'sparse'
 max_secs = 120
 if not os.path.isdir(save_dir):
     os.makedirs(save_dir)

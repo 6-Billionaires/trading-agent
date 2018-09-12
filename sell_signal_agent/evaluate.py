@@ -267,7 +267,7 @@ model.load_weights('final_weight.h5f')
 
 # model = Model('final_model.h5')
 
-d  = os.path.abspath(os.path.dirname(__file__)) + "\\sparse_\\eval"
+d  = os.path.abspath(os.path.dirname(__file__)) + "/sparse/eval"
 l = load_ticker_yyyymmdd_list_from_directory(d)
 for (ti, da) in l:
     x1, x2, x3, x4, y = get_real_data_sparsed(ti, da, save_dir=d)
