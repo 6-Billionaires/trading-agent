@@ -29,19 +29,19 @@ def build_network():
     input_order = Input(shape=(10, 2, 120, 2), name="x1")
     input_tranx = Input(shape=(120, 11), name="x2")
 
-    h_conv1d_2 = Conv1D(filters=16, kernel_size=3, activation='relu')(input_tranx)
+    h_conv1d_2 = Conv1D(filters=16, kernel_size=3, activation='leaky_relu')(input_tranx)
     h_conv1d_4 = MaxPooling1D(pool_size=3, strides=None, padding='valid')(h_conv1d_2)
-    h_conv1d_6 = Conv1D(filters=32, kernel_size=3, activation='relu')(h_conv1d_4)
+    h_conv1d_6 = Conv1D(filters=32, kernel_size=3, activation='leaky_relu')(h_conv1d_4)
     h_conv1d_8 = MaxPooling1D(pool_size=2, strides=None, padding='valid')(h_conv1d_6)
 
-    h_conv3d_1_1 = Conv3D(filters=16, kernel_size=(2, 1, 5), activation='relu')(input_order)
-    h_conv3d_1_2 = Conv3D(filters=16, kernel_size=(1, 2, 5), activation='relu')(input_order)
+    h_conv3d_1_1 = Conv3D(filters=16, kernel_size=(2, 1, 5), activation='leaky_relu')(input_order)
+    h_conv3d_1_2 = Conv3D(filters=16, kernel_size=(1, 2, 5), activation='leaky_relu')(input_order)
 
     h_conv3d_1_3 = MaxPooling3D(pool_size=(1, 1, 3))(h_conv3d_1_1)
     h_conv3d_1_4 = MaxPooling3D(pool_size=(1, 1, 3))(h_conv3d_1_2)
 
-    h_conv3d_1_5 = Conv3D(filters=32, kernel_size=(1, 2, 5), activation='relu')(h_conv3d_1_3)
-    h_conv3d_1_6 = Conv3D(filters=32, kernel_size=(2, 1, 5), activation='relu')(h_conv3d_1_4)
+    h_conv3d_1_5 = Conv3D(filters=32, kernel_size=(1, 2, 5), activation='leaky_relu')(h_conv3d_1_3)
+    h_conv3d_1_6 = Conv3D(filters=32, kernel_size=(2, 1, 5), activation='leaky_relu')(h_conv3d_1_4)
 
     h_conv3d_1_7 = MaxPooling3D(pool_size=(1, 1, 5))(h_conv3d_1_5)
     h_conv3d_1_8 = MaxPooling3D(pool_size=(1, 1, 5))(h_conv3d_1_6)
@@ -70,19 +70,19 @@ def build_network_for_sparsed():
     input_elapedtime = Input(shape=(max_len,), name="x3")
     input_lefttime = Input(shape=(max_len,), name="x4")
 
-    h_conv1d_2 = Conv1D(filters=16, kernel_size=3, activation='relu')(input_tranx)
+    h_conv1d_2 = Conv1D(filters=16, kernel_size=3, activation='leaky_relu')(input_tranx)
     h_conv1d_4 = MaxPooling1D(pool_size=3, strides=None, padding='valid')(h_conv1d_2)
-    h_conv1d_6 = Conv1D(filters=32, kernel_size=3, activation='relu')(h_conv1d_4)
+    h_conv1d_6 = Conv1D(filters=32, kernel_size=3, activation='leaky_relu')(h_conv1d_4)
     h_conv1d_8 = MaxPooling1D(pool_size=2, strides=None, padding='valid')(h_conv1d_6)
 
-    h_conv3d_1_1 = Conv3D(filters=16, kernel_size=(2, 1, 5), activation='relu')(input_order)
-    h_conv3d_1_2 = Conv3D(filters=16, kernel_size=(1, 2, 5), activation='relu')(input_order)
+    h_conv3d_1_1 = Conv3D(filters=16, kernel_size=(2, 1, 5), activation='leaky_relu')(input_order)
+    h_conv3d_1_2 = Conv3D(filters=16, kernel_size=(1, 2, 5), activation='leaky_relu')(input_order)
 
     h_conv3d_1_3 = MaxPooling3D(pool_size=(1, 1, 3))(h_conv3d_1_1)
     h_conv3d_1_4 = MaxPooling3D(pool_size=(1, 1, 3))(h_conv3d_1_2)
 
-    h_conv3d_1_5 = Conv3D(filters=32, kernel_size=(1, 2, 5), activation='relu')(h_conv3d_1_3)
-    h_conv3d_1_6 = Conv3D(filters=32, kernel_size=(2, 1, 5), activation='relu')(h_conv3d_1_4)
+    h_conv3d_1_5 = Conv3D(filters=32, kernel_size=(1, 2, 5), activation='leaky_relu')(h_conv3d_1_3)
+    h_conv3d_1_6 = Conv3D(filters=32, kernel_size=(2, 1, 5), activation='leaky_relu')(h_conv3d_1_4)
 
     h_conv3d_1_7 = MaxPooling3D(pool_size=(1, 1, 5))(h_conv3d_1_5)
     h_conv3d_1_8 = MaxPooling3D(pool_size=(1, 1, 5))(h_conv3d_1_6)
@@ -95,9 +95,9 @@ def build_network_for_sparsed():
     i_concatenated_all_h = Concatenate()([i_concatenated_all_h_1, o_conv3d_1_1, input_elapedtime, input_lefttime])
 
 
-    hidden_out = Dense(100, activation='relu')(i_concatenated_all_h)
+    hidden_out = Dense(100, activation='leaky_relu')(i_concatenated_all_h)
 
-    hidden_out = Dense(100, activation='relu')(hidden_out)
+    hidden_out = Dense(100, activation='leaky_relu')(hidden_out)
 
 
     output = Dense(1, activation='linear')(hidden_out)
@@ -357,7 +357,7 @@ def train_using_real_data_sparsed(d, save_dir=''):
     callbacks += [FileLogger(log_filename, interval=100)]
 
     print('start to train.')
-    model.fit({'x1': t_x1, 'x2': t_x2, 'x3': t_x3, 'x4': t_x4}, t_y1, epochs=100, verbose=2, batch_size=64, callbacks=callbacks)
+    model.fit({'x1': t_x1, 'x2': t_x2, 'x3': t_x3, 'x4': t_x4}, t_y1, epochs=70, verbose=2, batch_size=10, callbacks=callbacks)
     model.save_weights('final_weight.h5f')
     model.save('final_model.h5')
 
