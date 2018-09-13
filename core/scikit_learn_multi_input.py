@@ -13,7 +13,7 @@ from keras.utils.np_utils import to_categorical
 from keras.utils.generic_utils import has_arg
 from keras.utils.generic_utils import to_list
 from keras.models import Sequential
-
+from gym_core.ioutil import *  # file i/o to load stock csv files
 
 class BaseWrapper(object):
     """Base class for the Keras scikit-learn wrapper.
@@ -115,6 +115,7 @@ class BaseWrapper(object):
         self.sk_params.update(params)
         return self
 
+    @timeit
     def fit(self, x, y, **kwargs):
         """Constructs a new model with `build_fn` & fit the model to `(x, y)`.
 
@@ -181,6 +182,7 @@ class KerasClassifier(BaseWrapper):
     """Implementation of the scikit-learn classifier API for Keras.
     """
 
+    @timeit
     def fit(self, x, y, sample_weight=None, **kwargs):
         """Constructs a new model with `build_fn` & fit the model to `(x, y)`.
 
@@ -213,6 +215,7 @@ class KerasClassifier(BaseWrapper):
             kwargs['sample_weight'] = sample_weight
         return super(KerasClassifier, self).fit(x, y, **kwargs)
 
+    @timeit
     def predict(self, x, **kwargs):
         """Returns the class predictions for the given test data.
 
@@ -243,6 +246,7 @@ class KerasClassifier(BaseWrapper):
             classes = (proba > 0.5).astype('int32')
         return self.classes_[classes]
 
+    @timeit
     def predict_proba(self, x, **kwargs):
         """Returns class probability estimates for the given test data.
 
@@ -275,6 +279,7 @@ class KerasClassifier(BaseWrapper):
             probs = np.hstack([1 - probs, probs])
         return probs
 
+    @timeit
     def score(self, x, y, **kwargs):
         """Returns the mean accuracy on the given test data and labels.
 
@@ -324,6 +329,7 @@ class KerasRegressor(BaseWrapper):
     """Implementation of the scikit-learn regressor API for Keras.
     """
 
+    @timeit
     def predict(self, x, **kwargs):
         """Returns predictions for the given test data.
 
@@ -345,6 +351,7 @@ class KerasRegressor(BaseWrapper):
 
         return np.squeeze(self.model.predict({'x1': x0, 'x2': x1}, **kwargs))
 
+    @timeit
     def score(self, x, y, **kwargs):
         """Returns the mean loss on the given test data and labels.
 
