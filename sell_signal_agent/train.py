@@ -94,7 +94,11 @@ def build_network_for_sparsed():
 
     i_concatenated_all_h = Concatenate()([i_concatenated_all_h_1, o_conv3d_1_1, input_elapedtime, input_lefttime])
 
-    output = Dense(1, activation='linear')(i_concatenated_all_h)
+
+    hidden_out = Dense(100, activation='linear')(i_concatenated_all_h)
+
+
+    output = Dense(1, activation='linear')(hidden_out)
 
     model = Model([input_order, input_tranx, input_elapedtime, input_lefttime], output)
 
@@ -351,7 +355,7 @@ def train_using_real_data_sparsed(d, save_dir=''):
     callbacks += [FileLogger(log_filename, interval=100)]
 
     print('start to train.')
-    model.fit({'x1': t_x1, 'x2': t_x2, 'x3': t_x3, 'x4': t_x4}, t_y1, epochs=1000, verbose=2, batch_size=256, callbacks=callbacks)
+    model.fit({'x1': t_x1, 'x2': t_x2, 'x3': t_x3, 'x4': t_x4}, t_y1, epochs=10, verbose=2, batch_size=256, callbacks=callbacks)
     model.save_weights('final_weight.h5f')
     model.save('final_model.h5f')
 
