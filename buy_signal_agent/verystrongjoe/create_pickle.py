@@ -10,6 +10,7 @@ import numpy as np
 import pickle
 import os
 
+_len_observation = 120
 
 """
 previously,  I gave secs as 120. but like iljoo said, it needs to be 120.
@@ -31,12 +32,12 @@ def prepare_datasets(is_spare_dataset=False, interval=120, len_observation=60, l
     l = ioutil.load_data_from_directory('0')  # episode type
     for li in l:
         if is_spare_dataset:
-            prepare_sparse_dataset(li, 120, 120, 60, save_dir)
+            prepare_sparse_dataset(li, 120, _len_observation, save_dir)
         else:
             prepare_dataset(li, 1, len_sequence_secs)
 
 
-def prepare_sparse_dataset(d, interval=120, len_sequence_of_secs=120, len_observation=60, save_dir=''):
+def prepare_sparse_dataset(d, interval=120, len_observation=_len_observation, save_dir=''):
     """
     original version
     loading data from ticker 20180403, yyyymmdd 003350 is started.
@@ -45,7 +46,6 @@ def prepare_sparse_dataset(d, interval=120, len_sequence_of_secs=120, len_observ
     This function is to get more sparse data set. It is created to make loading time from pickle into memory fast
     :param d:  same as prepare_dataset
     :param interval: same as prepare_dataset, 120 seconds. it is also for performance
-    :param len_sequence_of_secs:  same as prepare_dataset.
     :param len_observation: Instead of 120 seconds, taking 60 seconds is just for performance
     :param save_dir: root directory where pickle will save
     :return: same as prepare_dataset
@@ -71,12 +71,12 @@ def prepare_sparse_dataset(d, interval=120, len_sequence_of_secs=120, len_observ
         if i % interval != 0:
             continue
 
-        d_x2d = deque(maxlen=len_observation)
-        d_x1d = deque(maxlen=len_observation)
+        d_x2d = deque(maxlen=_len_observation)
+        d_x1d = deque(maxlen=_len_observation)
 
-        if c_rng_ts[max_idx] < s + len_sequence_of_secs or i >= max_idx:
+        if c_rng_ts[max_idx] < s + len_observation or i >= max_idx:
             break
-        elif s - len_observation < c_rng_ts[0]:
+        elif s - _len_observation < c_rng_ts[0]:
             continue
         else:
             # first_quote = d['quote'].loc[s]
@@ -90,7 +90,7 @@ def prepare_sparse_dataset(d, interval=120, len_sequence_of_secs=120, len_observ
                 d_x1d.append(d['quote'].loc[s-i])
 
             # calculate width
-            for j in range(len_sequence_of_secs):
+            for j in range(len_observation):
                 if j == 0:
                     # price_at_signal is the price when the current stock received signal
                     price_at_signal = d['quote'].loc[c_rng_ts[i+j]]['Price(last excuted)']
@@ -173,7 +173,7 @@ def prepare_dataset(d, interval=1, len_sequence_of_secs=120):
     f.close()
 
 
-save_dir = 'sparse_2'
+save_dir = 'sparse_3'
 
 if not os.path.isdir(save_dir):
     os.makedirs(save_dir)

@@ -8,7 +8,7 @@ import logging
 from core.scikit_learn_multi_input import KerasRegressor
 from sklearn.model_selection import GridSearchCV
 
-
+_len_observation = 120
 
 """
 it will prevent process not to occupying 100% of gpu memory for the first time. 
