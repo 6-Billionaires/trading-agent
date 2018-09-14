@@ -8,7 +8,9 @@ from gym_core.ioutil import *  # file i/o to load stock csv files
 import logging
 from core.scikit_learn_multi_input import KerasRegressor
 from sklearn.model_selection import GridSearchCV
-
+import os
+import pickle
+os.environ["CUDA_VISIBLE_DEVICES"]=0
 _len_observation = 120
 
 """
@@ -295,7 +297,50 @@ def train_using_real_data(d, save_dir=''):
     model.fit({'x1': t_x1, 'x2': t_x2}, t_y1, epochs=50, verbose=2, batch_size=64, callbacks=callbacks)
     model.save_weights('final_weight.h5f')
 
+
+
 def train_using_real_data_sparsed(d, save_dir=''):
+
+    model = build_network_for_sparsed()
+
+    l = load_ticker_yyyymmdd_list_from_directory(d)
+    t_x1, t_x2, t_y1 = [],[],[]
+
+    for (ti, da) in l:
+        print('loading data from ticker {}, yyyymmdd {} is started.'.format(ti, da))
+        x1, x2, y1 = load_data_sparsed(ti, da, use_fake_data=False, save_dir=save_dir)
+        t_x1.append(x1)
+        t_x2.append(x2)
+        t_y1.append(y1)
+        print('loading data from ticker {}, yyyymmdd {} is finished.'.format(ti, da))
+    t_x1 = np.concatenate(t_x1)
+    t_x2 = np.concatenate(t_x2)
+    t_y1 = np.concatenate(t_y1)
+
+    print('total x1 : {}, total x2 : {}, total y1 : {}'.format(len(t_x1), len(t_x2), len(t_y1)))
+
+    # {steps} --> this file will be saved whenever it runs every steps as much as {step}
+    checkpoint_weights_filename = 'bsa_' + 'fill_params_information_in_here' + '_weights_{step}.h5f'
+
+    # # TODO: here we can add hyperparameters information like below!!
+    # log_filename = 'bsa_{}_log.json'.format('fill_params_information_in_here')
+    # checkpoint_interval = 50
+    #
+    # callbacks = [ModelIntervalCheckpoint(checkpoint_weights_filename, interval=checkpoint_interval)]
+    # callbacks += [FileLogger(log_filename, interval=100)]
+
+    print('start to train.')
+    history = model.fit({'x1': t_x1, 'x2': t_x2}, t_y1, epochs=50, verbose=2, batch_size=64, callbacks=callbacks)
+
+    model.save('model.h5')
+
+    with open('bsa_model_history_1809142003', 'wb') as file_pi:
+        pickle.dump(history.history, file_pi)
+
+
+
+
+def train_using_real_data_sparsed_cv(d, save_dir=''):
 
     # model = build_network_for_sparsed()
 
@@ -358,17 +403,12 @@ def train_using_real_data_sparsed(d, save_dir=''):
     activation = ['leaky_relu']
 
 
-
     # first try
     # end up with Best: -46695.504027 using {'activation': 'leaky_relu', 'batch_size': 10, 'epochs': 50, 'neurons': 50}
     # batch_size = [10, 20, 40, 100]
     # epochs = [10, 50]
     # neurons = [20, 25, 50]
     # activation = ['relu', 'leaky_relu', 'tanh']
-
-
-
-
 
 
     param_grid = dict(batch_size=batch_size, epochs=epochs, neurons=neurons, activation=activation)
@@ -424,10 +464,5 @@ def load_data_sparsed(t, d, use_fake_data=False, save_dir =''):
 # d  = 'D:\\dev\\workspace\\trading-agent\\buy_signal_agent\\verystrongjoe\\sparse_2'
 d = 'C:\\Git\\trading-agent\\buy_signal_agent\\verystrongjoe\\sparse_2'
 # train_using_real_data(d, 'sparse')
+# train_using_real_data_sparsed_cv(d, 'sparse_2')
 train_using_real_data_sparsed(d, 'sparse_2')
-
-
-
-# if __name__ == '__main__' :
-#     batch_size = [10, 20, 40, 60, 80, 100]
-#     epochs = [10, 50, 100]

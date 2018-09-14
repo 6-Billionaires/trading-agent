@@ -4,6 +4,11 @@ import numpy as np
 import pickle
 from rl.callbacks import FileLogger, ModelIntervalCheckpoint
 from gym_core import ioutil  # file i/o to load stock csv files
+import pickle
+import os
+os.environ["CUDA_VISIBLE_DEVICES"]=0
+_len_observation = 120
+
 
 """
 same function as the function in train.py 
@@ -43,14 +48,12 @@ def build_network():
     return model
 
 
-
-
 """
 build q newtork using cnn and dense layer
 """
 def build_network_for_sparsed():
-    input_order = Input(shape=(10, 2, 60, 2), name="x1")
-    input_tranx = Input(shape=(60, 11), name="x2")
+    input_order = Input(shape=(10, 2, _len_observation, 2), name="x1")
+    input_tranx = Input(shape=(_len_observation, 11), name="x2")
 
     h_conv1d_2 = Conv1D(filters=16, kernel_size=3, activation='relu')(input_tranx)
     h_conv1d_4 = MaxPooling1D(pool_size=3, strides=None, padding='valid')(h_conv1d_2)
@@ -97,8 +100,8 @@ def get_real_data_sparsed(ticker='001470', date='20180420', train_data_rows=None
     current_ticker = ticker
     current_date = date
 
-    x1_dimension_info = (10, 2, 60, 2)  # 60 --> 120 (@iljoo)
-    x2_dimension_info = (60, 11)
+    x1_dimension_info = (10, 2, _len_observation, 2)  # 60 --> 120 (@iljoo)
+    x2_dimension_info = (_len_observation, 11)
     # y1_dimension_info = (120,)
 
     pickle_name = save_dir + os.path.sep + current_ticker + '_' + current_date + '.pickle'
@@ -111,8 +114,8 @@ def get_real_data_sparsed(ticker='001470', date='20180420', train_data_rows=None
     if train_data_rows is None:
         train_data_rows = len(d[0])
 
-    x1 = np.zeros([10, 2, 60, 2])
-    x2 = np.zeros([60, 11])
+    x1 = np.zeros([10, 2, _len_observation, 2])
+    x2 = np.zeros([_len_observation, 11])
     y1 = np.zeros([120])
 
     d_x1 = []
@@ -151,10 +154,10 @@ def get_sample_sparsed_data(count):
     # y1_dimension_info = (120,)
 
     for i in range(count):
-        d1_2 = np.arange(start, start + 2 * 10 * 60 * 2).reshape([10, 2, 60, 2])
-        start += 2 * 10 * 60
+        d1_2 = np.arange(start, start + 2 * 10 * _len_observation * 2).reshape([10, 2, _len_observation, 2])
+        start += 2 * 10 * _len_observation
         d2 = np.arange(start, start+11*60).reshape([60, 11])
-        start += 11 * 60
+        start += 11 * _len_observation
         ld_x1.append(d1_2)
 
         # ld_x1.append([d1_1, d1_2])
@@ -196,7 +199,7 @@ def get_sample_data(count):
     return np.asarray(ld_x1), np.asarray(ld_x2), np.asarray(ld_y)
 
 model = build_network_for_sparsed()
-model.compile(optimizer='adam', loss='mse', metrics=['mae'])
+model.compile(optimizer='adam', loss='mse', metrics=['mae', 'mape', 'mse'])
 model.summary()
 
 # load weight
@@ -206,3 +209,8 @@ x1, x2, y = get_sample_sparsed_data(10) #for test
 
 scores = model.evaluate({'x1': x1, 'x2': x2}, y, verbose=0)
 print("%s: %.2f%%" % (model.metrics_names[1], scores[1]*100))
+
+with open('bsa_evaluate_model_history_1809142003', 'wb') as file_pi:
+    pickle.dump(scores, file_pi)
+
+

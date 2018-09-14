@@ -9,6 +9,7 @@ import datetime
 import numpy as np
 import pickle
 import os
+os.environ["CUDA_VISIBLE_DEVICES"]=0
 
 _len_observation = 120
 
