@@ -63,26 +63,36 @@ def build_network():
 build q newtork using cnn and dense layer
 """
 def build_network_for_sparsed():
-    activation = LeakyReLU(alpha=0.3)
 
     input_order = Input(shape=(10, 2, 60, 2), name="x1")
     input_tranx = Input(shape=(60, 11), name="x2")
     input_elapedtime = Input(shape=(max_len,), name="x3")
     input_lefttime = Input(shape=(max_len,), name="x4")
 
-    h_conv1d_2 = Conv1D(filters=16, kernel_size=3, activation=activation)(input_tranx)
+    h_conv1d_2 = Conv1D(filters=16, kernel_size=3)(input_tranx)
+    h_conv1d_2 = LeakyReLU(alpha=0.3)(h_conv1d_2)
+
     h_conv1d_4 = MaxPooling1D(pool_size=3, strides=None, padding='valid')(h_conv1d_2)
-    h_conv1d_6 = Conv1D(filters=32, kernel_size=3, activation=activation)(h_conv1d_4)
+
+    h_conv1d_6 = Conv1D(filters=32, kernel_size=3)(h_conv1d_4)
+    h_conv1d_6 = LeakyReLU(alpha=0.3)(h_conv1d_6)
+
     h_conv1d_8 = MaxPooling1D(pool_size=2, strides=None, padding='valid')(h_conv1d_6)
 
-    h_conv3d_1_1 = Conv3D(filters=16, kernel_size=(2, 1, 5), activation=activation)(input_order)
-    h_conv3d_1_2 = Conv3D(filters=16, kernel_size=(1, 2, 5), activation=activation)(input_order)
+    h_conv3d_1_1 = Conv3D(filters=16, kernel_size=(2, 1, 5))(input_order)
+    h_conv3d_1_1 = LeakyReLU(alpha=0.3)(h_conv3d_1_1)
+
+    h_conv3d_1_2 = Conv3D(filters=16, kernel_size=(1, 2, 5))(input_order)
+    h_conv3d_1_2 = LeakyReLU(alpha=0.3)(h_conv3d_1_2)
 
     h_conv3d_1_3 = MaxPooling3D(pool_size=(1, 1, 3))(h_conv3d_1_1)
     h_conv3d_1_4 = MaxPooling3D(pool_size=(1, 1, 3))(h_conv3d_1_2)
 
-    h_conv3d_1_5 = Conv3D(filters=32, kernel_size=(1, 2, 5), activation=activation)(h_conv3d_1_3)
-    h_conv3d_1_6 = Conv3D(filters=32, kernel_size=(2, 1, 5), activation=activation)(h_conv3d_1_4)
+    h_conv3d_1_5 = Conv3D(filters=32, kernel_size=(1, 2, 5))(h_conv3d_1_3)
+    h_conv3d_1_5 = LeakyReLU(alpha=0.3)(h_conv3d_1_5)
+
+    h_conv3d_1_6 = Conv3D(filters=32, kernel_size=(2, 1, 5))(h_conv3d_1_4)
+    h_conv3d_1_6 = LeakyReLU(alpha=0.3)(h_conv3d_1_6)
 
     h_conv3d_1_7 = MaxPooling3D(pool_size=(1, 1, 5))(h_conv3d_1_5)
     h_conv3d_1_8 = MaxPooling3D(pool_size=(1, 1, 5))(h_conv3d_1_6)
@@ -94,11 +104,8 @@ def build_network_for_sparsed():
 
     i_concatenated_all_h = Concatenate()([i_concatenated_all_h_1, o_conv3d_1_1, input_elapedtime, input_lefttime])
 
-
-    hidden_out = Dense(100, activation=activation)(i_concatenated_all_h)
-
-    hidden_out = Dense(100, activation=activation)(hidden_out)
-
+    hidden_out = Dense(100)(i_concatenated_all_h)
+    hidden_out = LeakyReLU(alpha=0.3)(hidden_out)
 
     output = Dense(1, activation='linear')(hidden_out)
 
