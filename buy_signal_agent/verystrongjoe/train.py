@@ -66,8 +66,8 @@ def build_network_for_sparsed(optimizer='adam',init_mode='uniform', filters=16, 
     if activation == 'leaky_relu':
         activation = LeakyReLU(alpha=0.3)
 
-    input_order = Input(shape=(10, 2, 60, 2), name="x1")
-    input_tranx = Input(shape=(60, 11), name="x2")
+    input_order = Input(shape=(10, 2, _len_observation, 2), name="x1")
+    input_tranx = Input(shape=(_len_observation, 11), name="x2")
 
     h_conv1d_2 = Conv1D(filters=16, kernel_initializer=init_mode, kernel_size=3, activation=activation)(input_tranx)
     h_conv1d_4 = MaxPooling1D(pool_size=3,  strides=None, padding='valid')(h_conv1d_2)
@@ -149,8 +149,8 @@ def get_real_data_sparsed(ticker='001470', date='20180420', train_data_rows=None
     current_ticker = ticker
     current_date = date
 
-    x1_dimension_info = (10, 2, 60, 2)  # 60 --> 120 (@iljoo)
-    x2_dimension_info = (60, 11)
+    x1_dimension_info = (10, 2, _len_observation, 2)  # 60 --> 120 (@iljoo)
+    x2_dimension_info = (_len_observation, 11)
     # y1_dimension_info = (120,)
 
     pickle_name = save_dir + os.path.sep + current_ticker + '_' + current_date + '.pickle'
@@ -163,8 +163,8 @@ def get_real_data_sparsed(ticker='001470', date='20180420', train_data_rows=None
     if train_data_rows is None:
         train_data_rows = len(d[0])
 
-    x1 = np.zeros([10, 2, 60, 2])
-    x2 = np.zeros([60, 11])
+    x1 = np.zeros([10, 2, _len_observation, 2])
+    x2 = np.zeros([_len_observation, 11])
     y1 = np.zeros([120])
 
     d_x1 = []
