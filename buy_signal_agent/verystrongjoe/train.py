@@ -1,5 +1,6 @@
+
 from keras.models import Model
-from keras.layers import Input, Dense, Conv3D, Conv1D, Dense, Flatten, MaxPooling1D, MaxPooling2D,MaxPooling3D,Concatenate
+from keras.layers import LeakyReLU, Input, Dense, Conv3D, Conv1D, Dense, Flatten, MaxPooling1D, MaxPooling2D,MaxPooling3D,Concatenate
 import numpy as np
 import pickle
 from rl.callbacks import FileLogger, ModelIntervalCheckpoint
@@ -62,6 +63,9 @@ def build_network():
 build q newtork using cnn and dense layer
 """
 def build_network_for_sparsed(optimizer='adam',init_mode='uniform', filters=16, neurons=20, activation='relu'):
+    if activation == 'leaky_relu':
+        activation = LeakyReLU(alpha=0.3)
+
     input_order = Input(shape=(10, 2, 60, 2), name="x1")
     input_tranx = Input(shape=(60, 11), name="x2")
 
@@ -95,7 +99,7 @@ def build_network_for_sparsed(optimizer='adam',init_mode='uniform', filters=16, 
 
     model = Model([input_order, input_tranx], output)
     model.compile(optimizer=optimizer, loss='mse', metrics=['mae'])
-    model.summary()
+    # model.summary()
 
     return model
 
@@ -330,11 +334,42 @@ def train_using_real_data_sparsed(d, save_dir=''):
     # create model
     model = KerasRegressor(build_fn=build_network_for_sparsed, verbose=0)
 
-    # define the grid search parameters
-    batch_size = [10, 20, 40, 100]
-    epochs = [10, 50]
-    neurons = [20, 25, 50]
-    activation = ['relu', 'leaky_relu', 'tanh']
+    """
+    define the grid search parameters
+    """
+
+
+    # simple try!!
+    # batch_size = [10]
+    # epochs = [10]
+    # neurons = [20]
+    # activation = ['leaky_relu']
+
+    # todo : second try!
+    # batch_size = [10]
+    # epochs = [70, 100]
+    # neurons = [70, 100]
+    # activation = ['leaky_relu']
+
+    # todo : third try!
+    batch_size = [10]
+    epochs = [70]
+    neurons = [100, 120, 150]
+    activation = ['leaky_relu']
+
+
+
+    # first try
+    # end up with Best: -46695.504027 using {'activation': 'leaky_relu', 'batch_size': 10, 'epochs': 50, 'neurons': 50}
+    # batch_size = [10, 20, 40, 100]
+    # epochs = [10, 50]
+    # neurons = [20, 25, 50]
+    # activation = ['relu', 'leaky_relu', 'tanh']
+
+
+
+
+
 
     param_grid = dict(batch_size=batch_size, epochs=epochs, neurons=neurons, activation=activation)
 
@@ -386,8 +421,8 @@ def load_data_sparsed(t, d, use_fake_data=False, save_dir =''):
     return x1, x2, y
 
 # train_using_fake_data()
-d  = 'D:\\dev\\workspace\\trading-agent\\buy_signal_agent\\verystrongjoe\\sparse_2'
-#d = 'C:\\Git\\trading-agent\\buy_signal_agent\\verystrongjoe'
+# d  = 'D:\\dev\\workspace\\trading-agent\\buy_signal_agent\\verystrongjoe\\sparse_2'
+d = 'C:\\Git\\trading-agent\\buy_signal_agent\\verystrongjoe\\sparse_2'
 # train_using_real_data(d, 'sparse')
 train_using_real_data_sparsed(d, 'sparse_2')
 
