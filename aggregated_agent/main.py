@@ -12,6 +12,7 @@ from keras.layers import Dense, Activation, Flatten
 from keras.optimizers import Adam
 from collections import deque
 import glob
+import copy
 
 
 class DDQNAgent:
@@ -94,6 +95,8 @@ class DDQNAgent:
         # next_states = np.zeros((self.batch_size, self.state_size))
         actions, rewards, dones = [], [], []
 
+        print('mini batch :', len(mini_batch))
+        print('mini batch 2 :', len(mini_batch[0][3]))
         for i in range(self.batch_size):
             for array_idx in range(3):
                 states[array_idx].append(mini_batch[i][0][array_idx])
@@ -102,8 +105,9 @@ class DDQNAgent:
             rewards.append(mini_batch[i][2])
             dones.append(mini_batch[i][4])
 
+        states = [np.array(states[0]), np.array(states[1]), np.array(states[2])]
         target = self.model.predict(states)
-        target_val = self.target_model.predict(next_states)
+        target_val = self.target_model.predict([np.array(next_states[0]), np.array(next_states[1]), np.array(next_states[2])])
 
         for i in range(self.batch_size):
             if dones[i]:
@@ -168,6 +172,7 @@ class Agents:
     # 또한 agent 에 따라 input data 의 모양이 다르므로 그 처리도 여기서 한다.
     # agent 가 전부 구체화되면 완성할 것
     def _process_state(self, state):
+        state = copy.deepcopy(state)
         if self.sequence == 0:  # BSA
             state.append([1, 1, 1, 1, 1, 1, 1])
             # state = np.append(state, [1, 1, 1, 1, 1, 1, 1], axis=0)  # < 테스트 후 지울것 (bsa 네트워크가 없어 boa 사용중이라 넣음)
@@ -185,12 +190,17 @@ class Agents:
             state.append([1, 1, 1, 1, 1, 1, 1])
             # state = np.append(state, self.soa_additional_data, axis=0)
 
-        return state
+        return np.array(state)
 
     def append_sample(self, state, action, reward, next_state, done):
-        print('state length :', len(state))
+        # print('state length :', len(state))
+        # # print(state)
         state = self._process_state(state)
+        next_state = self._process_state(next_state)
         print('state length :', len(state))
+        print('next state length :', len(next_state))
+        # print(state)
+        # input()
         if self.sequence == 0:
             print(reward[self.agent_name[self.sequence]])
         if action == 0:  # action 이 0 인 경우 additional reward 가 없으므로 그냥 memory 에 sample 추가
@@ -222,7 +232,7 @@ class MyTGym(tgym.TradingGymEnv):  # MyTGym 수정해야 함 -> agent 별 reward
     # data shape
     rows = 10
     columns = 2
-    seconds = 60
+    seconds = 90
     channels = 2
     features = 11
 
