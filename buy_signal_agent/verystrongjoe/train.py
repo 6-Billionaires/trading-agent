@@ -1,3 +1,15 @@
+import argparse
+import config
+
+parser = argparse.ArgumentParser()
+parser.add_argument("-import-gym", "--import-gym",help="import trading gym", action="store_true")
+
+args = parser.parse_args()
+
+if args.import_gym:
+    import sys
+    sys.path.insert(0, config.GYM['HOME'])
+
 from keras.models import Model
 from keras.layers import LeakyReLU, Input, Dense, Conv3D, Conv1D, Dense, Flatten, MaxPooling1D, MaxPooling2D,MaxPooling3D,Concatenate
 import numpy as np
@@ -9,17 +21,6 @@ from core.scikit_learn_multi_input import KerasRegressor
 from sklearn.model_selection import GridSearchCV
 import os
 import pickle
-import config
-import argparse
-
-parser = argparse.ArgumentParser()
-parser.add_argument("-import-gym", "--import-gym",help="import trading gym", action="store_true")
-
-args = parser.parse_args()
-
-if args.import_gym:
-    import sys
-    sys.path.insert(0, config.GYM['HOME'])
 
 
 os.environ["CUDA_VISIBLE_DEVICES"] = str(config.BSA_PARAMS['P_TRAINING_GPU'])
