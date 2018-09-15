@@ -1,37 +1,35 @@
-"""
-UPDATE : here I will write down comments in detail for others to code their owns.
-"""
-from gym_core import ioutil  # file i/o to load stock csv files
-from collections import deque
 import config
-import pandas as pd
-import datetime
-import numpy as np
-import pickle
-import os
+
 import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument("-training", "--training", help="turn on training mode", action="store_true")
 parser.add_argument("-import-gym", "--import-gym",help="import trading gym", action="store_true")
 
 args = parser.parse_args()
-
-os.environ["CUDA_VISIBLE_DEVICES"] = str(config.BSA_PARAMS['P_TRAINING_GPU'])
-_len_observation = int(config.BSA_PARAMS['P_OBSERVATION_LEN'])
-
-_csv_dir  = None
-_save_dir = None
-
 training_mode = config.BSA_PARAMS['TRAINING_MODE']
+
+if args.import_gym:
+    import sys
+    sys.path.insert(0, config.GYM['HOME'])
+
+from gym_core import ioutil  # file i/o to load stock csv files
+from collections import deque
+import pandas as pd
+import datetime
+import numpy as np
+import pickle
+import os
 
 if args.training:
     training_mode = True
 else:
     training_mode = False
 
-if args.import_gym:
-    import sys
-    sys.path.insert(0, config.GYM['HOME'])
+_csv_dir  = None
+_save_dir = None
+
+os.environ["CUDA_VISIBLE_DEVICES"] = str(config.BSA_PARAMS['P_TRAINING_GPU'])
+_len_observation = int(config.BSA_PARAMS['P_OBSERVATION_LEN'])
 
 
 if training_mode:

@@ -1,14 +1,5 @@
-from keras.models import Model
-from keras.layers import LeakyReLU, Input, Dense, Conv3D, Conv1D, Dense, Flatten, MaxPooling1D, MaxPooling2D,MaxPooling3D,Concatenate
-import numpy as np
-import pickle
-from rl.callbacks import FileLogger, ModelIntervalCheckpoint
-from gym_core import ioutil  # file i/o to load stock csv files
-import pickle
-import os
-import config
-from gym_core.ioutil import *  # file i/o to load stock csv files
 import argparse
+import config
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-import-gym", "--import-gym",help="import trading gym", action="store_true")
@@ -18,6 +9,16 @@ args = parser.parse_args()
 if args.import_gym:
     import sys
     sys.path.insert(0, config.GYM['HOME'])
+
+from keras.models import Model
+from keras.layers import LeakyReLU, Input, Dense, Conv3D, Conv1D, Dense, Flatten, MaxPooling1D, MaxPooling2D,MaxPooling3D,Concatenate
+import numpy as np
+import pickle
+from rl.callbacks import FileLogger, ModelIntervalCheckpoint
+from gym_core import ioutil  # file i/o to load stock csv files
+import pickle
+import os
+from gym_core.ioutil import *  # file i/o to load stock csv files
 
 os.environ["CUDA_VISIBLE_DEVICES"] = str(config.BSA_PARAMS['P_TRAINING_GPU'])
 _len_observation = int(config.BSA_PARAMS['P_OBSERVATION_LEN'])
