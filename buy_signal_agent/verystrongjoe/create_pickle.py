@@ -12,6 +12,8 @@ import os
 import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument("-training", "--training", help="turn on training mode", action="store_true")
+parser.add_argument("-import-gym", "--import-gym",help="import trading gym", action="store_true")
+
 args = parser.parse_args()
 
 os.environ["CUDA_VISIBLE_DEVICES"] = str(config.BSA_PARAMS['P_TRAINING_GPU'])
@@ -26,6 +28,11 @@ if args.training:
     training_mode = True
 else:
     training_mode = False
+
+if args.import_gym:
+    import sys
+    sys.path.insert(0, config.GYM['HOME'])
+
 
 if training_mode:
     _csv_dir = config.BSA_PARAMS['CSV_DIR_FOR_CREATING_PICKLE_TRAINING']
