@@ -169,21 +169,26 @@ class Agents:
     # agent 가 전부 구체화되면 완성할 것
     def _process_state(self, state):
         if self.sequence == 0:  # BSA
-            state.append([1, 1, 1, 1, 1, 1, 1])  # < 테스트 후 지울것 (bsa 네트워크가 없어 boa 사용중이라 넣음)
+            state.append([1, 1, 1, 1, 1, 1, 1])
+            # state = np.append(state, [1, 1, 1, 1, 1, 1, 1], axis=0)  # < 테스트 후 지울것 (bsa 네트워크가 없어 boa 사용중이라 넣음)
             pass
 
         if self.sequence == 1 and not (self.boa_additional_data is None):  # BOA
-            state.append(self.boa_additional_data)
+            state.append([1, 1, 1, 1, 1, 1, 1])
+            # state = np.append(state, self.boa_additional_data, axis=0)
 
         if self.sequence == 2 and not (self.ssa_additional_data is None):  # SSA
-            state.append(self.ssa_additional_data)
+            state.append([1, 1, 1, 1, 1, 1, 1])
+            # state = np.append(state, self.ssa_additional_data, axis=0)
 
         if self.sequence == 3 and not (self.soa_additional_data is None):  # SOA
-            state.append(self.soa_additional_data)
+            state.append([1, 1, 1, 1, 1, 1, 1])
+            # state = np.append(state, self.soa_additional_data, axis=0)
 
         return state
 
     def append_sample(self, state, action, reward, next_state, done):
+        print('state length :', len(state))
         state = self._process_state(state)
         print('state length :', len(state))
         if self.sequence == 0:
@@ -268,7 +273,7 @@ class MyTGym(tgym.TradingGymEnv):  # MyTGym 수정해야 함 -> agent 별 reward
             for feature in range(self.features):
                 x2[second][feature] = self.holder_observation[second][feature]
 
-        return np.array([x1, x2])
+        return [x1, x2]
 
 if __name__ == '__main__':
     env = MyTGym(episode_type='0', percent_goal_profit=2, percent_stop_loss=5, episode_duration_min=60)
