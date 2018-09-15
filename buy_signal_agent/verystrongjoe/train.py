@@ -338,8 +338,6 @@ def train_using_real_data_sparsed(d, save_dir=''):
         pickle.dump(history.history, file_pi)
 
 
-
-
 def train_using_real_data_sparsed_cv(d, save_dir=''):
 
     # model = build_network_for_sparsed()
