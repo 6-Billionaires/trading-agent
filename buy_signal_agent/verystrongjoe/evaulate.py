@@ -8,7 +8,16 @@ import pickle
 import os
 import config
 from gym_core.ioutil import *  # file i/o to load stock csv files
+import argparse
 
+parser = argparse.ArgumentParser()
+parser.add_argument("-import-gym", "--import-gym",help="import trading gym", action="store_true")
+
+args = parser.parse_args()
+
+if args.import_gym:
+    import sys
+    sys.path.insert(0, config.GYM['HOME'])
 
 os.environ["CUDA_VISIBLE_DEVICES"] = str(config.BSA_PARAMS['P_TRAINING_GPU'])
 _len_observation = int(config.BSA_PARAMS['P_OBSERVATION_LEN'])
