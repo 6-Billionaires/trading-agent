@@ -72,7 +72,8 @@ class DDQNAgent:
         if np.random.random() <= self.epsilon:
             return random.randrange(self.action_size)
         else:
-            q_value = self.model.predict([[np.array(state[0]), np.array(state[1]), np.array(state[2])]])
+            print('ACTION')
+            q_value = self.model.predict([np.array([state[0]]), np.array([state[1]]), np.array([state[2]])])
             return np.argmax(q_value[0])
 
     def append_sample(self, state, action, reward, next_state, done):
@@ -80,9 +81,9 @@ class DDQNAgent:
 
     def train_model(self):
         if len(self.memory) < self.train_start:
-            print('memory size is to short', len(self.memory))
+            # print('memory size is to short', len(self.memory))
             return
-        print('train', len(self.memory))
+        # print('train', len(self.memory))
 
         self.epsilon = max(self.epsilon * self.epsilon_decay, self.epsilon_min)
 
@@ -91,8 +92,6 @@ class DDQNAgent:
         next_states = [[], [], []]
         actions, rewards, dones = [], [], []
 
-        print('mini batch :', len(mini_batch))
-        print('mini batch 2 :', len(mini_batch[0][3]))
         for i in range(self.batch_size):
             for array_idx in range(3):
                 states[array_idx].append(mini_batch[i][0][array_idx])
@@ -193,8 +192,8 @@ class Agents:
         # # print(state)
         state = self._process_state(state)
         next_state = self._process_state(next_state)
-        print('state length :', len(state))
-        print('next state length :', len(next_state))
+        # print('state length :', len(state))
+        # print('next state length :', len(next_state))
         # print(state)
         # input()
         if self.sequence == 0:
@@ -251,7 +250,7 @@ class MyTGym(tgym.TradingGymEnv):  # MyTGym 수정해야 함 -> agent 별 reward
                     self.p_current_step_in_episode+j]]['Price(last excuted)']
                 gap = price - price_at_signal - threshold
                 width += gap
-        rewards['BSA'] = width
+        rewards['BSA'] = width / secs
 
         # create BOA rewrad
         rewards['BOA'] = [0.1, 0, -0.4, 0.3][random.randint(0, 3)]
@@ -301,6 +300,7 @@ if __name__ == '__main__':
             agents.append_sample(state, action, reward, next_state, done)
             state = next_state
             agents.train_agents()
+
 
 
 
