@@ -8,7 +8,7 @@ from gym_core import tgym
 
 import numpy as np
 import random
-from keras.models import Sequential, load_model
+from keras.models import Sequential, load_model, Model
 from keras.layers import Dense, Activation, Flatten
 from keras.optimizers import Adam
 from collections import deque
@@ -17,8 +17,8 @@ from collections import deque
 class DDQNAgent:
     def __init__(self, model_dir, state_size, action_size):
         # load models
-        self.model = load_model(model_dir)
-        self.target_model = load_model(model_dir)
+        self.model = self.load_model(model_dir)
+        self.target_model = self.load_model(model_dir)
         self.model_dir = model_dir
 
         self.epsilon = 1.
@@ -31,6 +31,34 @@ class DDQNAgent:
         self.target_update_interval = 10000
         self.memory = deque(maxlen=100000)
         self.discount_factor = 0.999
+
+    def load_model(self, model_dir, is_for_rl=False):
+        model = load_model(model_dir)
+        if not is_for_rl:
+            self.pop_layer(model)
+            model.add(Dense(2, activation='linear', name='new_output'))
+        for layer in model.layers[:-1]:
+            layer.trainable = False
+        model.compile(optimizer='adam', loss='mse')
+        model.summary()
+        return model
+
+    @staticmethod
+    def pop_layer(model):
+        if not model.outputs:
+            raise Exception("model is empty")
+
+        model.layers.pop()
+        if not model.layers:
+            model.outputs = []
+            model.inbound_nodes = []
+            model.outbound_nodes = []
+        else:
+            model.layers[-1].outbound_nodes = []
+            model.outputs = [model.layers[-1].output]
+        model.built = False
+
+
 
     def update_target_model(self):
         self.target_model.set_weights(self.model.get_weights())
@@ -75,7 +103,7 @@ class DDQNAgent:
                 target[i][actions[i]] = rewards[i] + self.discount_factor * (np.amax(target_val[i]))
 
         self.model.fit(states, target, batch_size=self.batch_size, epochs=1, verbose=0)
-        self.model.save(self.model_dir)
+        # self.model.save(self.model_dir)
 
 
 class Agents:
