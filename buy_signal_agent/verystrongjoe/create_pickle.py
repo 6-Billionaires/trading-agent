@@ -9,9 +9,9 @@ import datetime
 import numpy as np
 import pickle
 import os
+os.environ["CUDA_VISIBLE_DEVICES"] = str(0)
 
 _len_observation = 120
-
 """
 previously,  I gave secs as 120. but like iljoo said, it needs to be 120.
 
@@ -103,6 +103,7 @@ def prepare_sparse_dataset(d, interval=120, len_observation=_len_observation, sa
             y_1d.append(width)
 
     pickle_name = save_dir + os.path.sep + current_date + '_' + current_ticker + '.pickle'
+    print('{} file is created.'.format(pickle_name))
     f = open(pickle_name, 'wb')
     pickle.dump([x_2d, x_1d, y_1d], f)
     f.close()
@@ -170,8 +171,8 @@ def prepare_dataset(d, interval=1, len_sequence_of_secs=120):
     pickle_name = current_date + '_' + current_ticker + '.pickle'
     f = open(pickle_name, 'wb')
     pickle.dump([x_2d, x_1d, y_1d], f)
+    print('{} file is created.'.format(pickle_name))
     f.close()
-
 
 save_dir = 'sparse_3'
 
