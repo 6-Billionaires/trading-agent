@@ -3,12 +3,12 @@ import config
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-import-gym", "--import-gym",help="import trading gym", action="store_true")
-
+parser.add_argument("-gym-dir", "--gym-dir", type=str, help="import trading gym")
 args = parser.parse_args()
 
 if args.import_gym:
     import sys
-    sys.path.insert(0, config.GYM['HOME'])
+    sys.path.insert(0, args.gym_dir)
 
 from keras.models import Model
 from keras.layers import LeakyReLU, Input, Dense, Conv3D, Conv1D, Dense, Flatten, MaxPooling1D, MaxPooling2D,MaxPooling3D,Concatenate

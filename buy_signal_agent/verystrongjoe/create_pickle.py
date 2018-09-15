@@ -1,17 +1,16 @@
-import config
-
 import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument("-training", "--training", help="turn on training mode", action="store_true")
 parser.add_argument("-import-gym", "--import-gym",help="import trading gym", action="store_true")
+parser.add_argument("-gym-dir", "--gym-dir", type=str, help="import trading gym")
 
 args = parser.parse_args()
-training_mode = config.BSA_PARAMS['TRAINING_MODE']
 
 if args.import_gym:
     import sys
-    sys.path.insert(0, config.GYM['HOME'])
+    sys.path.insert(0, args.gym_dir)
 
+import config
 from gym_core import ioutil  # file i/o to load stock csv files
 from collections import deque
 import pandas as pd
@@ -20,6 +19,7 @@ import numpy as np
 import pickle
 import os
 
+training_mode = config.BSA_PARAMS['TRAINING_MODE']
 if args.training:
     training_mode = True
 else:
