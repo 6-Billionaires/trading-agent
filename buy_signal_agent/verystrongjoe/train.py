@@ -1,4 +1,3 @@
-
 from keras.models import Model
 from keras.layers import LeakyReLU, Input, Dense, Conv3D, Conv1D, Dense, Flatten, MaxPooling1D, MaxPooling2D,MaxPooling3D,Concatenate
 import numpy as np
@@ -10,8 +9,11 @@ from core.scikit_learn_multi_input import KerasRegressor
 from sklearn.model_selection import GridSearchCV
 import os
 import pickle
-os.environ["CUDA_VISIBLE_DEVICES"]=0
-_len_observation = 120
+import config
+
+os.environ["CUDA_VISIBLE_DEVICES"] = str(config.BSA_PARAMS['P_TRAINING_GPU'])
+_len_observation = int(config.BSA_PARAMS['P_OBSERVATION_LEN'])
+_pickle_training_dir = config.BSA_PARAMS['PICKLE_DIR_FOR_TRAINING']
 
 """
 it will prevent process not to occupying 100% of gpu memory for the first time. 
@@ -23,67 +25,75 @@ Instead, it will use memory incrementally.
 # config.gpu_options.per_process_gpu_memory_fraction = 0.2
 # set_session(tf.Session(config=config))
 
+# """
+# build q newtork using cnn and dense layer
+# """
+# def build_network():
+#     input_order = Input(shape=(10, 2, 120, 2), name="x1")
+#     input_tranx = Input(shape=(120, 11), name="x2")
+#
+#     h_conv1d_2 = Conv1D(filters=16, kernel_size=3, activation='relu')(input_tranx)
+#     h_conv1d_4 = MaxPooling1D(pool_size=3, strides=None, padding='valid')(h_conv1d_2)
+#     h_conv1d_6 = Conv1D(filters=32, kernel_size=3, activation='relu')(h_conv1d_4)
+#     h_conv1d_8 = MaxPooling1D(pool_size=2, strides=None, padding='valid')(h_conv1d_6)
+#
+#     h_conv3d_1_1 = Conv3D(filters=16, kernel_size=(2, 1, 5), activation='relu')(input_order)
+#     h_conv3d_1_2 = Conv3D(filters=16, kernel_size=(1, 2, 5), activation='relu')(input_order)
+#
+#     h_conv3d_1_3 = MaxPooling3D(pool_size=(1, 1, 3))(h_conv3d_1_1)
+#     h_conv3d_1_4 = MaxPooling3D(pool_size=(1, 1, 3))(h_conv3d_1_2)
+#
+#     h_conv3d_1_5 = Conv3D(filters=32, kernel_size=(1, 2, 5), activation='relu')(h_conv3d_1_3)
+#     h_conv3d_1_6 = Conv3D(filters=32, kernel_size=(2, 1, 5), activation='relu')(h_conv3d_1_4)
+#
+#     h_conv3d_1_7 = MaxPooling3D(pool_size=(1, 1, 5))(h_conv3d_1_5)
+#     h_conv3d_1_8 = MaxPooling3D(pool_size=(1, 1, 5))(h_conv3d_1_6)
+#     o_conv3d_1 = Concatenate(axis=-1)([h_conv3d_1_7, h_conv3d_1_8])
+#
+#     o_conv3d_1_1 = Flatten()(o_conv3d_1)
+#
+#     i_concatenated_all_h_1 = Flatten()(h_conv1d_8)
+#
+#     i_concatenated_all_h = Concatenate()([i_concatenated_all_h_1, o_conv3d_1_1])
+#
+#     output = Dense(1, activation='linear')(i_concatenated_all_h)
+#
+#     model = Model([input_order, input_tranx], output)
+#
+#     return model
+
+
 """
 build q newtork using cnn and dense layer
 """
-def build_network():
-    input_order = Input(shape=(10, 2, 120, 2), name="x1")
-    input_tranx = Input(shape=(120, 11), name="x2")
-
-    h_conv1d_2 = Conv1D(filters=16, kernel_size=3, activation='relu')(input_tranx)
-    h_conv1d_4 = MaxPooling1D(pool_size=3, strides=None, padding='valid')(h_conv1d_2)
-    h_conv1d_6 = Conv1D(filters=32, kernel_size=3, activation='relu')(h_conv1d_4)
-    h_conv1d_8 = MaxPooling1D(pool_size=2, strides=None, padding='valid')(h_conv1d_6)
-
-    h_conv3d_1_1 = Conv3D(filters=16, kernel_size=(2, 1, 5), activation='relu')(input_order)
-    h_conv3d_1_2 = Conv3D(filters=16, kernel_size=(1, 2, 5), activation='relu')(input_order)
-
-    h_conv3d_1_3 = MaxPooling3D(pool_size=(1, 1, 3))(h_conv3d_1_1)
-    h_conv3d_1_4 = MaxPooling3D(pool_size=(1, 1, 3))(h_conv3d_1_2)
-
-    h_conv3d_1_5 = Conv3D(filters=32, kernel_size=(1, 2, 5), activation='relu')(h_conv3d_1_3)
-    h_conv3d_1_6 = Conv3D(filters=32, kernel_size=(2, 1, 5), activation='relu')(h_conv3d_1_4)
-
-    h_conv3d_1_7 = MaxPooling3D(pool_size=(1, 1, 5))(h_conv3d_1_5)
-    h_conv3d_1_8 = MaxPooling3D(pool_size=(1, 1, 5))(h_conv3d_1_6)
-    o_conv3d_1 = Concatenate(axis=-1)([h_conv3d_1_7, h_conv3d_1_8])
-
-    o_conv3d_1_1 = Flatten()(o_conv3d_1)
-
-    i_concatenated_all_h_1 = Flatten()(h_conv1d_8)
-
-    i_concatenated_all_h = Concatenate()([i_concatenated_all_h_1, o_conv3d_1_1])
-
-    output = Dense(1, activation='linear')(i_concatenated_all_h)
-
-    model = Model([input_order, input_tranx], output)
-
-    return model
-
-
-"""
-build q newtork using cnn and dense layer
-"""
-def build_network_for_sparsed(optimizer='adam',init_mode='uniform', filters=16, neurons=20, activation='relu'):
+def build_network_for_sparsed(optimizer='adam',init_mode='uniform',
+                              filters=16, neurons=20, activation='relu'):
     if activation == 'leaky_relu':
         activation = LeakyReLU(alpha=0.3)
 
     input_order = Input(shape=(10, 2, _len_observation, 2), name="x1")
     input_tranx = Input(shape=(_len_observation, 11), name="x2")
 
-    h_conv1d_2 = Conv1D(filters=16, kernel_initializer=init_mode, kernel_size=3, activation=activation)(input_tranx)
+    h_conv1d_2 = Conv1D(filters=16, kernel_initializer=init_mode, kernel_size=3)(input_tranx)
+    h_conv1d_2 = LeakyReLU(alpha=0.3)(h_conv1d_2)
     h_conv1d_4 = MaxPooling1D(pool_size=3,  strides=None, padding='valid')(h_conv1d_2)
-    h_conv1d_6 = Conv1D(filters=32, kernel_initializer=init_mode, kernel_size=3, activation=activation)(h_conv1d_4)
+    h_conv1d_6 = Conv1D(filters=32, kernel_initializer=init_mode, kernel_size=3)(h_conv1d_4)
+    h_conv1d_6 = LeakyReLU(alpha=0.3)(h_conv1d_6)
     h_conv1d_8 = MaxPooling1D(pool_size=2, strides=None, padding='valid')(h_conv1d_6)
 
-    h_conv3d_1_1 = Conv3D(filters=filters, kernel_initializer=init_mode, kernel_size=(2, 1, 5), activation=activation)(input_order)
-    h_conv3d_1_2 = Conv3D(filters=filters,  kernel_initializer=init_mode,kernel_size=(1, 2, 5), activation=activation)(input_order)
+    h_conv3d_1_1 = Conv3D(filters=filters, kernel_initializer=init_mode, kernel_size=(2, 1, 5))(input_order)
+    h_conv3d_1_1 = LeakyReLU(alpha=0.3)(h_conv3d_1_1)
+    h_conv3d_1_2 = Conv3D(filters=filters,  kernel_initializer=init_mode,kernel_size=(1, 2, 5))(input_order)
+    h_conv3d_1_2 = LeakyReLU(alpha=0.3)(h_conv3d_1_2)
 
     h_conv3d_1_3 = MaxPooling3D(pool_size=(1, 1, 3))(h_conv3d_1_1)
     h_conv3d_1_4 = MaxPooling3D(pool_size=(1, 1, 3))(h_conv3d_1_2)
 
-    h_conv3d_1_5 = Conv3D(kernel_initializer=init_mode, filters=filters*2, kernel_size=(1, 2, 5), activation=activation)(h_conv3d_1_3)
-    h_conv3d_1_6 = Conv3D(kernel_initializer=init_mode, filters=filters*2, kernel_size=(2, 1, 5), activation=activation)(h_conv3d_1_4)
+    h_conv3d_1_5 = Conv3D(kernel_initializer=init_mode, filters=filters*2, kernel_size=(1, 2, 5))(h_conv3d_1_3)
+    h_conv3d_1_5 = LeakyReLU(alpha=0.3)(h_conv3d_1_5)
+
+    h_conv3d_1_6 = Conv3D(kernel_initializer=init_mode, filters=filters*2, kernel_size=(2, 1, 5))(h_conv3d_1_4)
+    h_conv3d_1_6 = LeakyReLU(alpha=0.3)(h_conv3d_1_6)
 
     h_conv3d_1_7 = MaxPooling3D(pool_size=(1, 1, 5))(h_conv3d_1_5)
     h_conv3d_1_8 = MaxPooling3D(pool_size=(1, 1, 5))(h_conv3d_1_6)
@@ -100,11 +110,12 @@ def build_network_for_sparsed(optimizer='adam',init_mode='uniform', filters=16, 
     output = Dense(1, kernel_initializer=init_mode, activation='linear')(i_concatenated_all_h)
 
     model = Model([input_order, input_tranx], output)
-    model.compile(optimizer=optimizer, loss='mse', metrics=['mae'])
+    # model.compile(optimizer=optimizer, loss='mse', metrics=['mae'])
+    model.compile(optimizer='adam', loss='mse', metrics=['mae', 'mape', 'mse'])
+
     # model.summary()
 
     return model
-
 
 
 def get_sample_data(count):
@@ -136,16 +147,13 @@ def get_sample_data(count):
     return np.asarray(ld_x1), np.asarray(ld_x2), np.asarray(ld_y)
 
 
-
-
-def get_real_data_sparsed(ticker='001470', date='20180420', train_data_rows=None, save_dir=''):
+def get_real_data_sparsed(dir, ticker='001470', date='20180420', train_data_rows=None):
     """
     Get sparsed data for supervised learning
-
+    :param dir : directory where pickle files exist
     :param ticker: ticker number to read
     :param date: date yyyymmdd to read
     :param train_data_rows: data rows to read for training, default None : read all rows
-    :param save_dir: default ''
     :return: training data x1, x2, y1 for supervised learning model
     """
     current_ticker = ticker
@@ -155,7 +163,7 @@ def get_real_data_sparsed(ticker='001470', date='20180420', train_data_rows=None
     x2_dimension_info = (_len_observation, 11)
     # y1_dimension_info = (120,)
 
-    pickle_name = save_dir + os.path.sep + current_ticker + '_' + current_date + '.pickle'
+    pickle_name = dir + os.path.sep + current_ticker + '_' + current_date + '.pickle'
     f = open(pickle_name, 'rb')
     d = pickle.load(f)  # d[data_type][second] : mapobject!!
     f.close()
@@ -263,52 +271,51 @@ def get_real_data(ticker='001470', date='20180420', train_data_rows=None, save_d
 #     train_per_each_episode('','',True)
 
 
-def train_using_real_data(d, save_dir=''):
+# def train_using_real_data(d, save_dir=''):
+#
+#     model = build_network()
+#     model.compile(optimizer='adam', loss='mse', metrics=['accuracy'])
+#     model.summary()
+#
+#     l = load_ticker_yyyymmdd_list_from_directory(d)
+#
+#     t_x1, t_x2, t_y1 = [], [], []
+#
+#     for (ti, da) in l:
+#         print('loading data from ticker {}, yyyymmdd {} is started.'.format(ti, da))
+#         x1, x2, y1 = load_data(ti, da, use_fake_data=False, save_dir=save_dir)
+#         t_x1.append(x1)
+#         t_x2.append(x2)
+#         t_y1.append(y1)
+#         print('loading data from ticker {}, yyyymmdd {} is finished.'.format(ti, da))
+#
+#     print('total x1 : {}, total x2 : {}, total y1 : {}'.format(len(t_x1), len(t_x2), len(t_y1)))
+#
+#     # {steps} --> this file will be saved whenever it runs every steps as much as {step}
+#     checkpoint_weights_filename = 'bsa_' + 'fill_params_information_in_here' + '_weights_{step}.h5f'
+#
+#     # TODO: here we can add hyperparameters information like below!!
+#     log_filename = 'bsa_{}_log.json'.format('fill_params_information_in_here')
+#     checkpoint_interval = 50
+#
+#     callbacks = [ModelIntervalCheckpoint(checkpoint_weights_filename, interval=checkpoint_interval)]
+#     callbacks += [FileLogger(log_filename, interval=100)]
+#
+#     print('start to train.')
+#     model.fit({'x1': t_x1, 'x2': t_x2}, t_y1, epochs=50, verbose=2, batch_size=64, callbacks=callbacks)
+#     model.save_weights('final_weight.h5f')
 
-    model = build_network()
-    model.compile(optimizer='adam', loss='mse', metrics=['accuracy'])
-    model.summary()
 
-    l = load_ticker_yyyymmdd_list_from_directory(d)
+def train_using_real_data_sparsed(d):
 
-    t_x1, t_x2, t_y1 = [], [], []
-
-    for (ti, da) in l:
-        print('loading data from ticker {}, yyyymmdd {} is started.'.format(ti, da))
-        x1, x2, y1 = load_data(ti, da, use_fake_data=False, save_dir=save_dir)
-        t_x1.append(x1)
-        t_x2.append(x2)
-        t_y1.append(y1)
-        print('loading data from ticker {}, yyyymmdd {} is finished.'.format(ti, da))
-
-    print('total x1 : {}, total x2 : {}, total y1 : {}'.format(len(t_x1), len(t_x2), len(t_y1)))
-
-    # {steps} --> this file will be saved whenever it runs every steps as much as {step}
-    checkpoint_weights_filename = 'bsa_' + 'fill_params_information_in_here' + '_weights_{step}.h5f'
-
-    # TODO: here we can add hyperparameters information like below!!
-    log_filename = 'bsa_{}_log.json'.format('fill_params_information_in_here')
-    checkpoint_interval = 50
-
-    callbacks = [ModelIntervalCheckpoint(checkpoint_weights_filename, interval=checkpoint_interval)]
-    callbacks += [FileLogger(log_filename, interval=100)]
-
-    print('start to train.')
-    model.fit({'x1': t_x1, 'x2': t_x2}, t_y1, epochs=50, verbose=2, batch_size=64, callbacks=callbacks)
-    model.save_weights('final_weight.h5f')
-
-
-
-def train_using_real_data_sparsed(d, save_dir=''):
-
-    model = build_network_for_sparsed()
+    model = build_network_for_sparsed(activation='leaky_relu', neurons=100)
 
     l = load_ticker_yyyymmdd_list_from_directory(d)
     t_x1, t_x2, t_y1 = [],[],[]
 
     for (ti, da) in l:
         print('loading data from ticker {}, yyyymmdd {} is started.'.format(ti, da))
-        x1, x2, y1 = load_data_sparsed(ti, da, use_fake_data=False, save_dir=save_dir)
+        x1, x2, y1 = load_data_sparsed(ti, da, dir=d, use_fake_data=False)
         t_x1.append(x1)
         t_x2.append(x2)
         t_y1.append(y1)
@@ -323,22 +330,24 @@ def train_using_real_data_sparsed(d, save_dir=''):
     checkpoint_weights_filename = 'bsa_' + 'fill_params_information_in_here' + '_weights_{step}.h5f'
 
     # # TODO: here we can add hyperparameters information like below!!
-    # log_filename = 'bsa_{}_log.json'.format('fill_params_information_in_here')
-    # checkpoint_interval = 50
-    #
-    # callbacks = [ModelIntervalCheckpoint(checkpoint_weights_filename, interval=checkpoint_interval)]
-    # callbacks += [FileLogger(log_filename, interval=100)]
+    log_filename = 'bsa_{}_log.json'.format('fill_params_information_in_here')
+    checkpoint_interval = 50
+
+    callbacks = [ModelIntervalCheckpoint(checkpoint_weights_filename, interval=checkpoint_interval)]
+    callbacks += [FileLogger(log_filename, interval=100)]
 
     print('start to train.')
-    history = model.fit({'x1': t_x1, 'x2': t_x2}, t_y1, epochs=50, verbose=2, batch_size=64, callbacks=callbacks)
+    history = model.fit({'x1': t_x1, 'x2': t_x2}, t_y1,
+                        epochs=1, verbose=2, batch_size=10, callbacks=callbacks)
 
-    model.save('model.h5')
+    model.save('bsa_model.h5')
+    model.save_weights('bsa_weight.h5f')
 
     with open('bsa_model_history_1809142003', 'wb') as file_pi:
         pickle.dump(history.history, file_pi)
 
 
-def train_using_real_data_sparsed_cv(d, save_dir=''):
+def train_using_real_data_sparsed_gs(d, save_dir=''):
 
     # model = build_network_for_sparsed()
 
@@ -348,7 +357,7 @@ def train_using_real_data_sparsed_cv(d, save_dir=''):
 
     for (ti, da) in l:
         print('loading data from ticker {}, yyyymmdd {} is started.'.format(ti, da))
-        x1, x2, y1 = load_data_sparsed(ti, da, use_fake_data=False, save_dir=save_dir)
+        x1, x2, y1 = load_data_sparsed(ti, da, dir=d, use_fake_data=False)
         t_x1.append(x1)
         t_x2.append(x2)
         t_y1.append(y1)
@@ -380,13 +389,18 @@ def train_using_real_data_sparsed_cv(d, save_dir=''):
     """
     define the grid search parameters
     """
-
-
     # simple try!!
     # batch_size = [10]
     # epochs = [10]
     # neurons = [20]
     # activation = ['leaky_relu']
+
+    # first try
+    # end up with Best: -46695.504027 using {'activation': 'leaky_relu', 'batch_size': 10, 'epochs': 50, 'neurons': 50}
+    # batch_size = [10, 20, 40, 100]
+    # epochs = [10, 50]
+    # neurons = [20, 25, 50]
+    # activation = ['relu', 'leaky_relu', 'tanh']
 
     # todo : second try!
     # batch_size = [10]
@@ -400,15 +414,6 @@ def train_using_real_data_sparsed_cv(d, save_dir=''):
     neurons = [100, 120, 150]
     activation = ['leaky_relu']
 
-
-    # first try
-    # end up with Best: -46695.504027 using {'activation': 'leaky_relu', 'batch_size': 10, 'epochs': 50, 'neurons': 50}
-    # batch_size = [10, 20, 40, 100]
-    # epochs = [10, 50]
-    # neurons = [20, 25, 50]
-    # activation = ['relu', 'leaky_relu', 'tanh']
-
-
     param_grid = dict(batch_size=batch_size, epochs=epochs, neurons=neurons, activation=activation)
 
     grid = GridSearchCV(estimator=model, param_grid=param_grid, n_jobs=1)
@@ -418,11 +423,6 @@ def train_using_real_data_sparsed_cv(d, save_dir=''):
         np.array(  [ {'x1': a, 'x2': b}  for a, b in zip(t_x1, t_x2)]),
         t_y1)
 
-    # grid_result = grid.fit(
-    #     np.array([{'x1': a, 'x2': b}] for a, b in zip(t_x1, t_x2)),
-    #     t_y1)
-
-
     # summarize results
     print("Best: %f using %s" % (grid_result.best_score_, grid_result.best_params_))
     means = grid_result.cv_results_['mean_test_score']
@@ -430,7 +430,6 @@ def train_using_real_data_sparsed_cv(d, save_dir=''):
     params = grid_result.cv_results_['params']
     for mean, stdev, param in zip(means, stds, params):
         print("%f (%f) with: %r" % (mean, stdev, param))
-
 
 
 @runtime
@@ -447,7 +446,7 @@ def load_data(t, d, use_fake_data=False, save_dir =''):
 
 
 @runtime
-def load_data_sparsed(t, d, use_fake_data=False, save_dir =''):
+def load_data_sparsed(t, d, dir, use_fake_data=False):
     if use_fake_data:
         x1, x2, y = get_sample_data(10)
     else:
@@ -455,12 +454,8 @@ def load_data_sparsed(t, d, use_fake_data=False, save_dir =''):
         current_ticker = t
         #if you give second as None, it will read every seconds in file.
         # x1, x2, y = get_real_data(current_ticker, current_date, train_data_rows=130)
-        x1, x2, y = get_real_data_sparsed(current_ticker, current_date, save_dir=save_dir)
+        x1, x2, y = get_real_data_sparsed(dir, current_ticker, current_date)
     return x1, x2, y
 
 # train_using_fake_data()
-# d  = 'D:\\dev\\workspace\\trading-agent\\buy_signal_agent\\verystrongjoe\\sparse_2'
-d = 'C:\\Git\\trading-agent\\buy_signal_agent\\verystrongjoe\\sparse_2'
-# train_using_real_data(d, 'sparse')
-# train_using_real_data_sparsed_cv(d, 'sparse_2')
-train_using_real_data_sparsed(d, 'sparse_2')
+train_using_real_data_sparsed(_pickle_training_dir)

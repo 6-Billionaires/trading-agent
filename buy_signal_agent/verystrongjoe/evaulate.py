@@ -1,13 +1,18 @@
 from keras.models import Model
-from keras.layers import Input, Dense, Conv3D, Conv1D, Dense, Flatten, MaxPooling1D, MaxPooling2D,MaxPooling3D,Concatenate
+from keras.layers import LeakyReLU, Input, Dense, Conv3D, Conv1D, Dense, Flatten, MaxPooling1D, MaxPooling2D,MaxPooling3D,Concatenate
 import numpy as np
 import pickle
 from rl.callbacks import FileLogger, ModelIntervalCheckpoint
 from gym_core import ioutil  # file i/o to load stock csv files
 import pickle
 import os
-os.environ["CUDA_VISIBLE_DEVICES"]=0
-_len_observation = 120
+import config
+from gym_core.ioutil import *  # file i/o to load stock csv files
+
+
+os.environ["CUDA_VISIBLE_DEVICES"] = str(config.BSA_PARAMS['P_TRAINING_GPU'])
+_len_observation = int(config.BSA_PARAMS['P_OBSERVATION_LEN'])
+_pickle_test_dir = config.BSA_PARAMS['PICKLE_DIR_FOR_TEST']
 
 
 """
@@ -51,23 +56,37 @@ def build_network():
 """
 build q newtork using cnn and dense layer
 """
-def build_network_for_sparsed():
+"""
+build q newtork using cnn and dense layer
+"""
+def build_network_for_sparsed(optimizer='adam',init_mode='uniform',
+                              filters=16, neurons=20, activation='relu'):
+    if activation == 'leaky_relu':
+        activation = LeakyReLU(alpha=0.3)
+
     input_order = Input(shape=(10, 2, _len_observation, 2), name="x1")
     input_tranx = Input(shape=(_len_observation, 11), name="x2")
 
-    h_conv1d_2 = Conv1D(filters=16, kernel_size=3, activation='relu')(input_tranx)
-    h_conv1d_4 = MaxPooling1D(pool_size=3, strides=None, padding='valid')(h_conv1d_2)
-    h_conv1d_6 = Conv1D(filters=32, kernel_size=3, activation='relu')(h_conv1d_4)
+    h_conv1d_2 = Conv1D(filters=16, kernel_initializer=init_mode, kernel_size=3)(input_tranx)
+    h_conv1d_2 = LeakyReLU(alpha=0.3)(h_conv1d_2)
+    h_conv1d_4 = MaxPooling1D(pool_size=3,  strides=None, padding='valid')(h_conv1d_2)
+    h_conv1d_6 = Conv1D(filters=32, kernel_initializer=init_mode, kernel_size=3)(h_conv1d_4)
+    h_conv1d_6 = LeakyReLU(alpha=0.3)(h_conv1d_6)
     h_conv1d_8 = MaxPooling1D(pool_size=2, strides=None, padding='valid')(h_conv1d_6)
 
-    h_conv3d_1_1 = Conv3D(filters=16, kernel_size=(2, 1, 5), activation='relu')(input_order)
-    h_conv3d_1_2 = Conv3D(filters=16, kernel_size=(1, 2, 5), activation='relu')(input_order)
+    h_conv3d_1_1 = Conv3D(filters=filters, kernel_initializer=init_mode, kernel_size=(2, 1, 5))(input_order)
+    h_conv3d_1_1 = LeakyReLU(alpha=0.3)(h_conv3d_1_1)
+    h_conv3d_1_2 = Conv3D(filters=filters,  kernel_initializer=init_mode,kernel_size=(1, 2, 5))(input_order)
+    h_conv3d_1_2 = LeakyReLU(alpha=0.3)(h_conv3d_1_2)
 
     h_conv3d_1_3 = MaxPooling3D(pool_size=(1, 1, 3))(h_conv3d_1_1)
     h_conv3d_1_4 = MaxPooling3D(pool_size=(1, 1, 3))(h_conv3d_1_2)
 
-    h_conv3d_1_5 = Conv3D(filters=32, kernel_size=(1, 2, 5), activation='relu')(h_conv3d_1_3)
-    h_conv3d_1_6 = Conv3D(filters=32, kernel_size=(2, 1, 5), activation='relu')(h_conv3d_1_4)
+    h_conv3d_1_5 = Conv3D(kernel_initializer=init_mode, filters=filters*2, kernel_size=(1, 2, 5))(h_conv3d_1_3)
+    h_conv3d_1_5 = LeakyReLU(alpha=0.3)(h_conv3d_1_5)
+
+    h_conv3d_1_6 = Conv3D(kernel_initializer=init_mode, filters=filters*2, kernel_size=(2, 1, 5))(h_conv3d_1_4)
+    h_conv3d_1_6 = LeakyReLU(alpha=0.3)(h_conv3d_1_6)
 
     h_conv3d_1_7 = MaxPooling3D(pool_size=(1, 1, 5))(h_conv3d_1_5)
     h_conv3d_1_8 = MaxPooling3D(pool_size=(1, 1, 5))(h_conv3d_1_6)
@@ -79,18 +98,22 @@ def build_network_for_sparsed():
 
     i_concatenated_all_h = Concatenate()([i_concatenated_all_h_1, o_conv3d_1_1])
 
-    output = Dense(1, activation='linear')(i_concatenated_all_h)
+    i_concatenated_all_h = Dense(neurons, kernel_initializer=init_mode, activation='linear')(i_concatenated_all_h)
+
+    output = Dense(1, kernel_initializer=init_mode, activation='linear')(i_concatenated_all_h)
 
     model = Model([input_order, input_tranx], output)
+    model.compile(optimizer=optimizer, loss='mse', metrics=['mae'])
+    # model.summary()
 
     return model
 
 
 
-def get_real_data_sparsed(ticker='001470', date='20180420', train_data_rows=None, save_dir=''):
+def get_real_data_sparsed(dir, ticker='001470', date='20180420', train_data_rows=None):
     """
     Get sparsed data for supervised learning
-
+    :param dir : directory where pickle files exist
     :param ticker: ticker number to read
     :param date: date yyyymmdd to read
     :param train_data_rows: data rows to read for training, default None : read all rows
@@ -104,7 +127,7 @@ def get_real_data_sparsed(ticker='001470', date='20180420', train_data_rows=None
     x2_dimension_info = (_len_observation, 11)
     # y1_dimension_info = (120,)
 
-    pickle_name = save_dir + os.path.sep + current_ticker + '_' + current_date + '.pickle'
+    pickle_name = dir + os.path.sep + current_ticker + '_' + current_date + '.pickle'
     f = open(pickle_name, 'rb')
     d = pickle.load(f)  # d[data_type][second] : mapobject!!
     f.close()
@@ -198,19 +221,49 @@ def get_sample_data(count):
 
     return np.asarray(ld_x1), np.asarray(ld_x2), np.asarray(ld_y)
 
-model = build_network_for_sparsed()
+
+
+
+@runtime
+def load_data_sparsed(t, d, dir, use_fake_data=False):
+    if use_fake_data:
+        x1, x2, y = get_sample_data(10)
+    else:
+        current_date = d
+        current_ticker = t
+        #if you give second as None, it will read every seconds in file.
+        # x1, x2, y = get_real_data(current_ticker, current_date, train_data_rows=130)
+        x1, x2, y = get_real_data_sparsed(dir, current_ticker, current_date)
+    return x1, x2, y
+
+
+model = build_network_for_sparsed(activation='leaky_relu', neurons=100)
 model.compile(optimizer='adam', loss='mse', metrics=['mae', 'mape', 'mse'])
 model.summary()
 
 # load weight
-model.load_weights('final_weight.h5f')
+model.load_weights('bsa_weight.h5f')
 
-x1, x2, y = get_sample_sparsed_data(10) #for test
+# x1, x2, y = get_sample_sparsed_data(10) # for temporary test
 
-scores = model.evaluate({'x1': x1, 'x2': x2}, y, verbose=0)
+l = load_ticker_yyyymmdd_list_from_directory(_pickle_test_dir)
+t_x1, t_x2, t_y1 = [], [], []
+
+for (ti, da) in l:
+    print('loading data from ticker {}, yyyymmdd {} is started.'.format(ti, da))
+    x1, x2, y1 = load_data_sparsed(ti, da, dir=_pickle_test_dir, use_fake_data=False)
+    t_x1.append(x1)
+    t_x2.append(x2)
+    t_y1.append(y1)
+    print('loading data from ticker {}, yyyymmdd {} is finished.'.format(ti, da))
+t_x1 = np.concatenate(t_x1)
+t_x2 = np.concatenate(t_x2)
+t_y1 = np.concatenate(t_y1)
+
+print('total x1 : {}, total x2 : {}, total y1 : {}'.format(len(t_x1), len(t_x2), len(t_y1)))
+
+scores = model.evaluate({'x1': t_x1, 'x2': t_x2}, t_y1, verbose=0)
 print("%s: %.2f%%" % (model.metrics_names[1], scores[1]*100))
 
 with open('bsa_evaluate_model_history_1809142003', 'wb') as file_pi:
     pickle.dump(scores, file_pi)
-
-

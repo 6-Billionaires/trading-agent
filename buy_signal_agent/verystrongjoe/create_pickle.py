@@ -9,18 +9,42 @@ import datetime
 import numpy as np
 import pickle
 import os
-os.environ["CUDA_VISIBLE_DEVICES"] = str(0)
+import argparse
+parser = argparse.ArgumentParser()
+parser.add_argument("-training", "--training", help="turn on training mode", action="store_true")
+args = parser.parse_args()
 
-_len_observation = 120
+os.environ["CUDA_VISIBLE_DEVICES"] = str(config.BSA_PARAMS['P_TRAINING_GPU'])
+_len_observation = int(config.BSA_PARAMS['P_OBSERVATION_LEN'])
+
+_csv_dir  = None
+_save_dir = None
+
+training_mode = config.BSA_PARAMS['TRAINING_MODE']
+
+if args.training:
+    training_mode = True
+else:
+    training_mode = False
+
+if training_mode:
+    _csv_dir = config.BSA_PARAMS['CSV_DIR_FOR_CREATING_PICKLE_TRAINING']
+    _save_dir = config.BSA_PARAMS['PICKLE_DIR_FOR_TRAINING']
+else:
+    _csv_dir = config.BSA_PARAMS['CSV_DIR_FOR_CREATING_PICKLE_TEST']
+    _save_dir = config.BSA_PARAMS['PICKLE_DIR_FOR_TEST']
+
+
 """
 previously,  I gave secs as 120. but like iljoo said, it needs to be 120.
 
 in other agents, it can changes but you don't have to read every time seconds periods changes
 just read maximum periods of data and reuse it   
 """
-def prepare_datasets(is_spare_dataset=False, interval=120, len_observation=60, len_sequence_secs=120, save_dir=''):
+def prepare_datasets(load_csv_dir, is_spare_dataset=False, interval=120, len_observation=60, len_sequence_secs=120, save_dir=''):
     """
     main coordinate fucntion to create pickle
+    :param load_csv_dir : a directory where csv files to be read exist
     :param is_spare_dataset: if true, it uses not prepare_dataset function, but prepares_spare_dataset function.
     :param interval: same as prepare_sparse_dataset
     :param len_observation: only used if is_spare_dataset is true
@@ -29,7 +53,7 @@ def prepare_datasets(is_spare_dataset=False, interval=120, len_observation=60, l
     :return:
     """
     # l = ioutil.load_data_from_directory('0', max_n_episode=1) # episode type
-    l = ioutil.load_data_from_directory('0')  # episode type
+    l = ioutil.load_data_from_directory(load_csv_dir, '0')  # episode type
     for li in l:
         if is_spare_dataset:
             prepare_sparse_dataset(li, 120, _len_observation, save_dir)
@@ -174,9 +198,14 @@ def prepare_dataset(d, interval=1, len_sequence_of_secs=120):
     print('{} file is created.'.format(pickle_name))
     f.close()
 
-save_dir = 'sparse_3'
 
-if not os.path.isdir(save_dir):
-    os.makedirs(save_dir)
+if _csv_dir == '' or _csv_dir is None:
+    _csv_dir = 'sparse_3'
 
-prepare_datasets(is_spare_dataset=True, save_dir=save_dir)
+if _save_dir == '' or _save_dir is None:
+    _csv_dir = 'pickle_dir'
+
+if not os.path.isdir(_save_dir):
+    os.makedirs(_save_dir)
+
+prepare_datasets(load_csv_dir=_csv_dir, is_spare_dataset=True, save_dir=_save_dir)
