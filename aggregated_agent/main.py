@@ -72,7 +72,7 @@ class DDQNAgent:
         if np.random.random() <= self.epsilon:
             return random.randrange(self.action_size)
         else:
-            q_value = self.model.predict(state)
+            q_value = self.model.predict([[np.array(state[0]), np.array(state[1]), np.array(state[2])]])
             return np.argmax(q_value[0])
 
     def append_sample(self, state, action, reward, next_state, done):
@@ -87,12 +87,8 @@ class DDQNAgent:
         self.epsilon = max(self.epsilon * self.epsilon_decay, self.epsilon_min)
 
         mini_batch = random.sample(self.memory, self.batch_size)
-        # print(mini_batch)
-        # print(len(mini_batch))
-        # states = np.zeros((self.batch_size, self.state_size))
         states = [[], [], []]
         next_states = [[], [], []]
-        # next_states = np.zeros((self.batch_size, self.state_size))
         actions, rewards, dones = [], [], []
 
         print('mini batch :', len(mini_batch))
