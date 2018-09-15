@@ -151,9 +151,10 @@ class BaseWrapper(object):
 
         x0 = np.array([x[i]['x1'] for i in range(x.shape[0])])
         x1 = np.array([x[i]['x2'] for i in range(x.shape[0])])
+        x2 = np.array([x[i]['x3'] for i in range(x.shape[0])])
         # history = self.model.fit([x0, x1], y, **fit_args)
 
-        history = self.model.fit( {'x1': x0, 'x2': x1}, y, **fit_args)
+        history = self.model.fit( {'x1': x0, 'x2': x1, 'x3': x2}, y, **fit_args)
 
         return history
 
@@ -342,8 +343,9 @@ class KerasRegressor(BaseWrapper):
 
         x0 = np.array([x[i]['x1'] for i in range(x.shape[0])])
         x1 = np.array([x[i]['x2'] for i in range(x.shape[0])])
+        x2 = np.array([x[i]['x3'] for i in range(x.shape[0])])
 
-        return np.squeeze(self.model.predict({'x1': x0, 'x2': x1}, **kwargs))
+        return np.squeeze(self.model.predict({'x1': x0, 'x2': x1, 'x3': x2}, **kwargs))
 
     def score(self, x, y, **kwargs):
         """Returns the mean loss on the given test data and labels.
@@ -365,8 +367,9 @@ class KerasRegressor(BaseWrapper):
 
         x0 = np.array([x[i]['x1'] for i in range(x.shape[0])])
         x1 = np.array([x[i]['x2'] for i in range(x.shape[0])])
+        x2 = np.array([x[i]['x3'] for i in range(x.shape[0])])
 
-        loss = self.model.evaluate( {'x1': x0, 'x2': x1}, y, **kwargs)
+        loss = self.model.evaluate( {'x1': x0, 'x2': x1, 'x3': x2}, y, **kwargs)
 
         if isinstance(loss, list):
             return -loss[0]
