@@ -27,6 +27,7 @@ OBSERVATION_SIZE = 111
 
 logging.basicConfig(filename='logs/trading-agent-{}.log'.format(time.strftime('%Y%m%d%H%M%S')),level=logging.DEBUG)
 
+
 class ModelIntervalCheckpoint(Callback):
     def __init__(self, filepath, interval, verbose=0):
         super(ModelIntervalCheckpoint, self).__init__()
@@ -71,6 +72,7 @@ class ObservationProcessor(Processor) :
         self.holder_observation.append(observation)
         return list(self.holder_observation)
 
+
 class myTGym(tgym.TradingGymEnv):
     def _rewards(self, observation, action, done, info):
         if action == 1:
@@ -78,7 +80,8 @@ class myTGym(tgym.TradingGymEnv):
                 return -1
             if info['reached_profit']:
                 return 1
-        return 0
+        return 1
+
 
 def build_network():
 
