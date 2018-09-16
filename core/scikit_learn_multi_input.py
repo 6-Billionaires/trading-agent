@@ -116,7 +116,7 @@ class BaseWrapper(object):
         self.sk_params.update(params)
         return self
 
-    @timeit
+    @runtime
     def fit(self, x, y, **kwargs):
         """Constructs a new model with `build_fn` & fit the model to `(x, y)`.
 
@@ -183,7 +183,7 @@ class KerasClassifier(BaseWrapper):
     """Implementation of the scikit-learn classifier API for Keras.
     """
 
-    @timeit
+    @runtime
     def fit(self, x, y, sample_weight=None, **kwargs):
         """Constructs a new model with `build_fn` & fit the model to `(x, y)`.
 
@@ -216,7 +216,7 @@ class KerasClassifier(BaseWrapper):
             kwargs['sample_weight'] = sample_weight
         return super(KerasClassifier, self).fit(x, y, **kwargs)
 
-    @timeit
+    @runtime
     def predict(self, x, **kwargs):
         """Returns the class predictions for the given test data.
 
@@ -246,7 +246,7 @@ class KerasClassifier(BaseWrapper):
             classes = (proba > 0.5).astype('int32')
         return self.classes_[classes]
 
-    @timeit
+    @runtime
     def predict_proba(self, x, **kwargs):
         """Returns class probability estimates for the given test data.
 
@@ -279,7 +279,7 @@ class KerasClassifier(BaseWrapper):
             probs = np.hstack([1 - probs, probs])
         return probs
 
-    @timeit
+    @runtime
     def score(self, x, y, **kwargs):
         """Returns the mean accuracy on the given test data and labels.
 
@@ -328,7 +328,7 @@ class KerasRegressor(BaseWrapper):
     """Implementation of the scikit-learn regressor API for Keras.
     """
 
-    @timeit
+    @runtime
     def predict(self, x, **kwargs):
         """Returns predictions for the given test data.
 
@@ -350,7 +350,7 @@ class KerasRegressor(BaseWrapper):
 
         return np.squeeze(self.model.predict({'x1': x0, 'x2': x1}, **kwargs))
 
-    @timeit
+    @runtime
     def score(self, x, y, **kwargs):
         """Returns the mean loss on the given test data and labels.
 
