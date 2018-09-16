@@ -15,6 +15,7 @@ from keras.utils.generic_utils import to_list
 from keras.models import Sequential
 from gym_core.ioutil import *  # file i/o to load stock csv files
 
+
 class BaseWrapper(object):
     """Base class for the Keras scikit-learn wrapper.
 
@@ -154,7 +155,7 @@ class BaseWrapper(object):
         x1 = np.array([x[i]['x2'] for i in range(x.shape[0])])
         # history = self.model.fit([x0, x1], y, **fit_args)
 
-        history = self.model.fit( {'x1': x0, 'x2': x1}, y, **fit_args)
+        history = self.model.fit({'x1': x0, 'x2': x1}, y, **fit_args)
 
         return history
 
@@ -232,7 +233,6 @@ class KerasClassifier(BaseWrapper):
                 Class predictions.
         """
         kwargs = self.filter_sk_params(Sequential.predict_classes, kwargs)
-
 
         # todo : update
 
@@ -314,7 +314,6 @@ class KerasClassifier(BaseWrapper):
         x1 = np.array([x[i]['x2'] for i in range(x.shape[0])])
 
         outputs = self.model.evaluate({'x1': x0, 'x2': x1}, y, **kwargs)
-        
 
         outputs = to_list(outputs)
         for name, output in zip(self.model.metrics_names, outputs):
@@ -373,7 +372,7 @@ class KerasRegressor(BaseWrapper):
         x0 = np.array([x[i]['x1'] for i in range(x.shape[0])])
         x1 = np.array([x[i]['x2'] for i in range(x.shape[0])])
 
-        loss = self.model.evaluate( {'x1': x0, 'x2': x1}, y, **kwargs)
+        loss = self.model.evaluate({'x1': x0, 'x2': x1}, y, **kwargs)
 
         if isinstance(loss, list):
             return -loss[0]
