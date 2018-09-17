@@ -8,7 +8,7 @@ from gym_core import tgym
 import numpy as np
 import random
 from keras.models import Sequential, load_model, Model
-from keras.layers import Dense, Activation, Flatten
+from keras.layers import Dense, Activation, Flatten, Concatenate, Input
 from keras.optimizers import Adam
 from collections import deque
 import glob
@@ -22,8 +22,8 @@ class DDQNAgent:
         self.model = self.load_model()
         self.target_model = self.load_model()
 
-        self.epsilon = 1.
-        self.epsilon_min = 0.05
+        self.epsilon = 1.0
+        self.epsilon_min = 0.001
         self.epsilon_decay = 0.9999
         self.batch_size = 32
         self.state_size = state_size
@@ -36,15 +36,24 @@ class DDQNAgent:
     def load_model(self):
         networks = glob.glob('./networks/*.h5')
         if './networks/' + self.agent_type + '_rl' not in networks:
-            model = load_model('./networks/' + self.agent_type + '.h5')
-            model.layers.pop()
-            output_layer = Dense(2, activation='linear', name='rl_output')(model.layers[-1].output)
-            model = Model(inputs=model.input, outputs=output_layer)
+            # model = load_model('./networks/' + self.agent_type + '.h5')
+            # model.layers.pop()
+            # output_layer = Dense(2, activation='linear', name='rl_output')(model.layers[-1].output)
+            # model = Model(inputs=model.input, outputs=output_layer)
+
+            trained_model = load_model('./networks/' + self.agent_type + '.h5')
+            for layer in trained_model.layers:
+                layer.trainable = False
+            rl_model = load_model('./networks/' + self.agent_type + '.h5')
+            concat_layer = Concatenate(name='concat2')([trained_model(rl_model.input), rl_model.layers[-1].output])
+            output_layer = Dense(2, activation='linear', name='q_value_output')(concat_layer)
+            model = Model(inputs=rl_model.input, outputs=output_layer)
+
         else:
             model = load_model('./networks/' + self.agent_type + '_rl.h5')
 
-        for layer in model.layers[:-1]:
-            layer.trainable = False
+        # for layer in model.layers[:-1]:
+        #     layer.trainable = False
 
         model.compile(optimizer='adam', loss='mse')
         model.summary()
@@ -72,7 +81,7 @@ class DDQNAgent:
         if np.random.random() <= self.epsilon:
             return random.randrange(self.action_size)
         else:
-            print('ACTION')
+            # print('ACTION')
             q_value = self.model.predict([np.array([state[0]]), np.array([state[1]]), np.array([state[2]])])
             return np.argmax(q_value[0])
 
@@ -196,14 +205,17 @@ class Agents:
         # print('next state length :', len(next_state))
         # print(state)
         # input()
-        if self.sequence == 0:
+        if self.sequence == 0:  # 지울것
             print(reward[self.agent_name[self.sequence]])
         if action == 0:  # action 이 0 인 경우 additional reward 가 없으므로 그냥 memory 에 sample 추가
-            self.agents[self.sequence].append_sample(state, action, reward[self.agent_name[self.sequence]], next_state,
-                                                     done)
+            reward = 0  # action == 0 => reward = 0
+            self.agents[self.sequence].append_sample(state, action, reward, next_state, done)
+
         else:  # action 이 1인 경우 additional reward 를 주기 위해 buffer 에 한번에 모았다가 reward 계산해서 마지막에 추가
             self.sample_buffer.append([state, action, reward[self.agent_name[self.sequence]], next_state, done])
+            reward = reward[self.agent_name[self.sequence]]
         self._sequence_manage(action)
+        return reward
 
     def _append_buffer_sample(self):
         self.sample_buffer[0][2] += (self.sample_buffer[1][2] + self.sample_buffer[3][2]) * self.additional_reward_rate
@@ -244,7 +256,7 @@ class MyTGym(tgym.TradingGymEnv):  # MyTGym 수정해야 함 -> agent 별 reward
         for j in range(secs):
             if j == 0:
                 price_at_signal = self.d_episodes_data[self.p_current_episode_ref_idx]['quote'].loc[
-                    self.c_range_timestamp[self.p_current_step_in_episode]]['Price(last excuted)']
+                    self.c_range_timestamp[self.p_current_step_in_episode]]['Price(last excuted)']  # 데이터 자체에 오타 나 있으므로 수정 x
             else:
                 price = self.d_episodes_data[self.p_current_episode_ref_idx]['quote'].loc[self.c_range_timestamp[
                     self.p_current_step_in_episode+j]]['Price(last excuted)']
@@ -253,13 +265,13 @@ class MyTGym(tgym.TradingGymEnv):  # MyTGym 수정해야 함 -> agent 별 reward
         rewards['BSA'] = width / secs
 
         # create BOA rewrad
-        rewards['BOA'] = [0.1, 0, -0.4, 0.3][random.randint(0, 3)]
+        rewards['BOA'] = width / secs
 
         # create SSA reward
-        rewards['SSA'] = [0.1, 0, -0.4, 0.3][random.randint(0, 3)]
+        rewards['SSA'] = -width / secs
 
         # create SOA reward
-        rewards['SOA'] = [0.1, 0, -0.4, 0.3][random.randint(0, 3)]
+        rewards['SOA'] = -width / secs
         return rewards
 
     def observation_processor(self, observation):
@@ -294,12 +306,20 @@ if __name__ == '__main__':
         state = env.reset()
         agents.update_target_network()
 
+        reward_sum = 0
+        step_count = 0
+
         while not done:
             action = agents.get_action(state)
             next_state, reward, done, info = env.step(action)
-            agents.append_sample(state, action, reward, next_state, done)
+            reward_sum += agents.append_sample(state, action, reward, next_state, done)
+            step_count += 1
             state = next_state
             agents.train_agents()
+
+        print('step :', step_count)
+        if step_count > 0:
+            print('reward :', reward_sum / step_count)
 
 
 
