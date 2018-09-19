@@ -1,120 +1,109 @@
-# Trading Agents for Quantitative trading
+Trading Agents for Quantitative trading
 
-## Intro
+Intro
 
-Trading Gym 과 연결하여 주식 단타 매매를 학습하는 Trading Agent 이다. 총 4개의 Agent를 사용하여 학습하는데, 넓은 간격의 시장 데이터를 관찰하면서 매수 시그널을 생성하는 Buy Signal Agent (BSA), 매수 시그널을 받아 일정 시간 안에 최저가로 매수를 하는 Buy Order Agent (BOA), 주식 매수가격과 수량, 시장 정보를 받아 매도 시그널을 생성하는 Sell Signal Agent (SSA), 매도 시그널을 받아 일정 시간 안에 최고가로 매도하는 Sell Order Agent (SOA) 로 구성된다. 각각의 Agent는 독립적인 Reward 를 갖고 있지만, Reward의 일정 부분은 다른 Agent들과 공유되어 최종적으로는 '수익률' 이라는 하나의 목표로 움직이게 된다.
+There are trading agents that learns to buy and sell stocks by connecting with trading gym. It consists of 4 agents having each own's role.
+
+- Buy Signal Agent (BSA), which generates a buy signal.
+- Buy Order Agent (BOA), which receives a buy signal and makes a purchase at the lowest price within a certain period of time
+- Sell Signal Agent (SSA) which generates sell signal with receiving buyer price and quantity, market information
+- Sell Order Agent (SOA) which receives sell signal and sells at highest price within a certain time. 
+
+Each Agents have an independent reward, but some parts of the rewards are shared with other Agents and eventually move to a single goal of 'Trading Return'.
 
 
 
-## Architecture
-![](/materials/architecture.png)
-
-
-
-## How to run
-1. 로컬 컴퓨터에 Trading-Gym 과 Trading-Agent 를 clone 받는다.
-2. 학습하고자 하는 Agent 에서 Gym을 임포트하고 gym_core.tgym.TradingGymEnv를 상속 받아 새로운 ENV를 생성한다.
-3. ENV에서 _rewards() 함수를 작성한다. observation은 전처리된 시장 관찰 결과를, action은 Agent의 행동을, info는 결과값을 담고 있다. 이를 토대로 reward 값을 계산하여 return 해 주면 된다.
-4. Agent 를 구현한다. (keras-rl 문서 참조)
+Architecture
 
 
 
 
-#### ENV 예시
 
-import sys
+How to install
 
-sys.path.insert(0, 'trading-gym 경로')
-
-from gym_core import tgym
-
-class ENV(tgym.tradingGymEnv):
-
-​	def _rewards(self, observation, action, done, info):
-
-​		# calcuate reward
-
-​		return reward
+You can clone two repository into your local computer or cloud whatever. And you can run agent after including traidng gym as submodule or add gym's root into Python Path and then you can run trading agent itself. so simple!
+ First, You have to install Trading Gym. This is link.
 
 
 
+Quick Run
 
-## Buy Signal Agent (BSA)
-
-GOAL 
-
-전처리된 장기 데이터(초단타 기준=약 1~2분) 만을 State로 입력 받아 일정 시간(default=60s) 안에 일정 비율(default=2%) 만큼 상승하는 상황(이하 Upward TP)을 찾는 것을 목표로 한다. 
-
-
-
-REWARD
-
-1. 일정 시간 안에 일정 비율만큼 올랐을 경우 reward로 1을 받고, 일정 시간 안에 일정 비율(default=-2%) 만큼 떨어졌을 경우 reward를 -1로 받는다. 두 조건 다 만족했을 때는 먼저 만족한 조건을 기준으로 reward를 받고, 둘 다 만족하지 못했을 때는 -1 ~ 1 로 clipping 된 reward를 (마지막 가격 / 처음 가격) ratio 기준으로 받게 된다.
-2. BOA reward * 0.1
-3. SOA reward * 0.1
-
-위 리워드를 전부 합산한다.
+    import sys
+    from gym_core import tgym
+    
+    class ENV(tgym.tradingGymEnv):
+    	def _rewards(self, observation, action, done, info):
+    		# calcuate reward
+    		return reward
 
 
 
-STATE
+Buy Signal Agent (BSA)
 
-1. N초간의 호가창 정보 (N=60초)
-   1.1 N초간의 호가창 정보를 어제 종가로 scailing 한것 ( ex 60초 * 40columns(매수호가, 매수잔량, 매도호가, 매도잔량))
-    -> 60 * 40  = 2400
-2. N초간의 체결량 정보
-   2.1 N초간의 체결량 정보를 scailing 한것 ( ex 60초 * 7 columns)
-    -> 60 * 7
-3. Market Info
-   3.1 N초 동안의 그 종목의 OPEN, HIGH, LOW
-    3.2 N초 동안의 코스피, 코스닥(지수) 흐름
+- GOAL 
+   The Buy Signal Agent (BSA) continues to monitor the market and finds the stock price likely to rise more than 2% in two minutes. If a particular stock is expected to rise more than 2% in two minutes, send a buy signal to the Buy Order Agent. Also, BSA receives rewards based on how other agents did well.
 
 
 
-NETWORK
-
-1. RRL
-2. Temporal CNN
-
-
-
-## Buy Order Agent (BOA)
-
-GOAL
-
-BSA로부터 signal을 받았을 때, 일정 시간(default=60s) 안에 signal을 받았을 때의 가격 대비 가장 싼 가격으로 주식을 매수하는 것을 목표로 한다.
+- REWARD
+   The area occupied by the price of 2 minutes compared to the price at the time of generating the buy signal (-1% to 1% clipping with the upper limit at 2% for 120 seconds and the lower limit at -2%
+ Also, get rewards based on how toher agents did well. BSA gets other agents' reward mutipled with specific number(K).
 
 
 
-REWARD
+- STATE
 
-1. Signal 을 받았을 때 가격 대비 얼마나 싸게 매수했는가를 -1 ~ 1 로 clipping 한 값
-2. SOA reward * 0.1
-
-위 리워드를 전부 합산한다.
-
-
-
-STATE
-
-1. N초간의 호가창 정보 (N=60초)
-   1.1 N초간의 호가창 정보를 어제 종가로 scailing 한것 ( ex 60초 * 40columns(매수호가, 매수잔량, 매도호가, 매도잔량))
-    -> 60 * 40  = 2400
-2. N초간의 체결량 정보
-   2.1 N초간의 체결량 정보를 scailing 한것 ( ex 60초 * 7 columns)
-    -> 60 * 7
-3. Market Info
-   3.1 N초 동안의 그 종목의 OPEN, HIGH, LOW
-    3.2 N초 동안의 코스피, 코스닥(지수) 흐름
+1. Orderbook data during N seconds.
+   It have 41 columns with time, bid prices (10), bid volumes (10), ask prices (10), ask volumes (10)
+2. Executed trade data during N seconds.
+   It have 12 columns with time, price(last executed), Buy/Sell/Total executed, Buy/Sell/Total Weighted Price, Execution Strength, Open/High/Low Price
 
 
 
-## Sell Signal Agent (SSA)
+Buy Order Agent (BOA)
 
-추가예정
+- GOAL 
+   When the Buy Order Agent (BOA) receives a buy signal from BSA, it proceeds to buy at the lowest possible price within two minutes. If BOA does not make a purchase within the time limit, BOA will be forced to buy at now . The BOA receives a reward based on the price how much BOA bought the stock cheaper than the price when BSA has given the buy signal.
 
 
 
-## Sell Order Agent (SOA)
+- REWARD
+How much cheaper than the price when you received a signal from BSA (-2% upper limit, -1 ~ 1% Clipping with 2% lower limit)
+ Also, get rewards based on how other agents did well(except, BSA). BOA gets other agents' reward mutipled with specific number(K).
 
-추가예정
+
+
+- STATE
+Same with other agents.
+  
+
+Sell Signal Agent (SSA)
+
+- GOAL 
+  The Sell Signal Agent (SSA) observes the market from the time BOA purchases the stock, and searches for a time when the share price is likely to fall by more than 2% within the remaining time. If you believe a particular stock will fall by more than 2%, send Sell Signal to the Sell Order Agent. If the SSA signal does not occur within 2 minutes of the BSA signal, the signal is forced to make signal. 
+
+
+
+- REWARD
+  The area occupied by the price for 2 minutes compared to the price at the time of generating the Sell Signal (the upper limit of the area at -2% for 120 seconds and the lower limit of the area at 2% for -1 to 1 clipping)
+
+
+
+- STATE
+Same with other agents.
+
+
+
+Sell Order Agent (SOA)
+
+- GOAL 
+   The Sell Order Agent (SOA) sells at the most expensive price within the remaining time when receiving the Sell Signal from the SSA. If you do not sell within 2 minutes of the BSA signaling, you will immediately sell it to the market. The buyer receives a reward based on the price bought by the BOA against the stock price at the time of receiving the Sell Signal from the SSA.
+
+
+
+- REWARD
+  The selling price (2% upper limit, -1 ~ 1 clipping with the lower limit of -2%) when the SSA receives a signal.
+  
+
+- STATE
+Same with other agents.
