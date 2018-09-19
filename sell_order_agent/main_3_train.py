@@ -15,6 +15,30 @@ from rl.callbacks import FileLogger, ModelIntervalCheckpoint
 from core import util
 from datetime import datetime
 
+import config
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument("-training", "--training", help="turn on training mode", action="store_true")
+args = parser.parse_args()
+
+os.environ["CUDA_VISIBLE_DEVICES"] = str(config.SOA_PARAMS['P_TRAINING_GPU'])
+
+training_mode = config.SOA_PARAMS['TRAINING_MODE']
+
+if args.training:
+    training_mode = True
+else:
+    training_mode = False
+
+if training_mode:
+    csv_dir = config.SOA_PARAMS['CSV_DIR_FOR_CREATING_PICKLE_TRAINING']
+    save_dir = config.SOA_PARAMS['PICKLE_DIR_FOR_TRAINING']
+else:
+    csv_dir = config.SOA_PARAMS['CSV_DIR_FOR_CREATING_PICKLE_TEST']
+    save_dir = config.SOA_PARAMS['PICKLE_DIR_FOR_TEST']
+
+
 """
 build q newtork using cnn and dense layer
 """
@@ -201,7 +225,7 @@ def train_using_real_data(d, max_len, save_dir):
     print('total x1 : {}, total x2 : {}, total x3 : {}, total x4 : {}, total y1 : {}'.format(len(t_x1), len(t_x2), len(t_x3), len(t_x4), len(t_y1)))
 
     # {steps} --> this file will be saved whenver it runs every steps as much as {step}
-    checkpoint_weights_filename = 'soa_weights_{step}.h5f'
+    checkpoint_weights_filename = 'soa_model_{step}.h5'
 
     #model.load_weights(filepath = checkpoint_weights_filename.format(step='end'), by_name=True, skip_mismatch=True)
 
