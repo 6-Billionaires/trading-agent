@@ -15,12 +15,20 @@ import pickle
 import os
 import random
 
+os.environ["CUDA_VISIBLE_DEVICES"] = str(config.SSA_PARAMS['P_TRAINING_GPU'])
+_len_observation = int(config.SSA_PARAMS['P_OBSERVATION_LEN'])
+
+train_csv_dir = config.SSA_PARAMS['CSV_DIR_FOR_CREATING_PICKLE_TRAINING']
+train_save_dir = config.SSA_PARAMS['PICKLE_DIR_FOR_TRAINING']
+test_csv_dir = config.SSA_PARAMS['CSV_DIR_FOR_CREATING_PICKLE_TEST']
+test_save_dir = config.SSA_PARAMS['PICKLE_DIR_FOR_TEST']
+
 """
 previously,  I gave secs as 120. but like iljoo said, it needs to be 120.
 in other agents, it can changes but you don't have to read every time seconds periods changes
 just read maximum periods of data and reuse it   
 """
-def prepare_datasets(is_spare_dataset=False, interval=120, len_observation=60, len_sequence_secs=120, save_dir=''):
+def prepare_datasets(load_csv_dir, is_spare_dataset=False, interval=120, len_observation=60, len_sequence_secs=120, save_dir=''):
     """
     main coordinate fucntion to create pickle
     :param is_spare_dataset: if true, it uses not prepare_dataset function, but prepares_spare_dataset function.
@@ -30,16 +38,16 @@ def prepare_datasets(is_spare_dataset=False, interval=120, len_observation=60, l
     :param save_dir: root directory where pickle will save
     :return:
     """
-    # l = ioutil.load_data_from_directory('0', max_n_episode=1) # episode type
-    l = ioutil.load_data_from_directory('0')  # episode type
+    l = ioutil.load_data_from_directory(load_csv_dir, '0', max_n_episode=1) # episode type
+    # l = ioutil.load_data_from_directory(load_csv_dir, '0')  # episode type
     for li in l:
         if is_spare_dataset:
-            prepare_sparse_dataset(li, 120, 120, 60, save_dir)
+            prepare_sparse_dataset(li, 120, _len_observation, save_dir)
         else:
             prepare_dataset(li, 1, len_sequence_secs)
 
 
-def prepare_sparse_dataset(d, interval=120, len_sequence_of_secs=120, len_observation=60, save_dir=''):
+def prepare_sparse_dataset(d, interval=120, len_observation=_len_observation, save_dir=''):
     """
     original version
     loading data from ticker 20180403, yyyymmdd 003350 is started.
@@ -60,7 +68,7 @@ def prepare_sparse_dataset(d, interval=120, len_sequence_of_secs=120, len_observ
     c_end = datetime.datetime(int(current_date[0:4]), int(current_date[4:6]),
                               int(current_date[6:8]), 15, 20)  # 15hr 20min 0sec, finish time
     c_rng_ts = pd.date_range(start=c_start, end=c_end,
-                                    freq=str(interval)+'S')  # range between c_start and c_end saving each seconds' data
+                                    freq='S')  # range between c_start and c_end saving each seconds' data
 
     max_idx = len(c_rng_ts) - 1
 
@@ -83,7 +91,7 @@ def prepare_sparse_dataset(d, interval=120, len_sequence_of_secs=120, len_observ
         d_x2d = deque(maxlen=len_observation)
         d_x1d = deque(maxlen=len_observation)
 
-        if c_rng_ts[max_idx] < s + pd.Timedelta(seconds=len_sequence_of_secs) or i >= max_idx:
+        if c_rng_ts[max_idx] < s + pd.Timedelta(seconds=len_observation) or i >= max_idx:
         # if c_rng_ts[max_idx] < s + len_sequence_of_secs or i >= max_idx:
             break
         elif s - pd.Timedelta(seconds=len_observation) < c_rng_ts[0]:
@@ -101,8 +109,8 @@ def prepare_sparse_dataset(d, interval=120, len_sequence_of_secs=120, len_observ
                 # d_x1d.append(d['quote'].loc[s-i])
 
             # price_at_signal is the price when the current stock received signal
-            price_at_signal = d['quote'].loc[c_rng_ts[i-elapsed_secs]]['Price(last excuted)']
-            price = d['quote'].loc[c_rng_ts[i]]['Price(last excuted)']
+            price_at_signal = d['quote'].loc[c_rng_ts[i-elapsed_secs]]['Price(last executed)']
+            price = d['quote'].loc[c_rng_ts[i]]['Price(last executed)']
             gap = price_at_signal - price - threshold
             width += gap
 
@@ -175,9 +183,9 @@ def prepare_dataset(d, interval=1, len_sequence_of_secs=120):
             for j in range(len_sequence_of_secs):
                 if j == 0:
                     # price_at_signal is the price when the current stock received signal
-                    price_at_signal = d['quote'].loc[c_rng_ts[i+j]]['Price(last excuted)']
+                    price_at_signal = d['quote'].loc[c_rng_ts[i+j]]['Price(last executed)']
                 else:
-                    price = d['quote'].loc[c_rng_ts[i+j]]['Price(last excuted)']
+                    price = d['quote'].loc[c_rng_ts[i+j]]['Price(last executed)']
                     gap = price_at_signal - price - threshold
                     width += gap
 
@@ -193,9 +201,14 @@ def prepare_dataset(d, interval=1, len_sequence_of_secs=120):
     f.close()
 
 
-save_dir = 'sparse'
 max_secs = 120
-if not os.path.isdir(save_dir):
-    os.makedirs(save_dir)
+if not os.path.isdir(train_save_dir):
+    os.makedirs(train_save_dir)
+if not os.path.isdir(test_save_dir):
+    os.makedirs(test_save_dir)
 
-prepare_datasets(is_spare_dataset=True, save_dir=save_dir)
+prepare_datasets(load_csv_dir=train_csv_dir, is_spare_dataset=True, save_dir=train_save_dir)
+print("create train pickles")
+
+prepare_datasets(load_csv_dir=test_csv_dir, is_spare_dataset=True, save_dir=test_save_dir)
+print("create test pickles")
