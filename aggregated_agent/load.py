@@ -27,7 +27,7 @@ def load_model(model_type):
         return model
 
     if model_type == 'boa':
-        max_secs = 90
+        max_secs = 120
         max_len = util.get_maxlen_of_binary_array(max_secs)
         model = build_boa_network(max_secs, max_len)
         # model.load_weights('')  # << boa weight 경로
@@ -141,8 +141,8 @@ def build_boa_network(max_secs=90, max_len=7, optimizer='adam', init_mode='unifo
 def build_ssa_network():
     max_len = util.get_maxlen_of_binary_array(120)
 
-    input_order = Input(shape=(10, 2, 60, 2), name="x1")
-    input_tranx = Input(shape=(60, 11), name="x2")
+    input_order = Input(shape=(10, 2, 120, 2), name="x1")
+    input_tranx = Input(shape=(120, 11), name="x2")
     input_elapedtime = Input(shape=(max_len,), name="x3")
     input_lefttime = Input(shape=(max_len,), name="x4")
 

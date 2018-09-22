@@ -28,7 +28,7 @@ class DDQNAgent:
         self.epsilon_decay = 0.9999
         self.batch_size = 32
         self.action_size = action_size
-        self.train_start = 33
+        self.train_start = 1000
         self.target_update_interval = 10000
         self.memory = deque(maxlen=100000)
         self.discount_factor = 0.999
@@ -134,7 +134,7 @@ class DDQNAgent:
             else:
                 target[i][actions[i]] = rewards[i] + self.discount_factor * (np.amax(target_val[i]))
 
-        self.model.fit(states, target, batch_size=self.batch_size, epochs=1, verbose=0)
+        self.model.fit(input_states, target, batch_size=self.batch_size, epochs=1, verbose=0)
         self.model.save('./networks/' + self.agent_type + '_rl.h5')
 
 
@@ -153,6 +153,7 @@ class Agents:
 
         self.sample_buffer = list()
         self.remain_step = 0
+        self.trainable = False
 
     def get_action(self, state):
         state = self._process_state(state)
@@ -166,6 +167,7 @@ class Agents:
     # 순서를 진행하면서 다음 agent에 필요한 additional_data 를 작성한다.
     # 순서가 넘어갈때 필요한 다른 모든것들을 여기서 처리한다.
     def _sequence_manage(self, action):
+        self.trainable = False
         if self.sequence == 0 and action:
             # additional data 작성
             self.remain_step = 120
@@ -184,6 +186,7 @@ class Agents:
             self._append_buffer_sample()
             self.sample_buffer = list()
             self.sequence = 0
+            self.trainable = True
 
     # agent 별로 state 가 다르기 때문에 (뒤로 갈수록 추가 정보가 생김) 그 처리를 한다.
     # additional data 자체는 sequence 가 넘어갈 때 _sequence_manage() 함수에서 생성하며, 이 함수는 그 additional data 를 state 에
@@ -229,7 +232,7 @@ class Agents:
         # print(state)
         # input()
         if self.sequence == 0:  # 지울것
-            print(reward[self.agent_name[self.sequence]])
+            print(round(reward[self.agent_name[self.sequence]], 3))
         if action == 0:  # action 이 0 인 경우 additional reward 가 없으므로 그냥 memory 에 sample 추가
             reward = 0  # action == 0 => reward = 0
             self.agents[self.sequence].append_sample(state, action, reward, next_state, done)
@@ -262,7 +265,7 @@ class MyTGym(tgym.TradingGymEnv):  # MyTGym 수정해야 함 -> agent 별 reward
     # data shape
     rows = 10
     columns = 2
-    seconds = 90
+    seconds = 120
     channels = 2
     features = 11
 
@@ -338,7 +341,8 @@ if __name__ == '__main__':
             reward_sum += agents.append_sample(state, action, reward, next_state, done)
             step_count += 1
             state = next_state
-            agents.train_agents()
+            if agents.trainable:
+                agents.train_agents()
 
         print('step :', step_count)
         if step_count > 0:
