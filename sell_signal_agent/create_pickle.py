@@ -38,7 +38,7 @@ def prepare_datasets(load_csv_dir, is_spare_dataset=False, interval=120, len_obs
     :param save_dir: root directory where pickle will save
     :return:
     """
-    l = ioutil.load_data_from_directory(load_csv_dir, '0', max_n_episode=1) # episode type
+    l = ioutil.load_data_from_directory(load_csv_dir, '0', max_n_episode=2) # episode type
     # l = ioutil.load_data_from_directory(load_csv_dir, '0')  # episode type
     for li in l:
         if is_spare_dataset:
@@ -82,6 +82,10 @@ def prepare_sparse_dataset(d, interval=120, len_observation=_len_observation, sa
     left_time = []
 
     for i, s in enumerate(c_rng_ts):
+
+        if i % interval != 0:
+            continue
+
         # BOA 에서 보내주는 남은 시간 랜덤 생성.
         left_secs = random.randint(1, max_secs)
 
