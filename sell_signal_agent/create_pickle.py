@@ -220,4 +220,4 @@ if not os.path.isdir(test_save_dir):
 
 prepare_datasets(load_csv_dir=train_csv_dir, is_spare_dataset=True, save_dir=train_save_dir)
 
-# prepare_datasets(load_csv_dir=test_csv_dir, is_spare_dataset=True, save_dir=test_save_dir)
+prepare_datasets(load_csv_dir=test_csv_dir, is_spare_dataset=True, save_dir=test_save_dir)

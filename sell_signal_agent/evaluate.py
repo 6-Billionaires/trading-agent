@@ -164,10 +164,28 @@ model.compile(optimizer='adam', loss='mse', metrics=['mae','mape','accuracy'])
 model.summary()
 model.load_weights('final_weight.h5f')
 
-# model = Model('final_model.h5')
-
+t_x1, t_x2, t_x3, t_x4, t_y1 = [],[],[],[],[]
 l = load_ticker_yyyymmdd_list_from_directory(_pickle_evaluate_dir)
+
 for (ti, da) in l:
-    x1, x2, x3, x4, y = get_real_data_sparsed(pickle_dir=_pickle_evaluate_dir, ticker=ti, date=da)
-    scores = model.evaluate({'x1': x1, 'x2': x2, 'x3': x3, 'x4': x4}, y, verbose=0)
-    print("%s: %.2f    %s: %.2f    %s: %.2f" % (model.metrics_names[1], scores[1], model.metrics_names[2], scores[2], model.metrics_names[3], scores[3]))
+    print('loading data from ticker {}, yyyymmdd {} is started.'.format(ti, da))
+    x1, x2, x3, x4, y1 = get_real_data_sparsed(pickle_dir=_pickle_evaluate_dir, ticker=ti, date=da)
+    t_x1.append(x1)
+    t_x2.append(x2)
+    t_x3.append(x3)
+    t_x4.append(x4)
+    t_y1.append(y1)
+    print('loading data from ticker {}, yyyymmdd {} is finished.'.format(ti, da))
+t_x1 = np.concatenate(t_x1)
+t_x2 = np.concatenate(t_x2)
+t_x3 = np.concatenate(t_x3)
+t_x4 = np.concatenate(t_x4)
+
+t_y1 = np.concatenate(t_y1)
+
+scores = model.evaluate({'x1': t_x1, 'x2': t_x2, 'x3': t_x3, 'x4': t_x4}, t_y1, verbose=0)
+print("%s: %.2f    %s: %.2f    %s: %.2f" % (model.metrics_names[1], scores[1], model.metrics_names[2], scores[2], model.metrics_names[3], scores[3]))
+
+with open('ssa_evaluate_model_history', 'wb') as file_pi:
+    pickle.dump(scores, file_pi)
+
