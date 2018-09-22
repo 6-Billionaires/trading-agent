@@ -81,62 +81,58 @@ def prepare_sparse_dataset(d, interval=120, len_observation=_len_observation, sa
     # 남은시간
     left_time = []
 
-    for i, s in enumerate(c_rng_ts):
+    try:
 
-        if i % interval != 0:
-            continue
+        for i, s in enumerate(c_rng_ts):
 
-        # BOA 에서 보내주는 남은 시간 랜덤 생성.
-        left_secs = random.randint(1, max_secs)
+            if i % interval != 0:
+                continue
 
-        # SSA 에서 시그널 발생 하는데 까지 걸린 시간을 랜덤 생성.
-        elapsed_secs = random.randint(0, left_secs)
+            # BOA 에서 보내주는 남은 시간 랜덤 생성.
+            left_secs = random.randint(1, max_secs)
 
-        d_x2d = deque(maxlen=len_observation)
-        d_x1d = deque(maxlen=len_observation)
+            # SSA 에서 시그널 발생 하는데 까지 걸린 시간을 랜덤 생성.
+            elapsed_secs = random.randint(0, left_secs)
 
-        if c_rng_ts[max_idx] < s + pd.Timedelta(seconds=len_observation) or i >= max_idx:
-        # if c_rng_ts[max_idx] < s + len_sequence_of_secs or i >= max_idx:
-            break
-        elif s - pd.Timedelta(seconds=len_observation) < c_rng_ts[0]:
-        # elif s - len_observation < c_rng_ts[0]:
-            continue
-        else:
-            width = 0
-            threshold = 0.33
+            d_x2d = deque(maxlen=len_observation)
+            d_x1d = deque(maxlen=len_observation)
 
-            # assemble observation for len_observation
-            for i in reversed(range(len_observation)):
-                try:
+            if c_rng_ts[max_idx] < s + pd.Timedelta(seconds=len_observation) or i >= max_idx:
+            # if c_rng_ts[max_idx] < s + len_sequence_of_secs or i >= max_idx:
+                break
+            elif s - pd.Timedelta(seconds=len_observation) < c_rng_ts[0]:
+            # elif s - len_observation < c_rng_ts[0]:
+                continue
+            else:
+                width = 0
+                threshold = 0.33
+
+                # assemble observation for len_observation
+                for i in reversed(range(len_observation)):
                     d_x2d.append(d['order'].loc[s-pd.Timedelta(seconds=i)])
                     d_x1d.append(d['quote'].loc[s-pd.Timedelta(seconds=i)])
                     # d_x2d.append(d['order'].loc[s-i])
                     # d_x1d.append(d['quote'].loc[s-i])
-                except KeyError as e:
-                    print('찾을 수 없는 key 값이 있습니다.', current_ticker, e)
-                    continue
 
-            gap =0
-            try:
                 # price_at_signal is the price when the current stock received signal
                 price_at_signal = d['quote'].loc[c_rng_ts[i-elapsed_secs]]['Price(last executed)']
                 price = d['quote'].loc[c_rng_ts[i]]['Price(last executed)']
                 gap = price_at_signal - price - threshold
-            except KeyError as e:
-                print('찾을 수 없는 key 값이 있습니다.', current_ticker, e)
-                continue
-            width += gap
+                width += gap
 
-            x_2d.append(np.array(d_x2d))
-            x_1d.append(np.array(d_x1d))
-            left_time.append(left_secs)
-            elapsed_time.append(elapsed_secs)
-            y_1d.append(width)
+                x_2d.append(np.array(d_x2d))
+                x_1d.append(np.array(d_x1d))
+                left_time.append(left_secs)
+                elapsed_time.append(elapsed_secs)
+                y_1d.append(width)
 
-    pickle_name = save_dir + os.path.sep + current_date + '_' + current_ticker + '.pickle'
-    f = open(pickle_name, 'wb')
-    pickle.dump([x_2d, x_1d, elapsed_time, left_time, y_1d], f)
-    f.close()
+        pickle_name = save_dir + os.path.sep + current_date + '_' + current_ticker + '.pickle'
+        f = open(pickle_name, 'wb')
+        pickle.dump([x_2d, x_1d, elapsed_time, left_time, y_1d], f)
+        f.close()
+        print(pickle_name, " created!")
+    except KeyError as e:
+        print('Pickle creation error ', current_ticker, e)
 
 
 def prepare_dataset(d, interval=1, len_sequence_of_secs=120):
@@ -221,7 +217,5 @@ if not os.path.isdir(test_save_dir):
     os.makedirs(test_save_dir)
 
 prepare_datasets(load_csv_dir=train_csv_dir, is_spare_dataset=True, save_dir=train_save_dir)
-print("create train pickles")
 
 prepare_datasets(load_csv_dir=test_csv_dir, is_spare_dataset=True, save_dir=test_save_dir)
-print("create test pickles")
