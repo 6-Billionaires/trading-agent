@@ -227,7 +227,15 @@ def train_using_real_data_sparsed(pickle_dir):
     callbacks += [FileLogger(log_filename, interval=100)]
 
     print('start to train.')
-    model.fit({'x1': t_x1, 'x2': t_x2, 'x3': t_x3, 'x4': t_x4}, t_y1, epochs=70, verbose=2, batch_size=10, callbacks=callbacks)
+    history = model.fit({'x1': t_x1, 'x2': t_x2, 'x3': t_x3, 'x4': t_x4}, t_y1, epochs=70, verbose=2, batch_size=10, callbacks=callbacks)
+
+    f = open("ssa_model_history", 'wb')
+    pickle.dump(history.history, f)
+    f.close()
+
+    # with open('ssa_model_history', 'wb') as file_pi:
+    #     pickle.dump(history.history, file_pi)
+
     model.save_weights('final_weight.h5f')
     model.save('final_model.h5')
 

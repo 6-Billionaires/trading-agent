@@ -38,8 +38,8 @@ def prepare_datasets(load_csv_dir, is_spare_dataset=False, interval=120, len_obs
     :param save_dir: root directory where pickle will save
     :return:
     """
-    l = ioutil.load_data_from_directory(load_csv_dir, '0', max_n_episode=2) # episode type
-    # l = ioutil.load_data_from_directory(load_csv_dir, '0')  # episode type
+    # l = ioutil.load_data_from_directory(load_csv_dir, '0', max_n_episode=2) # episode type
+    l = ioutil.load_data_from_directory(load_csv_dir, '0')  # episode type
     for li in l:
         if is_spare_dataset:
             prepare_sparse_dataset(li, 120, _len_observation, save_dir)
@@ -97,11 +97,11 @@ def prepare_sparse_dataset(d, interval=120, len_observation=_len_observation, sa
             d_x2d = deque(maxlen=len_observation)
             d_x1d = deque(maxlen=len_observation)
 
-            if c_rng_ts[max_idx] < s + pd.Timedelta(seconds=len_observation) or i >= max_idx:
-            # if c_rng_ts[max_idx] < s + len_sequence_of_secs or i >= max_idx:
+            # if c_rng_ts[max_idx] < s + pd.Timedelta(seconds=len_observation) or i >= max_idx:
+            if c_rng_ts[max_idx] < s + len_observation or i >= max_idx:
                 break
-            elif s - pd.Timedelta(seconds=len_observation) < c_rng_ts[0]:
-            # elif s - len_observation < c_rng_ts[0]:
+            # elif s - pd.Timedelta(seconds=len_observation) < c_rng_ts[0]:
+            elif s - len_observation < c_rng_ts[0]:
                 continue
             else:
                 width = 0
@@ -109,16 +109,18 @@ def prepare_sparse_dataset(d, interval=120, len_observation=_len_observation, sa
 
                 # assemble observation for len_observation
                 for i in reversed(range(len_observation)):
-                    d_x2d.append(d['order'].loc[s-pd.Timedelta(seconds=i)])
-                    d_x1d.append(d['quote'].loc[s-pd.Timedelta(seconds=i)])
-                    # d_x2d.append(d['order'].loc[s-i])
-                    # d_x1d.append(d['quote'].loc[s-i])
+                    # d_x2d.append(d['order'].loc[s-pd.Timedelta(seconds=i)])
+                    # d_x1d.append(d['quote'].loc[s-pd.Timedelta(seconds=i)])
+                    d_x2d.append(d['order'].loc[s-i])
+                    d_x1d.append(d['quote'].loc[s-i])
 
-                # price_at_signal is the price when the current stock received signal
-                price_at_signal = d['quote'].loc[c_rng_ts[i-elapsed_secs]]['Price(last executed)']
-                price = d['quote'].loc[c_rng_ts[i]]['Price(last executed)']
-                gap = price_at_signal - price - threshold
-                width += gap
+                for j in range(len_observation):
+                    if j == 0:
+                        price_at_signal = d['quote'].loc[c_rng_ts[i-elapsed_secs]]['Price(last executed)']
+                    else:
+                        price = d['quote'].loc[c_rng_ts[i]]['Price(last executed)']
+                        gap = price_at_signal - price - threshold
+                        width += gap
 
                 x_2d.append(np.array(d_x2d))
                 x_1d.append(np.array(d_x1d))
@@ -218,4 +220,4 @@ if not os.path.isdir(test_save_dir):
 
 prepare_datasets(load_csv_dir=train_csv_dir, is_spare_dataset=True, save_dir=train_save_dir)
 
-prepare_datasets(load_csv_dir=test_csv_dir, is_spare_dataset=True, save_dir=test_save_dir)
+# prepare_datasets(load_csv_dir=test_csv_dir, is_spare_dataset=True, save_dir=test_save_dir)
