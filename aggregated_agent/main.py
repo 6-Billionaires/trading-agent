@@ -1,22 +1,23 @@
 import os
 import sys
 
-newPath = os.path.dirname(os.path.abspath(os.path.dirname(os.path.abspath(os.path.dirname(os.path.abspath(os.path.dirname(__file__)))))))+ '\\trading-gym'
+newPath = os.path.dirname(os.path.abspath(os.path.dirname(os.path.abspath(os.path.dirname(os.path.abspath(os.path.dirname(__file__)))))))+ '\\trading_gym'
 sys.path.append(newPath)
 
 from gym_core import tgym
 import numpy as np
 import random
 from keras.models import Sequential, load_model, Model
-from keras.layers import Dense, Activation, Flatten, Concatenate, Input
+from keras.layers import Dense, Activation, Flatten, Concatenate, Input, LeakyReLU
 from keras.optimizers import Adam
 from collections import deque
 import glob
 import copy
+from aggregated_agent import load
 
 
 class DDQNAgent:
-    def __init__(self, agent_type, state_size, action_size):
+    def __init__(self, agent_type, data_num, action_size):
         # load models
         self.agent_type = agent_type
         self.model = self.load_model()
@@ -26,12 +27,12 @@ class DDQNAgent:
         self.epsilon_min = 0.001
         self.epsilon_decay = 0.9999
         self.batch_size = 32
-        self.state_size = state_size
         self.action_size = action_size
         self.train_start = 33
         self.target_update_interval = 10000
         self.memory = deque(maxlen=100000)
         self.discount_factor = 0.999
+        self.data_num = data_num
 
     def load_model(self):
         networks = glob.glob('./networks/*.h5')
@@ -41,16 +42,21 @@ class DDQNAgent:
             # output_layer = Dense(2, activation='linear', name='rl_output')(model.layers[-1].output)
             # model = Model(inputs=model.input, outputs=output_layer)
 
-            trained_model = load_model('./networks/' + self.agent_type + '.h5')
+            trained_model = load.load_model(self.agent_type)
+            # trained_model.compile(optimizer='adam', loss='mse', metrics=['mae', 'mape', 'mse'])
+            # trained_model.summary()
+
+            # trained_model = load_model('./networks/' + self.agent_type + '.h5')
             for layer in trained_model.layers:
                 layer.trainable = False
-            rl_model = load_model('./networks/' + self.agent_type + '.h5')
+            rl_model = load.load_model(self.agent_type)
+            # rl_model = load_model('./networks/' + self.agent_type + '.h5')
             concat_layer = Concatenate(name='concat2')([trained_model(rl_model.input), rl_model.layers[-1].output])
             output_layer = Dense(2, activation='linear', name='q_value_output')(concat_layer)
             model = Model(inputs=rl_model.input, outputs=output_layer)
 
         else:
-            model = load_model('./networks/' + self.agent_type + '_rl.h5')
+            model = load_model('./networks/' + self.agent_type + '_rl.h5')  # save weight 방식으로 수정할것
 
         # for layer in model.layers[:-1]:
         #     layer.trainable = False
@@ -93,25 +99,34 @@ class DDQNAgent:
             # print('memory size is to short', len(self.memory))
             return
         # print('train', len(self.memory))
+        print('train', self.agent_type)
 
         self.epsilon = max(self.epsilon * self.epsilon_decay, self.epsilon_min)
 
         mini_batch = random.sample(self.memory, self.batch_size)
-        states = [[], [], []]
-        next_states = [[], [], []]
+
+        states, next_states = [], []
+        for _ in range(self.data_num):
+            states.append([])
+            next_states.append([])
         actions, rewards, dones = [], [], []
 
         for i in range(self.batch_size):
-            for array_idx in range(3):
+            for array_idx in range(self.data_num):
                 states[array_idx].append(mini_batch[i][0][array_idx])
                 next_states[array_idx].append(mini_batch[i][3][array_idx])
             actions.append(mini_batch[i][1])
             rewards.append(mini_batch[i][2])
             dones.append(mini_batch[i][4])
 
-        states = [np.array(states[0]), np.array(states[1]), np.array(states[2])]
-        target = self.model.predict(states)
-        target_val = self.target_model.predict([np.array(next_states[0]), np.array(next_states[1]), np.array(next_states[2])])
+        input_states, input_next_states = [], []
+        for i in range(self.data_num):
+            input_states.append(np.array(states[i]))
+            input_next_states.append(np.array(next_states[i]))
+
+        # states = [np.array(states[0]), np.array(states[1]), np.array(states[2])]
+        target = self.model.predict(input_states)
+        target_val = self.target_model.predict(input_next_states)
 
         for i in range(self.batch_size):
             if dones[i]:
@@ -125,16 +140,16 @@ class DDQNAgent:
 
 class Agents:
     agent_name = ['BSA', 'BOA', 'SSA', 'SOA']
-    step_limit = [60, 59, 1, 0]
+    step_limit = [61, 60, 1, 0]
     additional_reward_rate = 0.1
 
     def __init__(self, bsa, boa, ssa, soa):
         self.agents = [bsa, boa, ssa, soa]
         self.sequence = 0
 
-        self.boa_additional_data = [1, 1, 1, 1, 1, 1, 1]
-        self.ssa_additional_data = [1, 1, 1, 1, 1, 1, 1]
-        self.soa_additional_data = [1, 1, 1, 1, 1, 1, 1]  # . 남은 시간의 이진 표현이 들어가는 자리 (테스트용임)
+        self.boa_additional_data = [1, 1, 1, 1, 0, 0, 0]
+        self.ssa_additional_data = [1, 1, 1, 1, 0, 0, 0]
+        self.soa_additional_data = [1, 1, 1, 1, 0, 0, 0]
 
         self.sample_buffer = list()
         self.remain_step = 0
@@ -177,24 +192,32 @@ class Agents:
     # agent 가 전부 구체화되면 완성할 것
     def _process_state(self, state):
         state = copy.deepcopy(state)
-        if self.sequence == 0:  # BSA
-            state.append([1, 1, 1, 1, 1, 1, 1])
-            # state = np.append(state, [1, 1, 1, 1, 1, 1, 1], axis=0)  # < 테스트 후 지울것 (bsa 네트워크가 없어 boa 사용중이라 넣음)
-            pass
+        # if self.sequence == 0:  # BSA
+        #     state.append(self.time_to_binary_list(self.remain_step))  # < 테스트 후 지울것 (bsa 네트워크가 없어 boa 사용중이라 넣음)
 
         if self.sequence == 1 and not (self.boa_additional_data is None):  # BOA
-            state.append([1, 1, 1, 1, 1, 1, 1])
-            # state = np.append(state, self.boa_additional_data, axis=0)
+            state.append(self.time_to_binary_list(self.remain_step))
 
         if self.sequence == 2 and not (self.ssa_additional_data is None):  # SSA
-            state.append([1, 1, 1, 1, 1, 1, 1])
-            # state = np.append(state, self.ssa_additional_data, axis=0)
+            state.append(self.time_to_binary_list(self.remain_step))
+            state.append(self.time_to_binary_list(self.remain_step))
 
         if self.sequence == 3 and not (self.soa_additional_data is None):  # SOA
-            state.append([1, 1, 1, 1, 1, 1, 1])
-            # state = np.append(state, self.soa_additional_data, axis=0)
+            state.append(self.time_to_binary_list(self.remain_step))
+            state.append(self.time_to_binary_list(self.remain_step))
+
 
         return np.array(state)
+
+    @staticmethod
+    def time_to_binary_list(time):
+        bin_time = bin(time)[2:]
+        for _ in range(7 - len(bin_time)):
+            bin_time = '0' + bin_time
+        bin_list = []
+        for b in bin_time:
+            bin_list.append(int(b))
+        return bin_list
 
     def append_sample(self, state, action, reward, next_state, done):
         # print('state length :', len(state))
@@ -294,10 +317,10 @@ class MyTGym(tgym.TradingGymEnv):  # MyTGym 수정해야 함 -> agent 별 reward
 
 if __name__ == '__main__':
     env = MyTGym(episode_type='0', percent_goal_profit=2, percent_stop_loss=5, episode_duration_min=60)
-    buy_signal_agent = DDQNAgent('bsa', 3120, 2)  # buy signal agent 의 .h5 파일 경로, state 수, action 수
-    buy_order_agent = DDQNAgent('boa', 3120, 2)  # buy order agent 의 .h5 파일 경로, state 수, action 수
-    sell_signal_agent = DDQNAgent('ssa', 3120, 2)  # sell signal agent 의 .h5 파일 경로, state 수, action 수
-    sell_order_agent = DDQNAgent('soa', 3120, 2)  # sell order agent 의 .h5 파일 경로, state 수, action 수
+    buy_signal_agent = DDQNAgent('bsa', data_num=2, action_size=2)
+    buy_order_agent = DDQNAgent('boa', data_num=3, action_size=2)
+    sell_signal_agent = DDQNAgent('ssa', data_num=4, action_size=2)
+    sell_order_agent = DDQNAgent('soa', data_num=4, action_size=2)
     agents = Agents(buy_signal_agent, buy_order_agent, sell_signal_agent, sell_order_agent)
 
     EPISODES = 1000000
