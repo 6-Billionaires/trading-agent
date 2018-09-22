@@ -12,7 +12,7 @@ if args.import_gym:
     sys.path.insert(0, args.gym_dir)
 
 from keras.models import Model
-from keras.layers import LeakyReLU, Input, Dense, Conv3D, Conv1D, Dense, Flatten, MaxPooling1D, MaxPooling2D,MaxPooling3D,Concatenate
+from keras.layers import LeakyReLU, Input, Dense, Conv3D, Conv1D, Dense, Flatten, MaxPooling1D, MaxPooling2D, MaxPooling3D,Concatenate
 import numpy as np
 import pickle
 from gym_core.ioutil import *  # file i/o to load stock csv files
@@ -23,35 +23,34 @@ def load_model(model_type):
     if model_type == 'bsa':
         model = build_bsa_network(activation='leaky_relu', neurons=100)
         model.compile(optimizer='adam', loss='mse', metrics=['mae', 'mape', 'mse'])
-        model.load_weights('./networks/bsa_weight.h5f')
+        model.load_weights('networks/bsa.h5f')
         return model
 
     if model_type == 'boa':
-        max_secs = 120
-        max_len = util.get_maxlen_of_binary_array(max_secs)
-        model = build_boa_network(max_secs, max_len)
-        # model.load_weights('')  # << boa weight 경로
+        max_len = util.get_maxlen_of_binary_array(120)
+        model = build_boa_network(max_len, neurons=100, activation='leaky_relu')
+        model.compile(optimizer='adam', loss='mse', metrics=['mae', 'mape'])
+        model.load_weights('networks/boa.h5f')
         return model
 
     if model_type == 'ssa':
         model = build_ssa_network()
         model.compile(optimizer='adam', loss='mse', metrics=['mae', 'mape', 'accuracy'])
-        # model.load_weights('final_weight.h5f')  # << ssa weight 경로
+        model.load_weights('networks/ssa.h5f')
         return model
 
     if model_type == 'soa':
         max_len = util.get_maxlen_of_binary_array(120)
         model = build_soa_network(max_len, neurons=100, activation='leaky_relu')
         model.compile(optimizer='adam', loss='mse', metrics=['mae', 'mape'])
-        # model.laod_weights('')  # << soa weight 경로
+        model.load_weights('networks/soa.h5f')  # << soa weight 경로
         return model
 
 
 _len_observation = 120
 
 
-def build_bsa_network(optimizer='adam',init_mode='uniform',
-                              filters=16, neurons=20, activation='relu'):
+def build_bsa_network(optimizer='adam',init_mode='uniform', filters=16, neurons=20, activation='relu'):
     if activation == 'leaky_relu':
         activation = LeakyReLU(alpha=0.3)
 
@@ -100,24 +99,67 @@ def build_bsa_network(optimizer='adam',init_mode='uniform',
     return model
 
 
-def build_boa_network(max_secs=90, max_len=7, optimizer='adam', init_mode='uniform', ):
-    input_order = Input(shape=(10, 2, max_secs, 2), name="x1")
-    input_tranx = Input(shape=(max_secs, 11), name="x2")
-    input_remain_secs = Input(shape=(max_len,), name="x3")  # update. remained seconds up to 180 seconds ??
+def build_boa_network(max_len=7, init_mode='uniform', neurons=20, activation='relu'):
+    if activation == 'leaky_relu':
+        input_order = Input(shape=(10, 2, 120, 2), name="x1")
+        input_tranx = Input(shape=(120, 11), name="x2")
+        input_left_time = Input(shape=(max_len,), name="x3")
 
-    h_conv1d_2 = Conv1D(filters=16, kernel_size=3, activation='relu')(input_tranx)
+        h_conv1d_2 = Conv1D(kernel_initializer=init_mode, filters=16, kernel_size=3)(input_tranx)
+        h_conv1d_2 = LeakyReLU(alpha=0.3)(h_conv1d_2)
+        h_conv1d_4 = MaxPooling1D(pool_size=3, strides=None, padding='valid')(h_conv1d_2)
+        h_conv1d_6 = Conv1D(kernel_initializer=init_mode, filters=32, kernel_size=3)(h_conv1d_4)
+        h_conv1d_6 = LeakyReLU(alpha=0.3)(h_conv1d_6)
+        h_conv1d_8 = MaxPooling1D(pool_size=2, strides=None, padding='valid')(h_conv1d_6)
+
+        h_conv3d_1_1 = Conv3D(kernel_initializer=init_mode, filters=16, kernel_size=(2, 1, 5))(input_order)
+        h_conv3d_1_1 = LeakyReLU(alpha=0.3)(h_conv3d_1_1)
+        h_conv3d_1_2 = Conv3D(kernel_initializer=init_mode, filters=16, kernel_size=(1, 2, 5))(input_order)
+        h_conv3d_1_2 = LeakyReLU(alpha=0.3)(h_conv3d_1_2)
+
+        h_conv3d_1_3 = MaxPooling3D(pool_size=(1, 1, 3))(h_conv3d_1_1)
+        h_conv3d_1_4 = MaxPooling3D(pool_size=(1, 1, 3))(h_conv3d_1_2)
+
+        h_conv3d_1_5 = Conv3D(kernel_initializer=init_mode, filters=32, kernel_size=(1, 2, 5))(h_conv3d_1_3)
+        h_conv3d_1_5 = LeakyReLU(alpha=0.3)(h_conv3d_1_5)
+        h_conv3d_1_6 = Conv3D(kernel_initializer=init_mode, filters=32, kernel_size=(2, 1, 5))(h_conv3d_1_4)
+        h_conv3d_1_6 = LeakyReLU(alpha=0.3)(h_conv3d_1_6)
+
+        h_conv3d_1_7 = MaxPooling3D(pool_size=(1, 1, 5))(h_conv3d_1_5)
+        h_conv3d_1_8 = MaxPooling3D(pool_size=(1, 1, 5))(h_conv3d_1_6)
+        o_conv3d_1 = Concatenate(axis=-1)([h_conv3d_1_7, h_conv3d_1_8])
+
+        o_conv3d_1_1 = Flatten()(o_conv3d_1)
+
+        i_concatenated_all_h_1 = Flatten()(h_conv1d_8)
+
+        i_concatenated_all_h = Concatenate()([i_concatenated_all_h_1, o_conv3d_1_1, input_left_time])
+
+        i_concatenated_all_h = Dense(neurons, kernel_initializer=init_mode, activation='linear')(i_concatenated_all_h)
+
+        output = Dense(1, kernel_initializer=init_mode, activation='linear')(i_concatenated_all_h)
+
+        model = Model([input_order, input_tranx, input_left_time], output)
+
+        return model
+
+    input_order = Input(shape=(10, 2, 120, 2), name="x1")
+    input_tranx = Input(shape=(120, 11), name="x2")
+    input_left_time = Input(shape=(max_len,), name="x3")
+
+    h_conv1d_2 = Conv1D(kernel_initializer=init_mode, filters=16, kernel_size=3, activation=activation)(input_tranx)
     h_conv1d_4 = MaxPooling1D(pool_size=3, strides=None, padding='valid')(h_conv1d_2)
-    h_conv1d_6 = Conv1D(filters=32, kernel_size=3, activation='relu')(h_conv1d_4)
+    h_conv1d_6 = Conv1D(kernel_initializer=init_mode, filters=32, kernel_size=3, activation=activation)(h_conv1d_4)
     h_conv1d_8 = MaxPooling1D(pool_size=2, strides=None, padding='valid')(h_conv1d_6)
 
-    h_conv3d_1_1 = Conv3D(filters=16, kernel_size=(2, 1, 5), activation='relu')(input_order)
-    h_conv3d_1_2 = Conv3D(filters=16, kernel_size=(1, 2, 5), activation='relu')(input_order)
+    h_conv3d_1_1 = Conv3D(kernel_initializer=init_mode, filters=16, kernel_size=(2, 1, 5), activation=activation)(input_order)
+    h_conv3d_1_2 = Conv3D(kernel_initializer=init_mode, filters=16, kernel_size=(1, 2, 5), activation=activation)(input_order)
 
     h_conv3d_1_3 = MaxPooling3D(pool_size=(1, 1, 3))(h_conv3d_1_1)
     h_conv3d_1_4 = MaxPooling3D(pool_size=(1, 1, 3))(h_conv3d_1_2)
 
-    h_conv3d_1_5 = Conv3D(filters=32, kernel_size=(1, 2, 5), activation='relu')(h_conv3d_1_3)
-    h_conv3d_1_6 = Conv3D(filters=32, kernel_size=(2, 1, 5), activation='relu')(h_conv3d_1_4)
+    h_conv3d_1_5 = Conv3D(kernel_initializer=init_mode, filters=32, kernel_size=(1, 2, 5), activation=activation)(h_conv3d_1_3)
+    h_conv3d_1_6 = Conv3D(kernel_initializer=init_mode, filters=32, kernel_size=(2, 1, 5), activation=activation)(h_conv3d_1_4)
 
     h_conv3d_1_7 = MaxPooling3D(pool_size=(1, 1, 5))(h_conv3d_1_5)
     h_conv3d_1_8 = MaxPooling3D(pool_size=(1, 1, 5))(h_conv3d_1_6)
@@ -127,22 +169,23 @@ def build_boa_network(max_secs=90, max_len=7, optimizer='adam', init_mode='unifo
 
     i_concatenated_all_h_1 = Flatten()(h_conv1d_8)
 
-    i_concatenated_all_h = Concatenate()([i_concatenated_all_h_1, o_conv3d_1_1, input_remain_secs])
+    i_concatenated_all_h = Concatenate()([i_concatenated_all_h_1, o_conv3d_1_1, input_left_time])
 
-    i_concatenated_all_h = Dense(10, activation='linear')(i_concatenated_all_h)
+    i_concatenated_all_h = Dense(neurons, kernel_initializer=init_mode, activation='linear')(i_concatenated_all_h)
+
     output = Dense(1, kernel_initializer=init_mode, activation='linear')(i_concatenated_all_h)
 
-    model = Model([input_order, input_tranx, input_remain_secs], output)
-    model.compile(optimizer=optimizer, loss='mse', metrics=['mae'])
-    # model.summary()
+    model = Model([input_order, input_tranx, input_left_time], output)
+
     return model
+
+
 
 
 def build_ssa_network():
     max_len = util.get_maxlen_of_binary_array(120)
-
-    input_order = Input(shape=(10, 2, 120, 2), name="x1")
-    input_tranx = Input(shape=(120, 11), name="x2")
+    input_order = Input(shape=(10, 2, _len_observation, 2), name="x1")
+    input_tranx = Input(shape=(_len_observation, 11), name="x2")
     input_elapedtime = Input(shape=(max_len,), name="x3")
     input_lefttime = Input(shape=(max_len,), name="x4")
 

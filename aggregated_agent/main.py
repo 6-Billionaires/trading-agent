@@ -23,7 +23,7 @@ class DDQNAgent:
         self.model = self.load_model()
         self.target_model = self.load_model()
 
-        self.epsilon = 1.0
+        self.epsilon = 1.
         self.epsilon_min = 0.001
         self.epsilon_decay = 0.9999
         self.batch_size = 32
@@ -35,8 +35,8 @@ class DDQNAgent:
         self.data_num = data_num
 
     def load_model(self):
-        networks = glob.glob('./networks/*.h5')
-        if './networks/' + self.agent_type + '_rl' not in networks:
+        networks = glob.glob('./networks/*.h5f')
+        if './networks/' + self.agent_type + '_rl.h5f' not in networks:
             # model = load_model('./networks/' + self.agent_type + '.h5')
             # model.layers.pop()
             # output_layer = Dense(2, activation='linear', name='rl_output')(model.layers[-1].output)
@@ -56,7 +56,16 @@ class DDQNAgent:
             model = Model(inputs=rl_model.input, outputs=output_layer)
 
         else:
-            model = load_model('./networks/' + self.agent_type + '_rl.h5')  # save weight 방식으로 수정할것
+            trained_model = load.load_model(self.agent_type)
+            for layer in trained_model.layers:
+                layer.trainable = False
+            rl_model = load.load_model(self.agent_type)
+            concat_layer = Concatenate(name='concat2')([trained_model(rl_model.input), rl_model.layers[-1].output])
+            output_layer = Dense(2, activation='linear', name='q_value_output')(concat_layer)
+            model = Model(inputs=rl_model.input, outputs=output_layer)
+            model.load_weights('./networks/' + self.agent_type + '_rl.h5f')
+
+            # model = load_model('./networks/' + self.agent_type + '_rl.h5f')  # save weight 방식으로 수정할것
 
         # for layer in model.layers[:-1]:
         #     layer.trainable = False
@@ -88,7 +97,10 @@ class DDQNAgent:
             return random.randrange(self.action_size)
         else:
             # print('ACTION')
-            q_value = self.model.predict([np.array([state[0]]), np.array([state[1]]), np.array([state[2]])])
+            states = []
+            for i in range(self.data_num):
+                states.append(np.array([state[i]]))
+            q_value = self.model.predict(states)
             return np.argmax(q_value[0])
 
     def append_sample(self, state, action, reward, next_state, done):
@@ -135,7 +147,7 @@ class DDQNAgent:
                 target[i][actions[i]] = rewards[i] + self.discount_factor * (np.amax(target_val[i]))
 
         self.model.fit(input_states, target, batch_size=self.batch_size, epochs=1, verbose=0)
-        self.model.save('./networks/' + self.agent_type + '_rl.h5')
+        self.model.save_weights('./networks/' + self.agent_type + '_rl.h5f')
 
 
 class Agents:
@@ -209,7 +221,6 @@ class Agents:
             state.append(self.time_to_binary_list(self.remain_step))
             state.append(self.time_to_binary_list(self.remain_step))
 
-
         return np.array(state)
 
     @staticmethod
@@ -232,7 +243,8 @@ class Agents:
         # print(state)
         # input()
         if self.sequence == 0:  # 지울것
-            print(round(reward[self.agent_name[self.sequence]], 3))
+            pass
+            # print(round(reward[self.agent_name[self.sequence]], 3))
         if action == 0:  # action 이 0 인 경우 additional reward 가 없으므로 그냥 memory 에 sample 추가
             reward = 0  # action == 0 => reward = 0
             self.agents[self.sequence].append_sample(state, action, reward, next_state, done)
@@ -343,10 +355,11 @@ if __name__ == '__main__':
             state = next_state
             if agents.trainable:
                 agents.train_agents()
+            if step_count >= 3500:
+                done = True
 
-        print('step :', step_count)
         if step_count > 0:
-            print('reward :', reward_sum / step_count)
+            print('episode avg reward :', reward_sum / step_count)
 
 
 
