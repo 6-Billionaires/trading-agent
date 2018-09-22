@@ -112,10 +112,15 @@ def prepare_sparse_dataset(d, interval=120, len_observation=_len_observation, sa
                 # d_x2d.append(d['order'].loc[s-i])
                 # d_x1d.append(d['quote'].loc[s-i])
 
-            # price_at_signal is the price when the current stock received signal
-            price_at_signal = d['quote'].loc[c_rng_ts[i-elapsed_secs]]['Price(last executed)']
-            price = d['quote'].loc[c_rng_ts[i]]['Price(last executed)']
-            gap = price_at_signal - price - threshold
+            gap =0
+            try:
+                # price_at_signal is the price when the current stock received signal
+                price_at_signal = d['quote'].loc[c_rng_ts[i-elapsed_secs]]['Price(last executed)']
+                price = d['quote'].loc[c_rng_ts[i]]['Price(last executed)']
+                gap = price_at_signal - price - threshold
+            except KeyError as e:
+                print('찾을 수 없는 key 값이 있습니다.', current_ticker, e)
+                continue
             width += gap
 
             x_2d.append(np.array(d_x2d))
