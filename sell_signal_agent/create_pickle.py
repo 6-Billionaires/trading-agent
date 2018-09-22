@@ -107,10 +107,14 @@ def prepare_sparse_dataset(d, interval=120, len_observation=_len_observation, sa
 
             # assemble observation for len_observation
             for i in reversed(range(len_observation)):
-                d_x2d.append(d['order'].loc[s-pd.Timedelta(seconds=i)])
-                d_x1d.append(d['quote'].loc[s-pd.Timedelta(seconds=i)])
-                # d_x2d.append(d['order'].loc[s-i])
-                # d_x1d.append(d['quote'].loc[s-i])
+                try:
+                    d_x2d.append(d['order'].loc[s-pd.Timedelta(seconds=i)])
+                    d_x1d.append(d['quote'].loc[s-pd.Timedelta(seconds=i)])
+                    # d_x2d.append(d['order'].loc[s-i])
+                    # d_x1d.append(d['quote'].loc[s-i])
+                except KeyError as e:
+                    print('찾을 수 없는 key 값이 있습니다.', current_ticker, e)
+                    continue
 
             gap =0
             try:
