@@ -125,11 +125,11 @@ def prepare_dataset(d, interval, len_sequence_secs, save_dir):
             x_1d.append(np.array(d_x1d))
             y_1d.append(price - price_at_signal - threshold)
 
-        pickle_name = save_dir + os.path.sep + current_date + '_' + current_ticker + '.pickle'
-        f = open(pickle_name, 'wb')
-        pickle.dump([x_2d, x_1d, x_1d_left_time, x_1d_elapsed_time, y_1d], f)
-        f.close()
-        print('{} file is created.'.format(pickle_name))
+    pickle_name = save_dir + os.path.sep + current_date + '_' + current_ticker + '.pickle'
+    f = open(pickle_name, 'wb')
+    pickle.dump([x_2d, x_1d, x_1d_left_time, x_1d_elapsed_time, y_1d], f)
+    f.close()
+    print('{} file is created.'.format(pickle_name))
 
 save_dir = 'pickles120_0_1'
 

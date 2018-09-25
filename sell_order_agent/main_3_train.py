@@ -225,7 +225,7 @@ def train_using_real_data(d, max_len, save_dir):
     print('total x1 : {}, total x2 : {}, total x3 : {}, total x4 : {}, total y1 : {}'.format(len(t_x1), len(t_x2), len(t_x3), len(t_x4), len(t_y1)))
 
     # {steps} --> this file will be saved whenver it runs every steps as much as {step}
-    checkpoint_weights_filename = 'soa_model_{step}.h5'
+    checkpoint_weights_filename = 'soa_model_{step}.h5f'
 
     #model.load_weights(filepath = checkpoint_weights_filename.format(step='end'), by_name=True, skip_mismatch=True)
 
@@ -242,7 +242,7 @@ def train_using_real_data(d, max_len, save_dir):
     with open(datetime.now().strftime('soa_model_history_%Y%m%d_%H%M%S'), 'wb') as file_pi:
         pickle.dump(history.history, file_pi)
 
-    model.save(filepath=checkpoint_weights_filename.format(step='end_120_0_1'))
+    model.save_weights(filepath=checkpoint_weights_filename.format(step='end_120_0_1'))
 
 
 # train_using_fake_data()
