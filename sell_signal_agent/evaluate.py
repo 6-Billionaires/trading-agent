@@ -1,8 +1,21 @@
 
 import os
 import sys
-newPath = os.path.dirname(os.path.abspath(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))) + '/trading-gym'
-sys.path.append(newPath)
+
+#newPath = os.path.dirname(os.path.abspath(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))) + '/trading-gym'
+#sys.path.append(newPath)
+
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument("-import-gym", "--import-gym",help="import trading gym", action="store_true")
+parser.add_argument("-gym-dir", "--gym-dir", type=str, help="import trading gym")
+
+args = parser.parse_args()
+
+if args.import_gym:
+    import sys
+    sys.path.insert(0, args.gym_dir)
 
 from keras.models import Model
 from keras.layers import LeakyReLU, Input, Dense, Conv3D, Conv1D, Dense, Flatten, MaxPooling1D, MaxPooling2D,MaxPooling3D,Concatenate
@@ -183,7 +196,8 @@ t_x4 = np.concatenate(t_x4)
 
 t_y1 = np.concatenate(t_y1)
 
-scores = model.evaluate({'x1': t_x1, 'x2': t_x2, 'x3': t_x3, 'x4': t_x4}, t_y1, verbose=0)
+
+scores = model.evaluate({'x1': t_x1, 'x2': t_x2, 'x3': t_x3, 'x4': t_x4}, t_y1, verbose=0, steps=10)
 print("%s: %.2f    %s: %.2f    %s: %.2f" % (model.metrics_names[1], scores[1], model.metrics_names[2], scores[2], model.metrics_names[3], scores[3]))
 
 with open('ssa_evaluate_model_history', 'wb') as file_pi:
