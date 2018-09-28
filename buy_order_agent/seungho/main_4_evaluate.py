@@ -194,7 +194,7 @@ def train_using_real_data(d, max_len, save_dir):
     scores = model.evaluate({'x1': t_x1, 'x2': t_x2, 'x3': t_x3}, t_y1, verbose=0)
     print("%s: %.2f%%" % (model.metrics_names[1], scores[1] * 100))
 
-    with open('boa_evaluate_model_history_1809142003', 'wb') as file_pi:
+    with open(datetime.now().strftime('boa_evaluate_history_%Y%m%d_%H%M%S'), 'wb') as file_pi:
         pickle.dump(scores, file_pi)
 
 

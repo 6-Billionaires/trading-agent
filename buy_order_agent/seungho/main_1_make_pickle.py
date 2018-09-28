@@ -11,14 +11,16 @@ import numpy as np
 import pickle
 import random
 
+
 def prepare_datasets(interval=120, len_sequence_secs=120, save_dir='pickles'):
     l = ioutil.load_data_from_directory('0')
     for li in l:
         prepare_dataset(li, interval, len_sequence_secs, save_dir)
 
+
 def prepare_dataset(d, interval, len_sequence_secs, save_dir):
-    current_date    = d['meta']['date']
-    current_ticker  = d['meta']['ticker']
+    current_date = d['meta']['date']
+    current_ticker = d['meta']['ticker']
 
     # 시작 년-월-일 09시 05분
     c_start = datetime.datetime(int(current_date[0:4]), int(current_date[4:6]), int(current_date[6:8]), 9, 5)
@@ -54,8 +56,8 @@ def prepare_dataset(d, interval, len_sequence_secs, save_dir):
         bsa_elapsed_secs = len_sequence_secs - left_secs
 
         try:
-            #first_quote = d['quote'].loc[s]
-            #first_order = d['order'].loc[s]
+            # first_quote = d['quote'].loc[s]
+            # first_order = d['order'].loc[s]
 
             price = d['quote'].loc[c_rng_timestamp[i]]['Price(last excuted)']
         except KeyError as e:
@@ -90,7 +92,7 @@ def prepare_dataset(d, interval, len_sequence_secs, save_dir):
             # SOA 가 파는 시점의 X, Y 데이터
             # 시그널 받은 시점의 남은 시간
             x_1d_left_time.append(left_secs)
-            #x_1d_second.append(s)
+            # x_1d_second.append(s)
             # order
             x_2d.append(np.array(d_x2d))
             # quote
@@ -102,9 +104,14 @@ def prepare_dataset(d, interval, len_sequence_secs, save_dir):
     pickle.dump([x_2d, x_1d, x_1d_left_time, y_1d], f)
     f.close()
 
-save_dir = 'pickles'
 
-if not os.path.isdir(save_dir):
-    os.makedirs(save_dir)
+def main():
+    save_dir = 'pickles'
 
-prepare_datasets(interval=120, save_dir=save_dir)
+    if not os.path.isdir(save_dir):
+        os.makedirs(save_dir)
+
+    prepare_datasets(interval=120, save_dir=save_dir)
+
+
+main()

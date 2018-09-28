@@ -4,18 +4,21 @@ newPath = os.path.dirname(os.path.abspath(os.path.dirname(os.path.abspath(os.pat
 sys.path.append(newPath)
 
 from gym_core.ioutil import *  # file i/o to load stock csv files
+from keras import metrics
 from keras.models import Model
-from keras.layers import Input, Dense, Conv3D, Conv1D, Dense, Flatten, MaxPooling1D, MaxPooling2D,MaxPooling3D,Concatenate
+from keras.layers import Input, Conv3D, Conv1D, Dense, Flatten, MaxPooling1D, MaxPooling3D, Concatenate
 import numpy as np
 import pickle
 from rl.callbacks import FileLogger, ModelIntervalCheckpoint
 from core import util
-from core.scikit_learn_multi_input_4 import KerasRegressor
+from core.scikit_learn_multi_input_boa import KerasRegressor
 from sklearn.model_selection import GridSearchCV
 
 """
 build q newtork using cnn and dense layer
 """
+
+
 def build_network(max_len=7, optimizer='adam',init_mode='uniform', filters=16, neurons=20):
     input_order = Input(shape=(10, 2, 120, 2), name="x1")
     input_tranx = Input(shape=(120, 11), name="x2")
@@ -49,10 +52,11 @@ def build_network(max_len=7, optimizer='adam',init_mode='uniform', filters=16, n
     output = Dense(1, kernel_initializer=init_mode, activation='linear')(i_concatenated_all_h)
 
     model = Model([input_order, input_tranx, input_left_time], output)
-    model.compile(optimizer=optimizer, loss='mse', metrics=['mae'])
+    model.compile(optimizer=optimizer, loss='mse', metrics=[metrics.mae, metrics.mape])
     model.summary()
 
     return model
+
 
 def get_real_data(date, ticker, save_dir, train_data_rows=None):
     '''
@@ -68,11 +72,9 @@ def get_real_data(date, ticker, save_dir, train_data_rows=None):
     :return:
     '''
 
-    x1_dimension_info = (10, 2, 120, 2)  # 60 --> 120 (@iljoo)
+    x1_dimension_info = (10, 2, 120, 2)
     x2_dimension_info = (120, 11)
     x3_dimension_info = (max_len,)
-    x4_dimension_info = (max_len,)
-    #y1_dimension_info = (120,)
 
     pickle_name = save_dir + os.path.sep + date + '_' + ticker + '.pickle'
     f = open(pickle_name, 'rb')
@@ -82,15 +84,13 @@ def get_real_data(date, ticker, save_dir, train_data_rows=None):
     if train_data_rows is None:
         train_data_rows = len(d[0])
 
-    x1 = np.zeros([10,2,120,2])
+    x1 = np.zeros([10, 2, 120, 2])
     x2 = np.zeros([120, 11])
     x3 = np.zeros([max_len])
-    x4 = np.zeros([max_len])
 
     d_x1 = []
     d_x2 = []
     d_x3 = []
-    d_x4 = []
     d_y1 = []
 
     for idx in range(train_data_rows):
@@ -117,44 +117,37 @@ def get_real_data(date, ticker, save_dir, train_data_rows=None):
 
         d_x3.append(x3)
 
-        binary_second = util.seconds_to_binary_array(d[3][idx], max_len)
-        for feature in range(x4_dimension_info[0]):  # max_len :features
-            x4[feature] = binary_second[feature]
-
-        d_x4.append(x4)
-
         # for second in range(y1_dimension_info[0]): # 60 : seconds
-        d_y1.append(d[4][idx])
+        d_y1.append(d[3][idx])
 
     sys.stdout.write("\r")
     sys.stdout.flush()
-    return np.asarray(d_x1), np.asarray(d_x2), np.asarray(d_x3), np.asarray(d_x4), np.asarray(d_y1)
+    return np.asarray(d_x1), np.asarray(d_x2), np.asarray(d_x3), np.asarray(d_y1)
+
 
 def train_using_real_data(d, max_len, save_dir):
 
     l = load_ticker_yyyymmdd_list_from_directory(d)
 
-    t_x1, t_x2, t_x3, t_x4, t_y1 = [],[],[],[],[]
+    t_x1, t_x2, t_x3, t_y1 = [], [], [], []
 
     for (da, ti) in l:
-        x1, x2, x3, x4, y1 = get_real_data(da, ti, save_dir=save_dir)
+        x1, x2, x3, y1 = get_real_data(da, ti, save_dir=save_dir)
         t_x1.append(x1)
         t_x2.append(x2)
         t_x3.append(x3)
-        t_x4.append(x4)
         t_y1.append(y1)
         print('loading data from ticker {}, yyyymmdd {} is finished.'.format(ti, da))
     t_x1 = np.concatenate(t_x1)
     t_x2 = np.concatenate(t_x2)
     t_x3 = np.concatenate(t_x3)
-    t_x4 = np.concatenate(t_x4)
     t_y1 = np.concatenate(t_y1)
-    print('total x1 : {}, total x2 : {}, total x3 : {}, total x4 : {}, total y1 : {}'.format(len(t_x1), len(t_x2), len(t_x3), len(t_x4), len(t_y1)))
+    print('total x1 : {}, total x2 : {}, total x3 : {}, total y1 : {}'.format(len(t_x1), len(t_x2), len(t_x3), len(t_y1)))
 
     # {steps} --> this file will be saved whenver it runs every steps as much as {step}
     checkpoint_weights_filename = 'soa_weights_{step}.h5f'
 
-    #model.load_weights(filepath = checkpoint_weights_filename.format(step='end'), by_name=True, skip_mismatch=True)
+    # model.load_weights(filePath = checkpoint_weights_filename.format(step='end'), by_name=True, skip_mismatch=True)
 
     # TODO: here we can add hyperparameters information like below!!
     log_filename = 'soa_{}_log.json'.format('fill_params_information_in_here')
@@ -167,19 +160,19 @@ def train_using_real_data(d, max_len, save_dir):
     # create model
     model = KerasRegressor(build_fn=build_network, verbose=0)
     # define the grid search parameters
-    #batch_size = [10, 20, 40, 60, 80, 100]
-    #epochs = [10, 50, 100]
-    #neurons = [15, 20, 25, 30]
-    batch_size = [10, 50, 100]
+    batch_size = [10, 20, 40, 60, 80, 100]
     epochs = [10, 50, 100]
-    neurons = [15, 20, 30]
+    neurons = [15, 20, 25, 30]
+    # batch_size = [10, 50, 100]
+    # epochs = [10, 50, 100]
+    # neurons = [15, 20, 30]
     param_grid = dict(batch_size=batch_size, epochs=epochs, neurons=neurons)
 
     grid = GridSearchCV(estimator=model, param_grid=param_grid, n_jobs=1)
-    #grid_result = grid.fit({'x1': t_x1, 'x2': t_x2, 'x3': t_x3, 'x4': t_x4}, t_y1)
+    # grid_result = grid.fit({'x1': t_x1, 'x2': t_x2, 'x3': t_x3}, t_y1)
     grid_result = grid.fit(np.array([{'x1': a, 'x2': b, 'x3': c} for a, b, c in zip(t_x1, t_x2, t_x3)]), t_y1)
 
-#    model.fit({'x1': t_x1, 'x2': t_x2, 'x3': t_x3, 'x4': t_x4}, t_y1, epochs=50, verbose=2, batch_size=64, callbacks=callbacks)
+#    model.fit({'x1': t_x1, 'x2': t_x2, 'x3': t_x3}, t_y1, epochs=50, verbose=2, batch_size=64, callbacks=callbacks)
 #    model.save_weights(filepath=checkpoint_weights_filename.format(step='end_120_0_1'))
 
     # summarize results
@@ -192,7 +185,7 @@ def train_using_real_data(d, max_len, save_dir):
 
 
 # train_using_fake_data()
-# picke path
+# pickle path
 save_dir = 'pickles'
 directory = os.path.abspath(make_dir(os.path.dirname(os.path.abspath(__file__)), save_dir))
 # max length of bit for 120

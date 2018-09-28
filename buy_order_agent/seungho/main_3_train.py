@@ -3,10 +3,11 @@ import sys
 newPath = os.path.dirname(os.path.abspath(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))) + os.path.sep + 'trading-gym'
 sys.path.append(newPath)
 
-#import os
-#os.environ["CUDA_VISIBLE_DEVICES"] = 0
+# import os
+# os.environ["CUDA_VISIBLE_DEVICES"] = 0
 
 from gym_core.ioutil import *  # file i/o to load stock csv files
+from keras import metrics
 from keras.models import Model
 from keras.layers import LeakyReLU, Input, Conv3D, Conv1D, Dense, Flatten, MaxPooling1D, MaxPooling3D,Concatenate
 import numpy as np
@@ -18,6 +19,8 @@ from datetime import datetime
 """
 build q newtork using cnn and dense layer
 """
+
+
 def build_network(max_len=7, init_mode='uniform', neurons=20, activation='relu'):
     if activation == 'leaky_relu':
         input_order = Input(shape=(10, 2, 120, 2), name="x1")
@@ -98,6 +101,7 @@ def build_network(max_len=7, init_mode='uniform', neurons=20, activation='relu')
 
     return model
 
+
 def get_real_data(date, ticker, save_dir, train_data_rows=None):
     '''
     left_secs : SSA 에서 신호를 보낼때 남은 시간
@@ -112,20 +116,19 @@ def get_real_data(date, ticker, save_dir, train_data_rows=None):
     :return:
     '''
 
-    x1_dimension_info = (10, 2, 120, 2)  # 60 --> 120 (@iljoo)
+    x1_dimension_info = (10, 2, 120, 2)
     x2_dimension_info = (120, 11)
     x3_dimension_info = (max_len,)
-    #y1_dimension_info = (120,)
 
     pickle_name = save_dir + os.path.sep + date + '_' + ticker + '.pickle'
     f = open(pickle_name, 'rb')
-    d = pickle.load(f)  # d[data_type][second] : mapobject!!
+    d = pickle.load(f)  # d[data_type][second] : map object!!
     f.close()
 
     if train_data_rows is None:
         train_data_rows = len(d[0])
 
-    x1 = np.zeros([10,2,120,2])
+    x1 = np.zeros([10, 2, 120, 2])
     x2 = np.zeros([120, 11])
     x3 = np.zeros([max_len])
 
@@ -165,14 +168,15 @@ def get_real_data(date, ticker, save_dir, train_data_rows=None):
     sys.stdout.flush()
     return np.asarray(d_x1), np.asarray(d_x2), np.asarray(d_x3), np.asarray(d_y1)
 
+
 def train_using_real_data(d, max_len, save_dir):
     model = build_network(max_len, neurons=100, activation='leaky_relu')
-    model.compile(optimizer='adam', loss='mse', metrics=['mae', 'mape'])
+    model.compile(optimizer='adam', loss='mse', metrics=[metrics.mae, metrics.mape])
     model.summary()
 
     l = load_ticker_yyyymmdd_list_from_directory(d)
 
-    t_x1, t_x2, t_x3, t_y1 = [],[],[],[]
+    t_x1, t_x2, t_x3, t_y1 = [], [], [], []
 
     for (da, ti) in l:
         x1, x2, x3, y1 = get_real_data(da, ti, save_dir=save_dir)
@@ -190,7 +194,7 @@ def train_using_real_data(d, max_len, save_dir):
     # {steps} --> this file will be saved whenver it runs every steps as much as {step}
     checkpoint_weights_filename = 'soa_weights_{step}.{extension}'
 
-    #model.load_weights(filepath = checkpoint_weights_filename.format(step='end'), by_name=True, skip_mismatch=True)
+    # model.load_weights(filepath = checkpoint_weights_filename.format(step='end'), by_name=True, skip_mismatch=True)
 
     # TODO: here we can add hyperparameters information like below!!
     log_filename = 'boa_{}_log.json'.format('fill_params_information_in_here')
@@ -202,7 +206,7 @@ def train_using_real_data(d, max_len, save_dir):
     print('start to train.')
     history = model.fit({'x1': t_x1, 'x2': t_x2, 'x3': t_x3}, t_y1, epochs=70, verbose=2, batch_size=10, callbacks=callbacks)
 
-    with open(datetime.now().strftime('boa_model_history_%Y%m%d_%H%M%S'), 'wb') as file_pi:
+    with open(datetime.now().strftime('boa_train_history_%Y%m%d_%H%M%S'), 'wb') as file_pi:
         pickle.dump(history.history, file_pi)
 
     model.save(filepath=checkpoint_weights_filename.format(step='final', extension='h5'))
@@ -210,7 +214,7 @@ def train_using_real_data(d, max_len, save_dir):
 
 
 # train_using_fake_data()
-# picke path
+# pickle path
 save_dir = 'pickles'
 directory = os.path.abspath(make_dir(os.path.dirname(os.path.abspath(__file__)), save_dir))
 # max length of bit for 120
