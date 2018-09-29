@@ -245,7 +245,7 @@ def train_using_real_data_sparsed(pickle_dir):
 
     print('start to train.')
     history = model.fit({'x1': t_x1, 'x2': t_x2, 'x3': t_x3, 'x4': t_x4}, t_y1, epochs=70, verbose=2, batch_size=10, callbacks=callbacks)
-    plot_history(history, dict_to_plot, model_params, 'fig_save')
+
     f = open("ssa_model_history", 'wb')
     pickle.dump(history.history, f)
     f.close()
@@ -255,6 +255,7 @@ def train_using_real_data_sparsed(pickle_dir):
 
     model.save_weights('final_weight.h5f')
     model.save('final_model.h5')
+    plot_history(history, dict_to_plot, model_params, 'fig_save')
 
 
 def load_data_sparsed(t, d, pickle_dir, use_fake_data=False):
@@ -414,7 +415,7 @@ def seconds_to_binary_array(seconds, max_len):
     return np.binary_repr(seconds).zfill(max_len)
 
 max_len = get_maxlen_of_binary_array(120)
-#train_using_real_data_sparsed(_pickle_training_dir)
-train_using_real_data_sparsed_gs(_pickle_training_dir)
+train_using_real_data_sparsed(_pickle_training_dir)
+#train_using_real_data_sparsed_gs(_pickle_training_dir)
 
 
