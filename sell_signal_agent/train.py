@@ -10,12 +10,13 @@ import argparse
 parser = argparse.ArgumentParser()
 parser.add_argument("-import-gym", "--import-gym",help="import trading gym", action="store_true")
 parser.add_argument("-gym-dir", "--gym-dir", type=str, help="import trading gym")
-
+parser.add_argument("-project-dir", "--project-dir", type=str, help="import project home")
 args = parser.parse_args()
 
 if args.import_gym:
     import sys
     sys.path.insert(0, args.gym_dir)
+    sys.path.insert(1, args.project_dir)
 
 import keras.backend as K
 from keras.models import Model
