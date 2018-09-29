@@ -1,10 +1,13 @@
 import os
-import sys
-newPath = os.path.dirname(os.path.abspath(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))) + os.path.sep + 'trading-gym'
-sys.path.append(newPath)
 
-projectPath = os.path.dirname(os.path.abspath(os.path.dirname(__file__)))
-sys.path.append(projectPath)
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument("-training", "--training", help="turn on training mode", action="store_true")
+parser.add_argument("-import-gym", "--import-gym",help="import trading gym", action="store_true")
+parser.add_argument("-gym-dir", "--gym-dir", type=str, help="import trading gym")
+parser.add_argument("-project-dir", "--project-dir", type=str, help="import project home")
+args = parser.parse_args()
 
 from gym_core import ioutil
 from collections import deque
@@ -15,20 +18,8 @@ import pickle
 import random
 
 import config
-import argparse
-
-parser = argparse.ArgumentParser()
-parser.add_argument("-training", "--training", help="turn on training mode", action="store_true")
-args = parser.parse_args()
 
 if args.training:
-    training_mode = True
-    print('traing mode on')
-else:
-    training_mode = False
-    print('traing mode off')
-
-if training_mode:
     csv_dir = config.SOA_PARAMS['CSV_DIR_FOR_CREATING_PICKLE_TRAINING']
     save_dir = config.SOA_PARAMS['PICKLE_DIR_FOR_TRAINING']
 else:
@@ -130,8 +121,6 @@ def prepare_dataset(d, interval, len_sequence_secs, save_dir):
     pickle.dump([x_2d, x_1d, x_1d_left_time, x_1d_elapsed_time, y_1d], f)
     f.close()
     print('{} file is created.'.format(pickle_name))
-
-save_dir = 'pickles120_0_1'
 
 if not os.path.isdir(save_dir):
     os.makedirs(save_dir)
