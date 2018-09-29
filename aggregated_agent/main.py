@@ -221,6 +221,8 @@ class Agents:
             state.append(self.time_to_binary_list(self.remain_step))
             state.append(self.time_to_binary_list(self.remain_step))
 
+        print(state)
+        input()
         return np.array(state)
 
     @staticmethod
