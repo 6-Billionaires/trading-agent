@@ -36,11 +36,11 @@ def prepare_dataset(d, interval, len_sequence_secs, save_dir):
     current_date    = d['meta']['date']
     current_ticker  = d['meta']['ticker']
 
-    # 시작 년-월-일 09시 05분
+    # start-time : YYYY-MM-DD 09:05
     c_start = datetime.datetime(int(current_date[0:4]), int(current_date[4:6]), int(current_date[6:8]), 9, 5)
-    # 종료 년-월-일 15시 20분
+    # end-time : YYYY-MM-DD 15:20
     c_end = datetime.datetime(int(current_date[0:4]), int(current_date[4:6]), int(current_date[6:8]), 15, 20)
-    # 시작 ~ 종료 까지 1초단위로 배열 생성
+    # create array for every second from start-time to end-time
     c_rng_timestamp = pd.date_range(start=c_start, end=c_end, freq='S')
 
     threshold = 0.33
@@ -64,32 +64,29 @@ def prepare_dataset(d, interval, len_sequence_secs, save_dir):
         d_x2d = deque(maxlen=len_sequence_secs)
         d_x1d = deque(maxlen=len_sequence_secs)
 
-        # SSA 에서 보내주는 남은 시간 랜덤 생성.
+        # create randomly the remaining time sent from SSA.
         left_secs = random.randint(1, len_sequence_secs)
 
-        # bsa_elapsed_secs : BSA 에서 시그널을 보낸 후 경과한 시간.
+        # bsa_elapsed_secs : elapsed time after sending signal from BSA
         bsa_elapsed_secs = len_sequence_secs - left_secs
 
         try:
-            #first_quote = d['quote'].loc[s]
-            #first_order = d['order'].loc[s]
-
             price = d['quote'].loc[c_rng_timestamp[i]]['Price(last executed)']
         except KeyError as e:
-            print('찾을 수 없는 key 값이 있습니다.', current_ticker, e)
+            print('cannot find the key value.', current_ticker, e)
             continue
 
-        # elapsed_secs : SSA 에서 시그널을 받고 경과한 시간
+        # elapsed_secs : elapsed time after receiving signal from SSA
         for elapsed_secs in range(0, left_secs):
-            # 너무 데이터가 많아서 0.5% 만 저장.
+            # store only 0.5% because data is too much
             if random.random() > 0.05:
                 continue
 
-            # 장 시작보다 전에 시그널이 왔으면 skip
+            # skip if the signal occurs before stock market starts
             if i < bsa_elapsed_secs + elapsed_secs:
                 continue
 
-            # BSA 에서 시그널을 줄 수 있는 시간 이후에 시그널이 왔으면 skip
+            # skip if signal is received after the time BSA can send signal
             if len(c_rng_timestamp) - len_sequence_secs < i - bsa_elapsed_secs:
                 continue
 
@@ -101,26 +98,28 @@ def prepare_dataset(d, interval, len_sequence_secs, save_dir):
 
                 price_at_signal = d['quote'].loc[c_rng_timestamp[i - elapsed_secs]]['Price(last executed)']
             except KeyError as e:
-                print('찾을 수 없는 key 값이 있습니다.', current_ticker, e)
+                print('cannot find the key value.', current_ticker, e)
                 break
 
-            # SOA 가 파는 시점의 X, Y 데이터
-            # 시그널 받은 시점의 남은 시간
+            # X, Y data at the point of selling by SOA
+            # the remaining time at the point of receiving signal
             x_1d_left_time.append(left_secs)
-            # 시그널을 받고 나서 경과한 시간
+            # elapsed time after receiving signal
             x_1d_elapsed_time.append(elapsed_secs)
-            #x_1d_second.append(s)
+            # x_1d_second.append(s)
             # order
             x_2d.append(np.array(d_x2d))
             # quote
             x_1d.append(np.array(d_x1d))
             y_1d.append(price - price_at_signal - threshold)
 
-    pickle_name = save_dir + os.path.sep + current_date + '_' + current_ticker + '.pickle'
-    f = open(pickle_name, 'wb')
-    pickle.dump([x_2d, x_1d, x_1d_left_time, x_1d_elapsed_time, y_1d], f)
-    f.close()
-    print('{} file is created.'.format(pickle_name))
+    # create only when data exists
+    if len(x_2d) > 0:
+        pickle_name = save_dir + os.path.sep + current_date + '_' + current_ticker + '.pickle'
+        f = open(pickle_name, 'wb')
+        pickle.dump([x_2d, x_1d, x_1d_left_time, x_1d_elapsed_time, y_1d], f)
+        f.close()
+        print('{} file is created.'.format(pickle_name))
 
 if not os.path.isdir(save_dir):
     os.makedirs(save_dir)

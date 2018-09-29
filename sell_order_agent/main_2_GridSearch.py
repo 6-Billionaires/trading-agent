@@ -1,3 +1,4 @@
+import sys
 import argparse
 
 parser = argparse.ArgumentParser()
@@ -9,7 +10,6 @@ parser.add_argument("-project-dir", "--project-dir", type=str, help="import proj
 args = parser.parse_args()
 
 if args.import_gym:
-    import sys
     sys.path.insert(0, args.gym_dir)
     sys.path.insert(1, args.project_dir)
 
@@ -26,11 +26,9 @@ from sklearn.model_selection import GridSearchCV
 os.environ["CUDA_VISIBLE_DEVICES"] = str(config.SOA_PARAMS['P_TRAINING_GPU'])
 
 if args.training:
-    csv_dir = config.SOA_PARAMS['CSV_DIR_FOR_CREATING_PICKLE_TRAINING']
-    save_dir = config.SOA_PARAMS['PICKLE_DIR_FOR_TRAINING']
+    pickle_dir = config.SOA_PARAMS['PICKLE_DIR_FOR_TRAINING']
 else:
-    csv_dir = config.SOA_PARAMS['CSV_DIR_FOR_CREATING_PICKLE_TEST']
-    save_dir = config.SOA_PARAMS['PICKLE_DIR_FOR_TEST']
+    pickle_dir = config.SOA_PARAMS['PICKLE_DIR_FOR_TEST']
 
 """
 build q newtork using cnn and dense layer
@@ -74,17 +72,13 @@ def build_network(max_len=7, optimizer='adam',init_mode='uniform', filters=16, n
 
     return model
 
-def get_real_data(date, ticker, save_dir, train_data_rows=None):
+def get_real_data(date, ticker, max_len, save_dir, train_data_rows=None):
     '''
-    left_secs : SSA 에서 신호를 보낼때 남은 시간
-    elapsed_secs : SSA 에서 신호를 보낸 후 경과 시간
-    최초 pickle 을 생성할 때, left_secs 은 랜덤 생성 하고 elapsed_secs 를 0 ~ left_secs 만큼 생성 했었는데, 데이터가 너무 많아서 랜덤하게 30% 데이터만 생성하도록 하였음. (if random.random() > 0.3: continue)
-    한번 학습 시에 모든 종목에 대해 40개의 pickle 을 뽑아서 1개의 episode 를 구성함. 시간 순서를 random 으로 뽑지는 않음. (종목 수 36 * 피클 데이터 수 40 = 1440)
-    :param max_len:
-    :param pickles:
-    :param str_episode:
-    :param end_episode:
-    :param train_all_periods:
+
+    :param date:
+    :param ticker:
+    :param save_dir:
+    :param train_data_rows:
     :return:
     '''
 
@@ -92,7 +86,6 @@ def get_real_data(date, ticker, save_dir, train_data_rows=None):
     x2_dimension_info = (120, 11)
     x3_dimension_info = (max_len,)
     x4_dimension_info = (max_len,)
-    #y1_dimension_info = (120,)
 
     pickle_name = save_dir + os.path.sep + date + '_' + ticker + '.pickle'
     f = open(pickle_name, 'rb')
@@ -114,7 +107,7 @@ def get_real_data(date, ticker, save_dir, train_data_rows=None):
     d_y1 = []
 
     for idx in range(train_data_rows):
-        sys.stdout.write("\rloading data from ticker %s" %ticker + ", yyyymmdd %s" %date + "  %i" % idx + " / %i 완료" % train_data_rows)
+        sys.stdout.write("\rloading data from ticker %s" %ticker + ", yyyymmdd %s" %date + "  %i" % idx + " / %i" % train_data_rows)
         sys.stdout.flush()
 
         for second in range(x1_dimension_info[2]):  # 60: seconds
@@ -150,14 +143,13 @@ def get_real_data(date, ticker, save_dir, train_data_rows=None):
     sys.stdout.flush()
     return np.asarray(d_x1), np.asarray(d_x2), np.asarray(d_x3), np.asarray(d_x4), np.asarray(d_y1)
 
-def train_using_real_data(d, max_len, save_dir):
-
-    l = load_ticker_yyyymmdd_list_from_directory(d)
+def train_using_real_data(pickle_dir, max_len):
+    l = load_ticker_yyyymmdd_list_from_directory(pickle_dir)
 
     t_x1, t_x2, t_x3, t_x4, t_y1 = [],[],[],[],[]
 
     for (da, ti) in l:
-        x1, x2, x3, x4, y1 = get_real_data(da, ti, save_dir=save_dir)
+        x1, x2, x3, x4, y1 = get_real_data(da, ti, max_len, save_dir=pickle_dir)
         t_x1.append(x1)
         t_x2.append(x2)
         t_x3.append(x3)
@@ -174,8 +166,6 @@ def train_using_real_data(d, max_len, save_dir):
     # {steps} --> this file will be saved whenver it runs every steps as much as {step}
     checkpoint_weights_filename = 'soa_weights_{step}.h5f'
 
-    #model.load_weights(filepath = checkpoint_weights_filename.format(step='end'), by_name=True, skip_mismatch=True)
-
     # TODO: here we can add hyperparameters information like below!!
     log_filename = 'soa_{}_log.json'.format('fill_params_information_in_here')
     checkpoint_interval = 50
@@ -187,20 +177,13 @@ def train_using_real_data(d, max_len, save_dir):
     # create model
     model = KerasRegressor(build_fn=build_network, verbose=0)
     # define the grid search parameters
-    #batch_size = [10, 20, 40, 60, 80, 100]
-    #epochs = [10, 50, 100]
-    #neurons = [15, 20, 25, 30]
     batch_size = [30, 40, 50, 60]
     epochs = [60, 65, 70, 75, 80]
     neurons = [80, 90, 100, 110, 120]
-    param_grid = dict(batch_size=batch_size, epochs=epochs, neurons=neurons)
+    param_grid = dict(max_len=[max_len], batch_size=batch_size, epochs=epochs, neurons=neurons)
 
     grid = GridSearchCV(estimator=model, param_grid=param_grid, n_jobs=1)
-    #grid_result = grid.fit({'x1': t_x1, 'x2': t_x2, 'x3': t_x3, 'x4': t_x4}, t_y1)
     grid_result = grid.fit(np.array([{'x1': a, 'x2': b, 'x3': c, 'x4': d} for a, b, c, d in zip(t_x1, t_x2, t_x3, t_x4)]), t_y1)
-
-#    model.fit({'x1': t_x1, 'x2': t_x2, 'x3': t_x3, 'x4': t_x4}, t_y1, epochs=50, verbose=2, batch_size=64, callbacks=callbacks)
-#    model.save_weights(filepath=checkpoint_weights_filename.format(step='end_120_0_1'))
 
     # summarize results
     print("Best: %f using %s" % (grid_result.best_score_, grid_result.best_params_))
@@ -210,11 +193,6 @@ def train_using_real_data(d, max_len, save_dir):
     for mean, stdev, param in zip(means, stds, params):
         print("%f (%f) with: %r" % (mean, stdev, param))
 
-
-# train_using_fake_data()
-# picke path
-save_dir = 'pickles120_0_1'
-directory = os.path.abspath(make_dir(os.path.dirname(os.path.abspath(__file__)), save_dir))
 # max length of bit for 120
 max_len = util.get_maxlen_of_binary_array(120)
-train_using_real_data(directory, max_len, save_dir)
+train_using_real_data(pickle_dir, max_len)

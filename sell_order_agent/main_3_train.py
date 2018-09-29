@@ -120,15 +120,11 @@ def build_network(max_len=7, init_mode='uniform', neurons=20, activation='relu')
 
 def get_real_data(date, ticker, save_dir, train_data_rows=None):
     '''
-    left_secs : SSA 에서 신호를 보낼때 남은 시간
-    elapsed_secs : SSA 에서 신호를 보낸 후 경과 시간
-    최초 pickle 을 생성할 때, left_secs 은 랜덤 생성 하고 elapsed_secs 를 0 ~ left_secs 만큼 생성 했었는데, 데이터가 너무 많아서 랜덤하게 30% 데이터만 생성하도록 하였음. (if random.random() > 0.3: continue)
-    한번 학습 시에 모든 종목에 대해 40개의 pickle 을 뽑아서 1개의 episode 를 구성함. 시간 순서를 random 으로 뽑지는 않음. (종목 수 36 * 피클 데이터 수 40 = 1440)
-    :param max_len:
-    :param pickles:
-    :param str_episode:
-    :param end_episode:
-    :param train_all_periods:
+
+    :param date:
+    :param ticker:
+    :param save_dir:
+    :param train_data_rows:
     :return:
     '''
 
@@ -281,7 +277,6 @@ params = {
 }
 
 
-# train_using_fake_data()
 # picke path
 save_dir = 'pickles120_0_1'
 directory = os.path.abspath(make_dir(os.path.dirname(os.path.abspath(__file__)), save_dir))
