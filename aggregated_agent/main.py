@@ -3,7 +3,7 @@ import sys
 
 newPath = os.path.dirname(os.path.abspath(os.path.dirname(os.path.abspath(os.path.dirname(os.path.abspath(os.path.dirname(__file__)))))))+ '\\trading_gym'
 sys.path.append(newPath)
-
+sys.path.append('/home/lab4all/ag/trading_gym')
 from gym_core import tgym
 import numpy as np
 import random
@@ -63,7 +63,7 @@ class DDQNAgent:
             concat_layer = Concatenate(name='concat2')([trained_model(rl_model.input), rl_model.layers[-1].output])
             output_layer = Dense(2, activation='linear', name='q_value_output')(concat_layer)
             model = Model(inputs=rl_model.input, outputs=output_layer)
-            model.load_weights('./networks/' + self.agent_type + '_rl.h5f')
+            model.load_weights('aggregated_agent/networks/' + self.agent_type + '_rl.h5f')
 
             # model = load_model('./networks/' + self.agent_type + '_rl.h5f')  # save weight 방식으로 수정할것
 
@@ -111,7 +111,7 @@ class DDQNAgent:
             # print('memory size is to short', len(self.memory))
             return
         # print('train', len(self.memory))
-        print('train', self.agent_type)
+        # print('train', self.agent_type)
 
         self.epsilon = max(self.epsilon * self.epsilon_decay, self.epsilon_min)
 
@@ -147,7 +147,7 @@ class DDQNAgent:
                 target[i][actions[i]] = rewards[i] + self.discount_factor * (np.amax(target_val[i]))
 
         self.model.fit(input_states, target, batch_size=self.batch_size, epochs=1, verbose=0)
-        self.model.save_weights('./networks/' + self.agent_type + '_rl.h5f')
+        self.model.save_weights('aggregated_agent/networks/' + self.agent_type + '_rl.h5f')
 
 
 class Agents:
@@ -206,7 +206,7 @@ class Agents:
     # 또한 agent 에 따라 input data 의 모양이 다르므로 그 처리도 여기서 한다.
     # agent 가 전부 구체화되면 완성할 것
     def _process_state(self, state):
-        state = copy.deepcopy(state)
+        state = copy.deepcopy(list(state))
         # if self.sequence == 0:  # BSA
         #     state.append(self.time_to_binary_list(self.remain_step))  # < 테스트 후 지울것 (bsa 네트워크가 없어 boa 사용중이라 넣음)
 
