@@ -61,7 +61,10 @@ def prepare_datasets(load_csv_dir, is_spare_dataset=False, interval=120, len_obs
     l = ioutil.load_data_from_directory(load_csv_dir, '0')  # episode type
     for li in l:
         if is_spare_dataset:
-            prepare_sparse_dataset(li, 120, _len_observation, save_dir)
+            try:
+                prepare_sparse_dataset(li, 120, _len_observation, save_dir)
+            except Exception as e:
+                print(str(e))
         else:
             prepare_dataset(li, 1, len_sequence_secs)
 
@@ -122,9 +125,9 @@ def prepare_sparse_dataset(d, interval=120, len_observation=_len_observation, sa
             for j in range(len_observation):
                 if j == 0:
                     # price_at_signal is the price when the current stock received signal
-                    price_at_signal = d['quote'].loc[c_rng_ts[i+j]]['Price(last excuted)']
+                    price_at_signal = d['quote'].loc[c_rng_ts[i+j]]['Price(last executed)']
                 else:
-                    price = d['quote'].loc[c_rng_ts[i+j]]['Price(last excuted)']
+                    price = d['quote'].loc[c_rng_ts[i+j]]['Price(last executed)']
                     gap = price - price_at_signal - threshold
                     width += gap
             x_2d.append(np.array(d_x2d))
@@ -187,9 +190,9 @@ def prepare_dataset(d, interval=1, len_sequence_of_secs=120):
             for j in range(len_sequence_of_secs):
                 if j == 0:
                     # price_at_signal is the price when the current stock received signal
-                    price_at_signal = d['quote'].loc[c_rng_ts[i+j]]['Price(last excuted)']
+                    price_at_signal = d['quote'].loc[c_rng_ts[i+j]]['Price(last executed)']
                 else:
-                    price = d['quote'].loc[c_rng_ts[i+j]]['Price(last excuted)']
+                    price = d['quote'].loc[c_rng_ts[i+j]]['Price(last executed)']
                     gap = price - price_at_signal - threshold
                     width += gap
 
