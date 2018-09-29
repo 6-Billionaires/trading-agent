@@ -382,10 +382,6 @@ if __name__ == '__main__':
             if step_count >= 3500:
                 done = True
 
-            moving_reward_sum = 0
-            for r in moving_reward:
-                moving_reward_sum += r / len(moving_reward)
-            print(moving_reward_sum)
 
         if step_count > 0:
             avg_reward = round(reward_sum / step_count, 7)
