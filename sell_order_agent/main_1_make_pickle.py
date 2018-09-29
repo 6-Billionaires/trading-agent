@@ -1,4 +1,5 @@
 import os
+import sys
 
 import argparse
 
@@ -8,6 +9,10 @@ parser.add_argument("-import-gym", "--import-gym",help="import trading gym", act
 parser.add_argument("-gym-dir", "--gym-dir", type=str, help="import trading gym")
 parser.add_argument("-project-dir", "--project-dir", type=str, help="import project home")
 args = parser.parse_args()
+
+if args.import_gym:
+    sys.path.insert(0, args.gym_dir)
+    sys.path.insert(1, args.project_dir)
 
 from gym_core import ioutil
 from collections import deque
