@@ -219,11 +219,11 @@ class Agents:
 
         if self.sequence == 2 and not (self.ssa_additional_data is None):  # SSA
             state.append(self.time_to_binary_list(self.remain_step))
-            state.append(self.time_to_binary_list(self.remain_step))
+            state.append(self.time_to_binary_list(120-self.remain_step))
 
         if self.sequence == 3 and not (self.soa_additional_data is None):  # SOA
             state.append(self.time_to_binary_list(self.remain_step))
-            state.append(self.time_to_binary_list(self.remain_step))
+            state.append(self.time_to_binary_list(120-self.remain_step))
 
         return np.array(state)
 
@@ -359,6 +359,8 @@ if __name__ == '__main__':
         buy_price, sell_price = 0, 0
         commission = 0.33
 
+        moving_reward = deque(maxlen=10)
+
         while not done:
             action = agents.get_action(state)
             if agents.sequence == 0 and action == 1:
@@ -371,13 +373,20 @@ if __name__ == '__main__':
                     profit_comm += (sell_price - buy_price) / buy_price - commission * 0.01
 
             next_state, reward, done, info = env.step(action)
-            reward_sum += agents.append_sample(state, action, reward, next_state, done)
+            agent_reward = agents.append_sample(state, action, reward, next_state, done)
+            reward_sum += agent_reward
+            moving_reward.append(agent_reward)
             step_count += 1
             state = next_state
             if agents.trainable:
                 agents.train_agents()
             if step_count >= 3500:
                 done = True
+
+            moving_reward_sum = 0
+            for r in moving_reward:
+                moving_reward_sum += r / len(moving_reward)
+            print(moving_reward_sum)
 
         if step_count > 0:
             avg_reward = round(reward_sum / step_count, 7)
