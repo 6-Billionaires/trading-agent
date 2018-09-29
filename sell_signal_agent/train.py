@@ -203,7 +203,7 @@ def get_real_data_sparsed(pickle_dir, ticker='001470', date='20180420', train_da
 def train_using_real_data_sparsed(pickle_dir):
 
     model = build_network_for_sparsed()
-    model.compile(optimizer='adam', loss='mse', metrics=['mae'])
+    model.compile(optimizer='adam', loss='mean_squared_error', metrics=['mae', 'mape'])
     # model.compile(optimizer='adam', loss='mse', metrics=['accuracy'])
     # model.summary()
 
@@ -241,7 +241,7 @@ def train_using_real_data_sparsed(pickle_dir):
     callbacks += [FileLogger(log_filename, interval=100)]
 
     print('start to train.')
-    history = model.fit({'x1': t_x1, 'x2': t_x2, 'x3': t_x3, 'x4': t_x4}, t_y1, epochs=70, verbose=2, batch_size=10, callbacks=callbacks)
+    history = model.fit({'x1': t_x1, 'x2': t_x2, 'x3': t_x3, 'x4': t_x4}, t_y1, epochs=70, verbose=2, batch_size=10, validation_split=0.1, callbacks=callbacks)
 
     f = open("ssa_model_history", 'wb')
     pickle.dump(history.history, f)

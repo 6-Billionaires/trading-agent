@@ -173,7 +173,7 @@ def seconds_to_binary_array(seconds, max_len):
 max_len = get_maxlen_of_binary_array(120)
 
 model = build_network_for_sparsed()
-model.compile(optimizer='adam', loss='mse', metrics=['mae','mape','accuracy'])
+model.compile(optimizer='adam', loss='mean_squared_error', metrics=['mae','mape','accuracy'])
 model.summary()
 model.load_weights('final_weight.h5f')
 
