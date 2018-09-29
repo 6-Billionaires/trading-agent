@@ -24,7 +24,7 @@ class DDQNAgent:
         self.model = self.load_model()
         self.target_model = self.load_model()
 
-        self.epsilon = 1.
+        self.epsilon = 0.3
         self.epsilon_min = 0.001
         self.epsilon_decay = 0.9999
         self.batch_size = 64
@@ -219,11 +219,11 @@ class Agents:
 
         if self.sequence == 2 and not (self.ssa_additional_data is None):  # SSA
             state.append(self.time_to_binary_list(self.remain_step))
-            state.append(self.time_to_binary_list(self.remain_step))
+            state.append(self.time_to_binary_list(120-self.remain_step))
 
         if self.sequence == 3 and not (self.soa_additional_data is None):  # SOA
             state.append(self.time_to_binary_list(self.remain_step))
-            state.append(self.time_to_binary_list(self.remain_step))
+            state.append(self.time_to_binary_list(120-self.remain_step))
 
         return np.array(state)
 
@@ -298,10 +298,10 @@ class MyTGym(tgym.TradingGymEnv):  # MyTGym 수정해야 함 -> agent 별 reward
         for j in range(secs):
             if j == 0:
                 price_at_signal = self.d_episodes_data[self.p_current_episode_ref_idx]['quote'].loc[
-                    self.c_range_timestamp[self.p_current_step_in_episode]]['Price(last excuted)']  # 데이터 자체에 오타 나 있으므로 수정 x
+                    self.c_range_timestamp[self.p_current_step_in_episode]]['Price(last executed)']  # 데이터 자체에 오타 나 있으므로 수정 x
             else:
                 price = self.d_episodes_data[self.p_current_episode_ref_idx]['quote'].loc[self.c_range_timestamp[
-                    self.p_current_step_in_episode+j]]['Price(last excuted)']
+                    self.p_current_step_in_episode+j]]['Price(last executed)']
                 gap = price - price_at_signal - threshold
                 width += gap
         rewards['BSA'] = width / secs
@@ -359,6 +359,8 @@ if __name__ == '__main__':
         buy_price, sell_price = 0, 0
         commission = 0.33
 
+        moving_avg_reward = deque(maxlen=30)
+
         while not done:
             action = agents.get_action(state)
             if agents.sequence == 0 and action == 1:
@@ -371,7 +373,14 @@ if __name__ == '__main__':
                     profit_comm += (sell_price - buy_price) / buy_price - commission * 0.01
 
             next_state, reward, done, info = env.step(action)
-            reward_sum += agents.append_sample(state, action, reward, next_state, done)
+            agent_reward = agents.append_sample(state, action, reward, next_state, done)
+            reward_sum += agent_reward
+            moving_avg_reward.append(agent_reward)
+            moving_avg_sum = 0
+            for r in moving_avg_reward:
+              moving_avg_sum += r / len(moving_avg_reward)
+            # print('reward :', round(moving_avg_sum, 7))
+
             step_count += 1
             state = next_state
             if agents.trainable:
@@ -389,14 +398,15 @@ if __name__ == '__main__':
                 avg_profit = profit / buy_count
                 avg_comm_profit = profit_comm / buy_count
             print('ep :', ep, end='  ')
+            print('epsilon :', round(agents.agents[0].epsilon, 3), end='  ')
             print('avg reward :', avg_reward, end='  ')
             print('buy :', buy_count, end='  ')
-            print('profit :', profit, end='  ')
-            print('avg profit :', avg_profit, end='  ')
-            print('profit(comm) :', profit_comm, end='  ')
-            print('avg profit(comm) :', avg_comm_profit)
+            print('profit :', round(profit, 3), end='  ')
+            print('avg profit :', round(avg_profit, 3), end='  ')
+            print('profit(comm) :', round(profit_comm, 3), end='  ')
+            print('avg profit(comm) :', round(avg_comm_profit, 3))
 
-            csv_writer.writerow([avg_reward, buy_count, profit])
+            csv_writer.writerow([ep, avg_reward, buy_count, profit, avg_profit, profit_comm, avg_comm_profit])
 
 
 
