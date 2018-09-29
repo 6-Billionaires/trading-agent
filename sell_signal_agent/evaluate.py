@@ -17,11 +17,11 @@ if args.import_gym:
     import sys
     sys.path.insert(0, args.gym_dir)
 
+import keras.backend as K
 from keras.models import Model
 from keras.layers import LeakyReLU, Input, Dense, Conv3D, Conv1D, Dense, Flatten, MaxPooling1D, MaxPooling2D,MaxPooling3D,Concatenate
-
-
 from gym_core.ioutil import *  # file i/o to load stock csv files
+
 
 os.environ["CUDA_VISIBLE_DEVICES"] = str(config.SSA_PARAMS['P_TRAINING_GPU'])
 _len_observation = int(config.SSA_PARAMS['P_OBSERVATION_LEN'])
@@ -35,36 +35,40 @@ Instead, it will use memory incrementally.
 """
 build q newtork using cnn and dense layer
 """
-def build_network_for_sparsed():
+def build_network_for_sparsed(optimizer='adam',init_mode='uniform',
+                              filters=16, neurons=100, activation='relu'):
+
+    if activation == 'leaky_relu':
+        activation = LeakyReLU(alpha=0.3)
 
     input_order = Input(shape=(10, 2, _len_observation, 2), name="x1")
     input_tranx = Input(shape=(_len_observation, 11), name="x2")
     input_elapedtime = Input(shape=(max_len,), name="x3")
     input_lefttime = Input(shape=(max_len,), name="x4")
 
-    h_conv1d_2 = Conv1D(filters=16, kernel_size=3)(input_tranx)
+    h_conv1d_2 = Conv1D(filters=filters, kernel_initializer=init_mode, kernel_size=3)(input_tranx)
     h_conv1d_2 = LeakyReLU(alpha=0.3)(h_conv1d_2)
 
     h_conv1d_4 = MaxPooling1D(pool_size=3, strides=None, padding='valid')(h_conv1d_2)
 
-    h_conv1d_6 = Conv1D(filters=32, kernel_size=3)(h_conv1d_4)
+    h_conv1d_6 = Conv1D(filters=filters*2, kernel_initializer=init_mode, kernel_size=3)(h_conv1d_4)
     h_conv1d_6 = LeakyReLU(alpha=0.3)(h_conv1d_6)
 
     h_conv1d_8 = MaxPooling1D(pool_size=2, strides=None, padding='valid')(h_conv1d_6)
 
-    h_conv3d_1_1 = Conv3D(filters=16, kernel_size=(2, 1, 5))(input_order)
+    h_conv3d_1_1 = Conv3D(filters=filters, kernel_initializer=init_mode, kernel_size=(2, 1, 5))(input_order)
     h_conv3d_1_1 = LeakyReLU(alpha=0.3)(h_conv3d_1_1)
 
-    h_conv3d_1_2 = Conv3D(filters=16, kernel_size=(1, 2, 5))(input_order)
+    h_conv3d_1_2 = Conv3D(filters=filters, kernel_initializer=init_mode, kernel_size=(1, 2, 5))(input_order)
     h_conv3d_1_2 = LeakyReLU(alpha=0.3)(h_conv3d_1_2)
 
     h_conv3d_1_3 = MaxPooling3D(pool_size=(1, 1, 3))(h_conv3d_1_1)
     h_conv3d_1_4 = MaxPooling3D(pool_size=(1, 1, 3))(h_conv3d_1_2)
 
-    h_conv3d_1_5 = Conv3D(filters=32, kernel_size=(1, 2, 5))(h_conv3d_1_3)
+    h_conv3d_1_5 = Conv3D(filters=filters*2, kernel_initializer=init_mode, kernel_size=(1, 2, 5))(h_conv3d_1_3)
     h_conv3d_1_5 = LeakyReLU(alpha=0.3)(h_conv3d_1_5)
 
-    h_conv3d_1_6 = Conv3D(filters=32, kernel_size=(2, 1, 5))(h_conv3d_1_4)
+    h_conv3d_1_6 = Conv3D(filters=filters*2, kernel_initializer=init_mode, kernel_size=(2, 1, 5))(h_conv3d_1_4)
     h_conv3d_1_6 = LeakyReLU(alpha=0.3)(h_conv3d_1_6)
 
     h_conv3d_1_7 = MaxPooling3D(pool_size=(1, 1, 5))(h_conv3d_1_5)
@@ -77,13 +81,15 @@ def build_network_for_sparsed():
 
     i_concatenated_all_h = Concatenate()([i_concatenated_all_h_1, o_conv3d_1_1, input_elapedtime, input_lefttime])
 
-    hidden_out = Dense(100)(i_concatenated_all_h)
-    hidden_out = LeakyReLU(alpha=0.3)(hidden_out)
+    # hidden_out = Dense(100)(i_concatenated_all_h)
+    # hidden_out = LeakyReLU(alpha=0.3)(hidden_out)
+    i_concatenated_all_h = Dense(neurons, kernel_initializer=init_mode, activation='linear')(i_concatenated_all_h)
 
-    output = Dense(1, activation='linear')(hidden_out)
+    output = Dense(1, kernel_initializer=init_mode, activation='linear')(i_concatenated_all_h)
 
     model = Model([input_order, input_tranx, input_elapedtime, input_lefttime], output)
-
+    # model.compile(optimizer=optimizer, loss='mean_squared_error', metrics=['mae', 'mape'])
+    model.compile(optimizer=optimizer, loss='mean_squared_error', metrics=['accuracy', mean_pred, theil_u, r])
     return model
 
 
@@ -157,6 +163,24 @@ def get_real_data_sparsed(pickle_dir, ticker='001470', date='20180420', train_da
     return np.asarray(d_x1), np.asarray(d_x2), np.asarray(d_x3), np.asarray(d_x4), np.asarray(d_y1)
 
 
+def mean_pred(y_true, y_pred):
+    return K.mean(y_pred)
+
+
+def theil_u(y_true, y_pred):
+    up = K.mean(K.square(y_true-y_pred))
+    bottom = K.mean(K.square(y_true)) + K.mean(K.square(y_pred))
+    return up/bottom
+
+def r(y_true, y_pred):
+    mean_y_true = K.mean(y_true)
+    mean_y_pred = K.mean(y_pred)
+
+    up = K.sum((y_true-mean_y_true) * (y_pred-mean_y_pred))
+    bottom = K.mean(K.square(y_true-mean_y_true) * K.square(y_pred-mean_y_pred))
+    return up/bottom
+
+
 dat = np.arange(1, 13) / 2.0
 def discretize(data, bins):
     split = np.array_split(np.sort(data), bins)
@@ -173,8 +197,6 @@ def seconds_to_binary_array(seconds, max_len):
 max_len = get_maxlen_of_binary_array(120)
 
 model = build_network_for_sparsed()
-model.compile(optimizer='adam', loss='mean_squared_error', metrics=['mae','mape','accuracy'])
-model.summary()
 model.load_weights('final_weight.h5f')
 
 t_x1, t_x2, t_x3, t_x4, t_y1 = [],[],[],[],[]
@@ -198,8 +220,10 @@ t_y1 = np.concatenate(t_y1)
 
 
 scores = model.evaluate({'x1': t_x1, 'x2': t_x2, 'x3': t_x3, 'x4': t_x4}, t_y1, verbose=0, steps=10)
-print("%s: %.2f    %s: %.2f    %s: %.2f" % (model.metrics_names[1], scores[1], model.metrics_names[2], scores[2], model.metrics_names[3], scores[3]))
+print("%s: %.2f    %s: %.2f    %s: %.2f    %s: %.2f" % (model.metrics_names[1], scores[1], model.metrics_names[2], scores[2], model.metrics_names[3], scores[3], model.metrics_names[4], scores[4]))
 
 with open('ssa_evaluate_model_history', 'wb') as file_pi:
     pickle.dump(scores, file_pi)
+
+
 

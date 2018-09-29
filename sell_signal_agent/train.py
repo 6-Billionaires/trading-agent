@@ -17,15 +17,14 @@ if args.import_gym:
     import sys
     sys.path.insert(0, args.gym_dir)
 
-
+import keras.backend as K
 from keras.models import Model
 from keras.layers import LeakyReLU, Input, Dense, Conv3D, Conv1D, Dense, Flatten, MaxPooling1D, MaxPooling2D,MaxPooling3D,Concatenate
-import numpy as np
-import pickle
 from rl.callbacks import FileLogger, ModelIntervalCheckpoint
 from gym_core.ioutil import *  # file i/o to load stock csv files
-import logging
-
+from core.scikit_learn_multi_input import KerasRegressor
+from sklearn.model_selection import GridSearchCV
+import matplotlib.pyplot as plt
 
 os.environ["CUDA_VISIBLE_DEVICES"] = str(config.SSA_PARAMS['P_TRAINING_GPU'])
 _len_observation = int(config.SSA_PARAMS['P_OBSERVATION_LEN'])
@@ -49,36 +48,40 @@ build q newtork using cnn and dense layer
 """
 build q newtork using cnn and dense layer
 """
-def build_network_for_sparsed():
+def build_network_for_sparsed(optimizer='adam',init_mode='uniform',
+                              filters=16, neurons=100, activation='relu'):
+
+    if activation == 'leaky_relu':
+        activation = LeakyReLU(alpha=0.3)
 
     input_order = Input(shape=(10, 2, _len_observation, 2), name="x1")
     input_tranx = Input(shape=(_len_observation, 11), name="x2")
     input_elapedtime = Input(shape=(max_len,), name="x3")
     input_lefttime = Input(shape=(max_len,), name="x4")
 
-    h_conv1d_2 = Conv1D(filters=16, kernel_size=3)(input_tranx)
+    h_conv1d_2 = Conv1D(filters=filters, kernel_initializer=init_mode, kernel_size=3)(input_tranx)
     h_conv1d_2 = LeakyReLU(alpha=0.3)(h_conv1d_2)
 
     h_conv1d_4 = MaxPooling1D(pool_size=3, strides=None, padding='valid')(h_conv1d_2)
 
-    h_conv1d_6 = Conv1D(filters=32, kernel_size=3)(h_conv1d_4)
+    h_conv1d_6 = Conv1D(filters=filters*2, kernel_initializer=init_mode, kernel_size=3)(h_conv1d_4)
     h_conv1d_6 = LeakyReLU(alpha=0.3)(h_conv1d_6)
 
     h_conv1d_8 = MaxPooling1D(pool_size=2, strides=None, padding='valid')(h_conv1d_6)
 
-    h_conv3d_1_1 = Conv3D(filters=16, kernel_size=(2, 1, 5))(input_order)
+    h_conv3d_1_1 = Conv3D(filters=filters, kernel_initializer=init_mode, kernel_size=(2, 1, 5))(input_order)
     h_conv3d_1_1 = LeakyReLU(alpha=0.3)(h_conv3d_1_1)
 
-    h_conv3d_1_2 = Conv3D(filters=16, kernel_size=(1, 2, 5))(input_order)
+    h_conv3d_1_2 = Conv3D(filters=filters, kernel_initializer=init_mode, kernel_size=(1, 2, 5))(input_order)
     h_conv3d_1_2 = LeakyReLU(alpha=0.3)(h_conv3d_1_2)
 
     h_conv3d_1_3 = MaxPooling3D(pool_size=(1, 1, 3))(h_conv3d_1_1)
     h_conv3d_1_4 = MaxPooling3D(pool_size=(1, 1, 3))(h_conv3d_1_2)
 
-    h_conv3d_1_5 = Conv3D(filters=32, kernel_size=(1, 2, 5))(h_conv3d_1_3)
+    h_conv3d_1_5 = Conv3D(filters=filters*2, kernel_initializer=init_mode, kernel_size=(1, 2, 5))(h_conv3d_1_3)
     h_conv3d_1_5 = LeakyReLU(alpha=0.3)(h_conv3d_1_5)
 
-    h_conv3d_1_6 = Conv3D(filters=32, kernel_size=(2, 1, 5))(h_conv3d_1_4)
+    h_conv3d_1_6 = Conv3D(filters=filters*2, kernel_initializer=init_mode, kernel_size=(2, 1, 5))(h_conv3d_1_4)
     h_conv3d_1_6 = LeakyReLU(alpha=0.3)(h_conv3d_1_6)
 
     h_conv3d_1_7 = MaxPooling3D(pool_size=(1, 1, 5))(h_conv3d_1_5)
@@ -91,13 +94,15 @@ def build_network_for_sparsed():
 
     i_concatenated_all_h = Concatenate()([i_concatenated_all_h_1, o_conv3d_1_1, input_elapedtime, input_lefttime])
 
-    hidden_out = Dense(100)(i_concatenated_all_h)
-    hidden_out = LeakyReLU(alpha=0.3)(hidden_out)
+    # hidden_out = Dense(100)(i_concatenated_all_h)
+    # hidden_out = LeakyReLU(alpha=0.3)(hidden_out)
+    i_concatenated_all_h = Dense(neurons, kernel_initializer=init_mode, activation='linear')(i_concatenated_all_h)
 
-    output = Dense(1, activation='linear')(hidden_out)
+    output = Dense(1, kernel_initializer=init_mode, activation='linear')(i_concatenated_all_h)
 
     model = Model([input_order, input_tranx, input_elapedtime, input_lefttime], output)
-
+    # model.compile(optimizer=optimizer, loss='mean_squared_error', metrics=['mae', 'mape'])
+    model.compile(optimizer=optimizer, loss='mean_squared_error', metrics=['accuracy', mean_pred, theil_u, r])
     return model
 
 def get_sample_data(count):
@@ -203,9 +208,6 @@ def get_real_data_sparsed(pickle_dir, ticker='001470', date='20180420', train_da
 def train_using_real_data_sparsed(pickle_dir):
 
     model = build_network_for_sparsed()
-    model.compile(optimizer='adam', loss='mean_squared_error', metrics=['mae', 'mape'])
-    # model.compile(optimizer='adam', loss='mse', metrics=['accuracy'])
-    # model.summary()
 
     l = load_ticker_yyyymmdd_list_from_directory(pickle_dir)
 
@@ -241,8 +243,8 @@ def train_using_real_data_sparsed(pickle_dir):
     callbacks += [FileLogger(log_filename, interval=100)]
 
     print('start to train.')
-    history = model.fit({'x1': t_x1, 'x2': t_x2, 'x3': t_x3, 'x4': t_x4}, t_y1, epochs=70, verbose=2, batch_size=10, validation_split=0.1, callbacks=callbacks)
-
+    history = model.fit({'x1': t_x1, 'x2': t_x2, 'x3': t_x3, 'x4': t_x4}, t_y1, epochs=1, verbose=2, batch_size=10, callbacks=callbacks)
+    plot_history(history, dict_to_plot, model_params, 'fig_save')
     f = open("ssa_model_history", 'wb')
     pickle.dump(history.history, f)
     f.close()
@@ -261,9 +263,142 @@ def load_data_sparsed(t, d, pickle_dir, use_fake_data=False):
         current_date = d
         current_ticker = t
         #if you give second as None, it will read every seconds in file.
-        # x1, x2, y = get_real_data(current_ticker, current_date, train_data_rows=130)
         x1, x2, x3, x4, y = get_real_data_sparsed(pickle_dir, current_ticker, current_date)
     return x1, x2, x3, x4, y
+
+
+def train_using_real_data_sparsed_gs(pickle_dir):
+
+    l = load_ticker_yyyymmdd_list_from_directory(pickle_dir)
+
+    t_x1, t_x2, t_x3, t_x4, t_y1 = [], [], [], [], []
+
+    for (ti, da) in l:
+        print('loading data from ticker {}, yyyymmdd {} is started.'.format(ti, da))
+        x1, x2, x3, x4, y1 = load_data_sparsed(ti, da, pickle_dir=pickle_dir, use_fake_data=False)
+        t_x1.append(x1)
+        t_x2.append(x2)
+        t_x3.append(x3)
+        t_x4.append(x4)
+        t_y1.append(y1)
+        print('loading data from ticker {}, yyyymmdd {} is finished.'.format(ti, da))
+    t_x1 = np.concatenate(t_x1)
+    t_x2 = np.concatenate(t_x2)
+    t_x3 = np.concatenate(t_x3)
+    t_x4 = np.concatenate(t_x4)
+    t_y1 = np.concatenate(t_y1)
+
+    print('total x1 : {}, total x2 : {}, total x3 : {}, total x4 : {}, total y1 : {}'.format(len(t_x1), len(t_x2), len(t_x3), len(t_x4), len(t_y1)))
+
+    # {steps} --> this file will be saved whenever it runs every steps as much as {step}
+    checkpoint_weights_filename = 'ssa_' + 'fill_params_information_in_here' + '_weights_{step}.h5f'
+
+    # TODO: here we can add hyperparameters information like below!!
+    log_filename = 'ssa_{}_log.json'.format('fill_params_information_in_here')
+    checkpoint_interval = 50
+
+    callbacks = [ModelIntervalCheckpoint(checkpoint_weights_filename, interval=checkpoint_interval)]
+    callbacks += [FileLogger(log_filename, interval=100)]
+
+    print('start to train.')
+
+    # create model
+    model = KerasRegressor(build_fn=build_network_for_sparsed, verbose=0)
+
+    """
+    define the grid search parameters
+    """
+    # simple try!!
+    # batch_size = [10]
+    # epochs = [10]
+    # neurons = [20]
+    # activation = ['leaky_relu']
+
+    # first try
+    # end up with Best: -46695.504027 using {'activation': 'leaky_relu', 'batch_size': 10, 'epochs': 50, 'neurons': 50}
+    # batch_size = [10, 20, 40, 100]
+    # epochs = [10, 50]
+    # neurons = [20, 25, 50]
+    # activation = ['relu', 'leaky_relu', 'tanh']
+
+    # todo : second try!
+    # batch_size = [10]
+    # epochs = [70, 100]
+    # neurons = [70, 100]
+    # activation = ['leaky_relu']
+
+    # todo : third try!
+    batch_size = [10]
+    epochs = [10]
+    neurons = [100]
+    activation = ['leaky_relu']
+
+    param_grid = dict(batch_size=batch_size, epochs=epochs, neurons=neurons, activation=activation)
+
+    grid = GridSearchCV(estimator=model, param_grid=param_grid, n_jobs=1)
+
+    grid_result = grid.fit(np.array([{'x1': a, 'x2': b, 'x3': c, 'x4': d} for a, b, c, d in zip(t_x1, t_x2, t_x3, t_x4)]), t_y1)
+
+    # summarize results
+    print("Best: %f using %s" % (grid_result.best_score_, grid_result.best_params_))
+    means = grid_result.cv_results_['mean_test_score']
+    stds = grid_result.cv_results_['std_test_score']
+    params = grid_result.cv_results_['params']
+    for mean, stdev, param in zip(means, stds, params):
+        print("%f (%f) with: %r" % (mean, stdev, param))
+
+
+def mean_pred(y_true, y_pred):
+    return K.mean(y_pred)
+
+
+def theil_u(y_true, y_pred):
+    up = K.mean(K.square(y_true-y_pred))
+    bottom = K.mean(K.square(y_true)) + K.mean(K.square(y_pred))
+    return up/bottom
+
+def r(y_true, y_pred):
+    mean_y_true = K.mean(y_true)
+    mean_y_pred = K.mean(y_pred)
+
+    up = K.sum((y_true-mean_y_true) * (y_pred-mean_y_pred))
+    bottom = K.mean(K.square(y_true-mean_y_true) * K.square(y_pred-mean_y_pred))
+    return up/bottom
+
+### plot ###
+
+def plot_history(history, to_plot, params, save_path):
+    ## params ##
+    batch_size = params['batchsize']
+    epochs = params['epochs']
+    neurons = params['neurons']
+    activation = params["activation"]
+
+    for key in to_plot.keys():
+
+        file_name = 'bs' + str(batch_size) + '_ep' + str(epochs) + '_nrs' + str(neurons) + '_act(' + str(activation) + ')_'+ key + '.png'
+        category = to_plot[key]
+        plt.plot(history.history[category])
+        # plt.plot(history.history['val_' + category])
+        plt.title(key)
+        plt.ylabel(key)
+        plt.xlabel('Epoch')
+        plt.legend(['Train', 'Validation'], loc='upper left')
+        plt.savefig(save_path + '/' + file_name)
+        # plt.show()
+
+dict_to_plot = {
+    'MAE' : 'loss',
+    'MAPE' : 'mean_pred',
+    'Corr' : 'r',
+    "Theil's U" : 'theil_u'
+}
+model_params = {
+    'epochs' : 1,
+    'batchsize' : 10,
+    'neurons' : 100,
+    'activation' : 'leaky_relu'
+}
 
 dat = np.arange(1, 13) / 2.0
 def discretize(data, bins):
@@ -279,5 +414,6 @@ def seconds_to_binary_array(seconds, max_len):
 
 max_len = get_maxlen_of_binary_array(120)
 train_using_real_data_sparsed(_pickle_training_dir)
+# train_using_real_data_sparsed_gs(_pickle_training_dir)
 
 
