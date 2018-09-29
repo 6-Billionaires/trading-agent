@@ -1,7 +1,20 @@
 import os
 import sys
-newPath = os.path.dirname(os.path.abspath(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))) + os.path.sep + 'trading-gym'
-sys.path.append(newPath)
+
+import argparse
+
+parser = argparse.ArgumentParser()
+parser.add_argument("-training", "--training", help="turn on training mode", action="store_true")
+parser.add_argument("-import-gym", "--import-gym",help="import trading gym", action="store_true")
+parser.add_argument("-gym-dir", "--gym-dir", type=str, help="import trading gym")
+parser.add_argument("-project-dir", "--project-dir", type=str, help="import project home")
+
+args = parser.parse_args()
+
+if args.import_gym:
+    import sys
+    sys.path.insert(0, args.gym_dir)
+    sys.path.insert(1, args.project_dir)
 
 from gym_core.ioutil import *  # file i/o to load stock csv files
 from keras.models import Model
@@ -12,6 +25,20 @@ from rl.callbacks import FileLogger, ModelIntervalCheckpoint
 from core import util
 from core.scikit_learn_multi_input_4 import KerasRegressor
 from sklearn.model_selection import GridSearchCV
+
+os.environ["CUDA_VISIBLE_DEVICES"] = str(config.SOA_PARAMS['P_TRAINING_GPU'])
+
+if args.training:
+    training_mode = True
+else:
+    training_mode = False
+
+if training_mode:
+    csv_dir = config.SOA_PARAMS['CSV_DIR_FOR_CREATING_PICKLE_TRAINING']
+    save_dir = config.SOA_PARAMS['PICKLE_DIR_FOR_TRAINING']
+else:
+    csv_dir = config.SOA_PARAMS['CSV_DIR_FOR_CREATING_PICKLE_TEST']
+    save_dir = config.SOA_PARAMS['PICKLE_DIR_FOR_TEST']
 
 """
 build q newtork using cnn and dense layer

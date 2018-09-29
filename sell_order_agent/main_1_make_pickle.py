@@ -21,12 +21,12 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-training", "--training", help="turn on training mode", action="store_true")
 args = parser.parse_args()
 
-training_mode = config.SOA_PARAMS['TRAINING_MODE']
-
 if args.training:
     training_mode = True
+    print('traing mode on')
 else:
     training_mode = False
+    print('traing mode off')
 
 if training_mode:
     csv_dir = config.SOA_PARAMS['CSV_DIR_FOR_CREATING_PICKLE_TRAINING']
