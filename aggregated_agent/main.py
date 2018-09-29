@@ -359,7 +359,6 @@ if __name__ == '__main__':
         buy_price, sell_price = 0, 0
         commission = 0.33
 
-        moving_avg_reward = deque(maxlen=30)
 
         while not done:
             action = agents.get_action(state)
@@ -375,11 +374,6 @@ if __name__ == '__main__':
             next_state, reward, done, info = env.step(action)
             agent_reward = agents.append_sample(state, action, reward, next_state, done)
             reward_sum += agent_reward
-            moving_avg_reward.append(agent_reward)
-            moving_avg_sum = 0
-            for r in moving_avg_reward:
-              moving_avg_sum += r / len(moving_avg_reward)
-            # print('reward :', round(moving_avg_sum, 7))
 
             step_count += 1
             state = next_state
@@ -387,6 +381,11 @@ if __name__ == '__main__':
                 agents.train_agents()
             if step_count >= 3500:
                 done = True
+
+            moving_reward_sum = 0
+            for r in moving_reward:
+                moving_reward_sum += r / len(moving_reward)
+            print(moving_reward_sum)
 
         if step_count > 0:
             avg_reward = round(reward_sum / step_count, 7)
