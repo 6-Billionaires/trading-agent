@@ -1,28 +1,144 @@
-import os
-import sys
+"""
+faster dqn aggregated agent for stock skelping trading!!
+    . it is to make original dqn agent faster and make sure that we could do experiment in fast fail mode
 
-newPath = os.path.dirname(os.path.abspath(os.path.dirname(os.path.abspath(os.path.dirname(os.path.abspath(os.path.dirname(__file__)))))))+ '\\trading_gym'
-sys.path.append(newPath)
-sys.path.append('/home/lab4all/ag/trading_gym')
+0. algorithms
+    . learner is only one and actor could have as many as n_threads configured
+    . learner will update target network if total_step_count, global shared variable % update_step_interval  == 0
+
+1. objects
+    . agent(env, bsa, boa, ssa, soa)
+    . faster-dqn-agent
+
+2. global shared variables between threads
+    . total_step_count
+
+    . total_episode
+
+    . scores
+
+    . nw_bsa
+        at first, just agent also use single same policy and target network
+    . nw_boa
+        at first, just agent also use single same  policy and target network
+    . nw_ssa
+        at first, just agent also use single same policy and target network
+    . nw_soa
+        at first, just agent also use single same policy and target network
+    . t_nw_bsa
+    . t_nw_boa
+    . t_nw_ssa
+    . t_nw_soa
+
+    . rb_bsa
+        this is a replay memory of buy signal agent
+    . rb_boa
+        this is a replay memory of buy order agent
+    . rb_ssa
+        this is a replay memory of sell signal agent
+    . rb_soa
+        this is a replay memory of sell order agent
+
+3. threading lock
+    . check lock when thread agent try appending state transition information into replay memory.
+    . check lock when thread agent try updating policy network using target network so that,
+        if target network is updating by learner, it will wait until update is finished.
+
+
+4. Hyperparameter setting
+    referenced by
+        https://medium.com/mlreview/speeding-up-dqn-on-pytorch-solving-pong-in-30-minutes-81a1bd2dff55
+    We start with same hyperparameter with original dqn paper's one
+    .   Epsilon decays from 1.0 to 0.02 for the first 100k frames, then epsilon kept 0.02,
+    .   Target network synched every 1k frames, (equals to 1000 steps)
+    .   Simple replay buffer with size 100k was initially prefetched with 10k transitions before training,
+        -> warm_up_steps = 10000 replay_buffer_size = 100,000
+    .   Gamma=0.99,
+    .   Adam with learning rate 1e-4,\
+    Every training step, one transition from the environment is added to the replay buffer
+    and training is performed on 32 transitions uniformly sampled from the replay buffer,
+
+"""
 from gym_core import tgym
 import numpy as np
 import random
-from keras.models import Sequential, load_model, Model
-from keras.layers import Dense, Activation, Flatten, Concatenate, Input, LeakyReLU
-from keras.optimizers import Adam
+from keras.models import Model
+from keras.layers import Dense, Concatenate
 from collections import deque
 import glob
 import copy
 from aggregated_agent import load
 import csv
+import threading
+import  tensorflow as tf
+
+
+
+# shared global variables
+total_step_count = 0
+total_episode = 0
+scores = []
+target_network = None
+
+# hyperparameter
+c_rb_size = 100000
+c_warm_up_step = 10000
+c_update_step_interval = 1000
+lr = 1e-4
+epsilon_min = 0.02
+epsilon_max = 1.0
+epsilon_period_decaying = 100000
+
+# other operating parameters
+n_save_model_episode_interval = 20
+
+
+# this is a replay memory of buy signal agent
+rb_bsa = deque(maxlen=c_rb_size)
+# this is a replay memory of buy order agent
+rb_boa = deque(maxlen=c_rb_size)
+# this is a replay memory of sell signal agent
+rb_ssa = deque(maxlen=c_rb_size)
+# this is a replay memory of sell order agent
+rb_soa = deque(maxlen=c_rb_size)
+
+# check lock when thread agent try appending state transition information into replay memory.
+lock_rb_append = threading.Lock()
+# check lock when thread agent try updating policy network using target network
+lock_update_policy_nw = threading.Lock()
+
+def load_model(agent_type):
+    networks = glob.glob('./networks/*.h5f')
+    if './networks/' + agent_type + '_rl.h5f' not in networks:
+        trained_model = load.load_model(agent_type)
+        for layer in trained_model.layers:
+            layer.trainable = False
+        rl_model = load.load_model(agent_type)
+        # rl_model = load_model('./networks/' + self.agent_type + '.h5')
+        concat_layer = Concatenate(name='concat2')([trained_model(rl_model.input), rl_model.layers[-1].output])
+        output_layer = Dense(2, activation='linear', name='q_value_output')(concat_layer)
+        model = Model(inputs=rl_model.input, outputs=output_layer)
+
+    else:
+        trained_model = load.load_model(agent_type)
+        for layer in trained_model.layers:
+            layer.trainable = False
+        rl_model = load.load_model(agent_type)
+        concat_layer = Concatenate(name='concat2')([trained_model(rl_model.input), rl_model.layers[-1].output])
+        output_layer = Dense(2, activation='linear', name='q_value_output')(concat_layer)
+        model = Model(inputs=rl_model.input, outputs=output_layer)
+        model.load_weights('aggregated_agent/networks/' + agent_type + '_rl.h5f')
+    model.compile(optimizer='adam', loss='mse')
+    model.summary()
+    return model
 
 
 class DDQNAgent:
-    def __init__(self, agent_type, data_num, action_size):
+    def __init__(self, agent_type, model, target_model, data_num, action_size, rb):
         # load models
         self.agent_type = agent_type
-        self.model = self.load_model()
-        self.target_model = self.load_model()
+        self.model = model
+        self.target_model = target_model
 
         self.epsilon = 0.3
         self.epsilon_min = 0.001
@@ -31,7 +147,7 @@ class DDQNAgent:
         self.action_size = action_size
         self.train_start = 1000
         self.target_update_interval = 10000
-        self.memory = deque(maxlen=10000)
+        self.memory = rb
         self.discount_factor = 0.999
         self.data_num = data_num
 
@@ -83,7 +199,6 @@ class DDQNAgent:
         if np.random.random() <= self.epsilon:
             return random.randrange(self.action_size)
         else:
-            # print('ACTION')
             states = []
             for i in range(self.data_num):
                 states.append(np.array([state[i]]))
@@ -94,11 +209,10 @@ class DDQNAgent:
         self.memory.append((state, action, reward, next_state, done))
 
     def train_model(self):
+
+        # todo : here self.train_start is same as c_warm_up_step hyperparameter!!!
         if len(self.memory) < self.train_start:
-            # print('memory size is to short', len(self.memory))
             return
-        # print('train', len(self.memory))
-        # print('train', self.agent_type)
 
         self.epsilon = max(self.epsilon * self.epsilon_decay, self.epsilon_min)
 
@@ -123,7 +237,6 @@ class DDQNAgent:
             input_states.append(np.array(states[i]))
             input_next_states.append(np.array(next_states[i]))
 
-        # states = [np.array(states[0]), np.array(states[1]), np.array(states[2])]
         target = self.model.predict(input_states)
         target_val = self.target_model.predict(input_next_states)
 
@@ -133,16 +246,24 @@ class DDQNAgent:
             else:
                 target[i][actions[i]] = rewards[i] + self.discount_factor * (np.amax(target_val[i]))
 
+        lock_update_policy_nw.acquire()
         self.model.fit(input_states, target, batch_size=self.batch_size, epochs=1, verbose=0)
-        self.model.save_weights('aggregated_agent/networks/' + self.agent_type + '_rl.h5f')
+        lock_update_policy_nw.release()
+
+        if total_episode % n_save_model_episode_interval == 0:
+            self.model.save_weights('aggregated_agent/networks/' + self.agent_type + '_rl.h5f')
 
 
-class Agents:
+class Agents(threading.Thread):
     agent_name = ['BSA', 'BOA', 'SSA', 'SOA']
     step_limit = [61, 60, 1, 0]
     additional_reward_rate = 0.1
 
-    def __init__(self, bsa, boa, ssa, soa):
+    def __init__(self, env, n_max_episode, csv_writer, bsa, boa, ssa, soa):
+        super(Agents, self).__init__()
+        self.env = env
+        self.n_max_episode = n_max_episode
+        self.cw = csv_writer
         self.agents = [bsa, boa, ssa, soa]
         self.sequence = 0
 
@@ -156,6 +277,7 @@ class Agents:
 
         self.buy_price = 0
         self.sell_price = 0
+        self.thread_step = 0
 
     def get_action(self, state):
         state = self._process_state(state)
@@ -224,21 +346,12 @@ class Agents:
         return bin_list
 
     def append_sample(self, state, action, reward, next_state, done):
-        # print('state length :', len(state))
-        # # print(state)
         state = self._process_state(state)
         next_state = self._process_state(next_state)
-        # print('state length :', len(state))
-        # print('next state length :', len(next_state))
-        # print(state)
-        # input()
-        if self.sequence == 0:  # 지울것
-            pass
-            # print(round(reward[self.agent_name[self.sequence]], 3))
+
         if action == 0:  # action 이 0 인 경우 additional reward 가 없으므로 그냥 memory 에 sample 추가
             reward = 0  # action == 0 => reward = 0
             self.agents[self.sequence].append_sample(state, action, reward, next_state, done)
-
         else:  # action 이 1인 경우 additional reward 를 주기 위해 buffer 에 한번에 모았다가 reward 계산해서 마지막에 추가
             self.sample_buffer.append([state, action, reward[self.agent_name[self.sequence]], next_state, done])
             reward = reward[self.agent_name[self.sequence]]
@@ -261,6 +374,72 @@ class Agents:
     def update_target_network(self):
         for agent in self.agents:
             agent.update_target_model()
+
+    # Thread interactive with environment
+    def run(self):
+        global total_episode
+        for ep in range(self.n_max_episode):
+            done = False
+            state = self.env.reset()
+
+            if self.thread_step % c_update_step_interval == 0:
+                self.update_target_network()
+
+            reward_sum = 0
+            step_count = 0
+            buy_count = 0
+            profit = 0
+            profit_comm = 0
+            buy_price, sell_price = 0, 0
+            commission = 0.33
+
+            while not done:
+                action = self.get_action(state)
+                if self.sequence == 0 and action == 1:
+                    buy_count += 1
+                    buy_price = self.env.holder_observation[-1][0]
+                if self.sequence == 3 and action == 1:
+                    sell_price = self.env.holder_observation[-1][0]
+                    if buy_price != 0:
+                        profit += (sell_price - buy_price) / buy_price
+                        profit_comm += (sell_price - buy_price) / buy_price - commission * 0.01
+
+                next_state, reward, done, info = self.env.step(action)
+                lock_rb_append.acquire()
+                agent_reward = self.append_sample(state, action, reward, next_state, done)
+                lock_rb_append.release()
+
+                reward_sum += agent_reward
+
+                step_count += 1
+                state = next_state
+                if self.trainable:
+                    self.train_agents()
+                # todo : here we need to change 1 hour * 60 minutes * 60 seconds = 3600 seconds
+                if step_count >= 1 * 60 * 60:
+                    done = True
+                    total_episode = total_episode + 1
+
+            if step_count > 0:
+                avg_reward = round(reward_sum / step_count, 7)
+                profit = round(profit * 100, 5)
+                profit_comm = round(profit_comm * 100, 5)
+                if buy_count == 0:
+                    avg_profit, avg_comm_profit = 0, 0
+                else:
+                    avg_profit = profit / buy_count
+                    avg_comm_profit = profit_comm / buy_count
+                print('ep :', ep, end='  ')
+                print('epsilon :', round(self.agents[0].epsilon, 3), end='  ')
+                print('avg reward :', avg_reward, end='  ')
+                print('buy :', buy_count, end='  ')
+                print('profit :', round(profit, 3), end='  ')
+                print('avg profit :', round(avg_profit, 3), end='  ')
+                print('profit(comm) :', round(profit_comm, 3), end='  ')
+                print('avg profit(comm) :', round(avg_comm_profit, 3))
+
+                # todo : it could occur resource deadlock, so that it could be reason being slow.. but for now, move on!
+                self.cw.writerow([ep, avg_reward, buy_count, profit, avg_profit, profit_comm, avg_comm_profit])
 
 
 class MyTGym(tgym.TradingGymEnv):  # MyTGym 수정해야 함 -> agent 별 reward 를 줘야 함 (4개 반환해서 agents 가 수정하거나 agent 입력해서 reward 주거나)
@@ -320,78 +499,46 @@ class MyTGym(tgym.TradingGymEnv):  # MyTGym 수정해야 함 -> agent 별 reward
 
         return [x1, x2]
 
+
+class FasterDQNAgent:
+    def __init__(self, n_threads, n_max_episode):
+        # todo : add hyperparameters here
+        self.n_threads = n_threads
+        self.n_max_episode = n_max_episode
+
+    def play(self):
+        faster_dqn_agents = []
+        train_log_file = open('train_log.csv', 'a', encoding='utf-8', newline='')
+        csv_writer = csv.writer(train_log_file)
+
+        nw_bsa = load_model(agent_type='bsa')
+        t_nw_bsa = load_model(agent_type='bsa')
+
+        nw_boa = load_model(agent_type='boa')
+        t_nw_boa = load_model(agent_type='boa')
+
+        nw_ssa = load_model(agent_type='ssa')
+        t_nw_ssa = load_model(agent_type='ssa')
+
+        nw_soa = load_model(agent_type='soa')
+        t_nw_soa = load_model(agent_type='soa')
+
+        for i in range(self.n_threads):
+            env = MyTGym(episode_type='0', percent_goal_profit=2, percent_stop_loss=5, episode_duration_min=60)
+
+            buy_signal_agent = DDQNAgent('bsa', model=nw_bsa, target_model=t_nw_bsa, data_num=2, action_size=2, rb=rb_bsa)
+            buy_order_agent = DDQNAgent('boa', model=nw_boa, target_model=t_nw_boa, data_num=3, action_size=2, rb=rb_boa)
+            sell_signal_agent = DDQNAgent('ssa', model=nw_ssa, target_model=t_nw_ssa, data_num=4, action_size=2, rb=rb_ssa)
+            sell_order_agent = DDQNAgent('soa', model=nw_soa, target_model=t_nw_soa, data_num=4, action_size=2, rb=rb_soa)
+            agent = Agents(env, 10000, csv_writer, buy_signal_agent, buy_order_agent, sell_signal_agent, sell_order_agent)
+            faster_dqn_agents.append(agent)
+
+        tf.reset_default_graph()
+
+        for a in faster_dqn_agents:
+            a.start()
+
+
 if __name__ == '__main__':
-    env = MyTGym(episode_type='0', percent_goal_profit=2, percent_stop_loss=5, episode_duration_min=60)
-    buy_signal_agent = DDQNAgent('bsa', data_num=2, action_size=2)
-    buy_order_agent = DDQNAgent('boa', data_num=3, action_size=2)
-    sell_signal_agent = DDQNAgent('ssa', data_num=4, action_size=2)
-    sell_order_agent = DDQNAgent('soa', data_num=4, action_size=2)
-    agents = Agents(buy_signal_agent, buy_order_agent, sell_signal_agent, sell_order_agent)
-    train_log_file = open('train_log.csv', 'a', encoding='utf-8', newline='')
-    csv_writer = csv.writer(train_log_file)
-
-    EPISODES = 1000000
-    for ep in range(EPISODES):
-        done = False
-        state = env.reset()
-        agents.update_target_network()
-
-        reward_sum = 0
-        step_count = 0
-        buy_count = 0
-        profit = 0
-        profit_comm = 0
-
-        buy_price, sell_price = 0, 0
-        commission = 0.33
-
-
-        while not done:
-            action = agents.get_action(state)
-            if agents.sequence == 0 and action == 1:
-                buy_count += 1
-                buy_price = env.holder_observation[-1][0]
-            if agents.sequence == 3 and action == 1:
-                sell_price = env.holder_observation[-1][0]
-                if buy_price != 0:
-                    profit += (sell_price - buy_price) / buy_price
-                    profit_comm += (sell_price - buy_price) / buy_price - commission * 0.01
-
-            next_state, reward, done, info = env.step(action)
-            agent_reward = agents.append_sample(state, action, reward, next_state, done)
-            reward_sum += agent_reward
-
-            step_count += 1
-            state = next_state
-            if agents.trainable:
-                agents.train_agents()
-            if step_count >= 3500:
-                done = True
-
-
-        if step_count > 0:
-            avg_reward = round(reward_sum / step_count, 7)
-            profit = round(profit * 100, 5)
-            profit_comm = round(profit_comm * 100, 5)
-            if buy_count == 0:
-                avg_profit, avg_comm_profit = 0, 0
-            else:
-                avg_profit = profit / buy_count
-                avg_comm_profit = profit_comm / buy_count
-            print('ep :', ep, end='  ')
-            print('epsilon :', round(agents.agents[0].epsilon, 3), end='  ')
-            print('avg reward :', avg_reward, end='  ')
-            print('buy :', buy_count, end='  ')
-            print('profit :', round(profit, 3), end='  ')
-            print('avg profit :', round(avg_profit, 3), end='  ')
-            print('profit(comm) :', round(profit_comm, 3), end='  ')
-            print('avg profit(comm) :', round(avg_comm_profit, 3))
-
-            csv_writer.writerow([ep, avg_reward, buy_count, profit, avg_profit, profit_comm, avg_comm_profit])
-
-
-
-
-
-
-
+    fa = FasterDQNAgent(2, 40)
+    fa.play()
