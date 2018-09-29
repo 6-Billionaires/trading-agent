@@ -22,7 +22,7 @@ from keras.models import Model
 from keras.layers import LeakyReLU, Input, Dense, Conv3D, Conv1D, Dense, Flatten, MaxPooling1D, MaxPooling2D,MaxPooling3D,Concatenate
 from rl.callbacks import FileLogger, ModelIntervalCheckpoint
 from gym_core.ioutil import *  # file i/o to load stock csv files
-from core.scikit_learn_multi_input import KerasRegressor
+from core.scikit_learn_multi_input_4 import KerasRegressor
 from sklearn.model_selection import GridSearchCV
 import matplotlib.pyplot as plt
 
@@ -243,7 +243,7 @@ def train_using_real_data_sparsed(pickle_dir):
     callbacks += [FileLogger(log_filename, interval=100)]
 
     print('start to train.')
-    history = model.fit({'x1': t_x1, 'x2': t_x2, 'x3': t_x3, 'x4': t_x4}, t_y1, epochs=1, verbose=2, batch_size=10, callbacks=callbacks)
+    history = model.fit({'x1': t_x1, 'x2': t_x2, 'x3': t_x3, 'x4': t_x4}, t_y1, epochs=70, verbose=2, batch_size=10, callbacks=callbacks)
     plot_history(history, dict_to_plot, model_params, 'fig_save')
     f = open("ssa_model_history", 'wb')
     pickle.dump(history.history, f)
@@ -413,7 +413,7 @@ def seconds_to_binary_array(seconds, max_len):
     return np.binary_repr(seconds).zfill(max_len)
 
 max_len = get_maxlen_of_binary_array(120)
-train_using_real_data_sparsed(_pickle_training_dir)
-# train_using_real_data_sparsed_gs(_pickle_training_dir)
+#train_using_real_data_sparsed(_pickle_training_dir)
+train_using_real_data_sparsed_gs(_pickle_training_dir)
 
 
