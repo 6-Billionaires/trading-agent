@@ -1,20 +1,23 @@
 import argparse
+import sys
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-training", "--training", help="turn on training mode", action="store_true")
 parser.add_argument("-import-gym", "--import-gym",help="import trading gym", action="store_true")
 parser.add_argument("-gym-dir", "--gym-dir", type=str, help="import trading gym")
 parser.add_argument("-project-dir", "--project-dir", type=str, help="import project home")
+parser.add_argument("-e", "--epochs", type=int, help="input epochs")
+parser.add_argument("-b", "--batch-size", type=int, help="input batch size")
+parser.add_argument("-n", "--neurons", type=int, help="input neurons")
 args = parser.parse_args()
 
 if args.import_gym:
-    import sys
     sys.path.insert(0, args.gym_dir)
     sys.path.insert(1, args.project_dir)
 
 from gym_core.ioutil import *  # file i/o to load stock csv files
 from keras.models import Model
 from keras.layers import LeakyReLU, Input, Conv3D, Conv1D, Dense, Flatten, MaxPooling1D, MaxPooling3D,Concatenate
+import keras.backend as K
 import numpy as np
 import pickle
 from rl.callbacks import FileLogger, ModelIntervalCheckpoint
@@ -24,13 +27,14 @@ import matplotlib.pyplot as plt
 import config
 
 os.environ["CUDA_VISIBLE_DEVICES"] = str(config.SOA_PARAMS['P_TRAINING_GPU'])
+pickle_dir = config.SOA_PARAMS['PICKLE_DIR_FOR_TRAINING']
+metrics_dir = config.SOA_PARAMS['METRICS_DIR_FOR_TRAINING']
+model_dir = config.SOA_PARAMS['MODEL_DIR_FOR_TRAINING']
+model_history_dir = config.SOA_PARAMS['MODEL_HISTORY_DIR_FOR_TRAINING']
 
-if args.training:
-    csv_dir = config.SOA_PARAMS['CSV_DIR_FOR_CREATING_PICKLE_TRAINING']
-    save_dir = config.SOA_PARAMS['PICKLE_DIR_FOR_TRAINING']
-else:
-    csv_dir = config.SOA_PARAMS['CSV_DIR_FOR_CREATING_PICKLE_TEST']
-    save_dir = config.SOA_PARAMS['PICKLE_DIR_FOR_TEST']
+i_epochs=args.epochs
+i_batchsize=args.batch_size
+i_neurons=args.neurons
 
 
 """
@@ -154,7 +158,7 @@ def get_real_data(date, ticker, save_dir, train_data_rows=None):
     d_y1 = []
 
     for idx in range(train_data_rows):
-        sys.stdout.write("\rloading data from ticker %s" %ticker + ", yyyymmdd %s" %date + "  %i" % idx + " / %i 완료" % train_data_rows)
+        sys.stdout.write("\rloading data from ticker %s" %ticker + ", yyyymmdd %s" %date + "  %i" % idx + " / %i" % train_data_rows)
         sys.stdout.flush()
 
         for second in range(x1_dimension_info[2]):  # 60: seconds
@@ -190,22 +194,22 @@ def get_real_data(date, ticker, save_dir, train_data_rows=None):
     sys.stdout.flush()
     return np.asarray(d_x1), np.asarray(d_x2), np.asarray(d_x3), np.asarray(d_x4), np.asarray(d_y1)
 
-def train_using_real_data(d, params, max_len, save_dir):
+def train_using_real_data(pickle_dir, metrics_dir, model_dir, model_history_dir, params, max_len):
     batch_size = params['batchsize']
     epochs = params['epochs']
     neurons = params['neurons']
     activation = params["activation"]
 
     model = build_network(max_len, neurons=neurons, activation=activation)
-    model.compile(optimizer='adam', loss='mse', metrics=['mae', 'mape'])
+    model.compile(optimizer='adam', loss='mse', metrics=['accuracy', mean_pred, theil_u, r])
     model.summary()
 
-    l = load_ticker_yyyymmdd_list_from_directory(d)
+    l = load_ticker_yyyymmdd_list_from_directory(pickle_dir)
 
     t_x1, t_x2, t_x3, t_x4, t_y1 = [],[],[],[],[]
 
     for (da, ti) in l:
-        x1, x2, x3, x4, y1 = get_real_data(da, ti, save_dir=save_dir)
+        x1, x2, x3, x4, y1 = get_real_data(da, ti, save_dir=pickle_dir)
         t_x1.append(x1)
         t_x2.append(x2)
         t_x3.append(x3)
@@ -220,9 +224,7 @@ def train_using_real_data(d, params, max_len, save_dir):
     print('total x1 : {}, total x2 : {}, total x3 : {}, total x4 : {}, total y1 : {}'.format(len(t_x1), len(t_x2), len(t_x3), len(t_x4), len(t_y1)))
 
     # {steps} --> this file will be saved whenver it runs every steps as much as {step}
-    checkpoint_weights_filename = 'soa_weights_{step}.h5f'
-
-    #model.load_weights(filepath = checkpoint_weights_filename.format(step='end'), by_name=True, skip_mismatch=True)
+    checkpoint_weights_filename = model_dir+os.path.sep+'soa_weights_{step}.h5f'
 
     # TODO: here we can add hyperparameters information like below!!
     log_filename = 'soa_{}_log.json'.format('fill_params_information_in_here')
@@ -234,12 +236,27 @@ def train_using_real_data(d, params, max_len, save_dir):
     print('start to train.')
     history = model.fit({'x1': t_x1, 'x2': t_x2, 'x3': t_x3, 'x4': t_x4}, t_y1, epochs=epochs, verbose=2, batch_size=batch_size, callbacks=callbacks)
 
-    with open(datetime.now().strftime('soa_model_history_%Y%m%d_%H%M%S'), 'wb') as file_pi:
+    with open(datetime.now().strftime(model_history_dir+os.path.sep+'soa_model_history_%Y%m%d_%H%M%S'), 'wb') as file_pi:
         pickle.dump(history.history, file_pi)
 
-    plot_history(history, params, 'taehyun_fig_save\\')
+    plot_history(history, params, metrics_dir)
 
-    model.save_weights(filepath=checkpoint_weights_filename.format(step='end_120_0_1'))
+    model.save_weights(filepath=checkpoint_weights_filename.format(step='end'))
+
+def mean_pred(y_true, y_pred):
+    return K.mean(y_pred)
+
+def theil_u(y_true, y_pred):
+    up = K.mean(K.square(y_true-y_pred))
+    bottom = K.mean(K.square(y_true)) + K.mean(K.square(y_pred))
+    return up/bottom
+
+def r(y_true, y_pred):
+    mean_y_true = K.mean(y_true)
+    mean_y_pred = K.mean(y_pred)
+    up = K.sum((y_true-mean_y_true) * (y_pred-mean_y_pred))
+    bottom = K.mean(K.square(y_true-mean_y_true) * K.square(y_pred-mean_y_pred))
+    return up/bottom
 
 
 def plot_history(history, params, save_path):
@@ -255,31 +272,25 @@ def plot_history(history, params, save_path):
     neurons = params['neurons']
     activation = params["activation"]
     for key in to_plot.keys():
-        file_name = 'bs' + str(batch_size) + '_ep' + str(epochs) + '_nrs' + str(neurons) + '_act(' + str(
+        file_name = 'so' + str(batch_size) + '_ep' + str(epochs) + '_nrs' + str(neurons) + '_act(' + str(
             activation) + ')_' + key + '.png'
         category = to_plot[key]
         plt.plot(history.history[category])
-        plt.plot(history.history['val_' + category])
         plt.title(key)
         plt.ylabel(key)
         plt.xlabel('Epoch')
         plt.legend(['Train', 'Validation'], loc='upper left')
-        plt.savefig(save_path + file_name)
+        plt.savefig(save_path +os.path.sep+ file_name)
         plt.show()
 
-
-
 params = {
-    'epochs': 70,
-    'batchsize': 10,
-    'neurons': 100,
+    'epochs': i_epochs,
+    'batchsize': i_batchsize,
+    'neurons': i_neurons,
     'activation': 'leaky_relu'
 }
 
 
-# picke path
-save_dir = 'pickles120_0_1'
-directory = os.path.abspath(make_dir(os.path.dirname(os.path.abspath(__file__)), save_dir))
 # max length of bit for 120
 max_len = util.get_maxlen_of_binary_array(120)
-train_using_real_data(directory, params, max_len, save_dir)
+train_using_real_data(pickle_dir, metrics_dir, model_dir, model_history_dir, params, max_len)
