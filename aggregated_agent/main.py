@@ -14,6 +14,7 @@ from collections import deque
 import glob
 import copy
 from aggregated_agent import load
+import csv
 
 
 class DDQNAgent:
@@ -26,11 +27,11 @@ class DDQNAgent:
         self.epsilon = 1.
         self.epsilon_min = 0.001
         self.epsilon_decay = 0.9999
-        self.batch_size = 32
+        self.batch_size = 64
         self.action_size = action_size
         self.train_start = 1000
         self.target_update_interval = 10000
-        self.memory = deque(maxlen=100000)
+        self.memory = deque(maxlen=10000)
         self.discount_factor = 0.999
         self.data_num = data_num
 
@@ -166,6 +167,9 @@ class Agents:
         self.sample_buffer = list()
         self.remain_step = 0
         self.trainable = False
+
+        self.buy_price = 0
+        self.sell_price = 0
 
     def get_action(self, state):
         state = self._process_state(state)
@@ -337,6 +341,8 @@ if __name__ == '__main__':
     sell_signal_agent = DDQNAgent('ssa', data_num=4, action_size=2)
     sell_order_agent = DDQNAgent('soa', data_num=4, action_size=2)
     agents = Agents(buy_signal_agent, buy_order_agent, sell_signal_agent, sell_order_agent)
+    train_log_file = open('train_log.csv', 'a', encoding='utf-8', newline='')
+    csv_writer = csv.writer(train_log_file)
 
     EPISODES = 1000000
     for ep in range(EPISODES):
@@ -346,9 +352,24 @@ if __name__ == '__main__':
 
         reward_sum = 0
         step_count = 0
+        buy_count = 0
+        profit = 0
+        profit_comm = 0
+
+        buy_price, sell_price = 0, 0
+        commission = 0.33
 
         while not done:
             action = agents.get_action(state)
+            if agents.sequence == 0 and action == 1:
+                buy_count += 1
+                buy_price = env.holder_observation[-1][0]
+            if agents.sequence == 3 and action == 1:
+                sell_price = env.holder_observation[-1][0]
+                if buy_price != 0:
+                    profit += (sell_price - buy_price) / buy_price
+                    profit_comm += (sell_price - buy_price) / buy_price - commission * 0.01
+
             next_state, reward, done, info = env.step(action)
             reward_sum += agents.append_sample(state, action, reward, next_state, done)
             step_count += 1
@@ -359,7 +380,23 @@ if __name__ == '__main__':
                 done = True
 
         if step_count > 0:
-            print('episode avg reward :', reward_sum / step_count)
+            avg_reward = round(reward_sum / step_count, 7)
+            profit = round(profit * 100, 5)
+            profit_comm = round(profit_comm * 100, 5)
+            if buy_count == 0:
+                avg_profit, avg_comm_profit = 0, 0
+            else:
+                avg_profit = profit / buy_count
+                avg_comm_profit = profit_comm / buy_count
+            print('ep :', ep, end='  ')
+            print('avg reward :', avg_reward, end='  ')
+            print('buy :', buy_count, end='  ')
+            print('profit :', profit, end='  ')
+            print('avg profit :', avg_profit, end='  ')
+            print('profit(comm) :', profit_comm, end='  ')
+            print('avg profit(comm) :', avg_comm_profit)
+
+            csv_writer.writerow([avg_reward, buy_count, profit])
 
 
 
