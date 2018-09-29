@@ -29,11 +29,6 @@ from sklearn.model_selection import GridSearchCV
 os.environ["CUDA_VISIBLE_DEVICES"] = str(config.SOA_PARAMS['P_TRAINING_GPU'])
 
 if args.training:
-    training_mode = True
-else:
-    training_mode = False
-
-if training_mode:
     csv_dir = config.SOA_PARAMS['CSV_DIR_FOR_CREATING_PICKLE_TRAINING']
     save_dir = config.SOA_PARAMS['PICKLE_DIR_FOR_TRAINING']
 else:
@@ -198,9 +193,9 @@ def train_using_real_data(d, max_len, save_dir):
     #batch_size = [10, 20, 40, 60, 80, 100]
     #epochs = [10, 50, 100]
     #neurons = [15, 20, 25, 30]
-    batch_size = [10, 50, 100]
-    epochs = [10, 50, 100]
-    neurons = [15, 20, 30]
+    batch_size = [30, 40, 50, 60]
+    epochs = [60, 65, 70, 75, 80]
+    neurons = [80, 90, 100, 110, 120]
     param_grid = dict(batch_size=batch_size, epochs=epochs, neurons=neurons)
 
     grid = GridSearchCV(estimator=model, param_grid=param_grid, n_jobs=1)

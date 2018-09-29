@@ -29,11 +29,6 @@ import config
 os.environ["CUDA_VISIBLE_DEVICES"] = str(config.SOA_PARAMS['P_TRAINING_GPU'])
 
 if args.training:
-    training_mode = True
-else:
-    training_mode = False
-
-if training_mode:
     csv_dir = config.SOA_PARAMS['CSV_DIR_FOR_CREATING_PICKLE_TRAINING']
     save_dir = config.SOA_PARAMS['PICKLE_DIR_FOR_TRAINING']
 else:
@@ -232,7 +227,7 @@ def train_using_real_data(d, params, max_len, save_dir):
     print('total x1 : {}, total x2 : {}, total x3 : {}, total x4 : {}, total y1 : {}'.format(len(t_x1), len(t_x2), len(t_x3), len(t_x4), len(t_y1)))
 
     # {steps} --> this file will be saved whenver it runs every steps as much as {step}
-    checkpoint_weights_filename = 'soa_weight_{step}.h5f'
+    checkpoint_weights_filename = 'soa_weights_{step}.h5f'
 
     #model.load_weights(filepath = checkpoint_weights_filename.format(step='end'), by_name=True, skip_mismatch=True)
 
