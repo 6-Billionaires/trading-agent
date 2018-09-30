@@ -289,16 +289,18 @@ class Agents(threading.Thread):
     step_limit = [61, 60, 1, 0]
     additional_reward_rate = 0.1
 
-    def __init__(self, env, n_max_episode, csv_writer, _bsa, _boa, _ssa, _soa):
+    def __init__(self, idx, env, n_max_episode, csv_writer, _bsa, _boa, _ssa, _soa):
         super(Agents, self).__init__()
         self.env = env
         self.n_max_episode = n_max_episode
         self.cw = csv_writer
+        self.idx = idx
 
         global bsa
         global boa
         global ssa
         global soa
+        global total_step_count
 
         self.agents = [bsa, boa, ssa, soa]
         self.sequence = 0
@@ -419,7 +421,7 @@ class Agents(threading.Thread):
             done = False
             state = self.env.reset()
 
-            if self.thread_step % c_update_step_interval == 0:
+            if self.idx == 0 and total_step_count % c_update_step_interval == 0:
                 with graph.as_default():
                     self.update_target_network()
 
@@ -450,6 +452,7 @@ class Agents(threading.Thread):
                 reward_sum += agent_reward
 
                 step_count += 1
+                total_step_count +=1
                 state = next_state
                 if self.trainable:
                     self.train_agents()
@@ -551,7 +554,7 @@ class FasterDQNAgent:
 
         for i in range(self.n_threads):
             env = MyTGym(episode_type='0', percent_goal_profit=2, percent_stop_loss=5, episode_duration_min=60)
-            agent = Agents(env, 10000, csv_writer, bsa, boa, ssa, soa)
+            agent = Agents(i, env, 10000, csv_writer, bsa, boa, ssa, soa)
             faster_dqn_agents.append(agent)
 
         for a in faster_dqn_agents:
