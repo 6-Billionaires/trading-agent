@@ -468,6 +468,7 @@ def load_data_sparsed(t, d, dir, use_fake_data=False):
         #if you give second as None, it will read every seconds in file.
         # x1, x2, y = get_real_data(current_ticker, current_date, train_data_rows=130)
         x1, x2, y = get_real_data_sparsed(dir, current_ticker, current_date)
+    print(x1,x2,y)
     return x1, x2, y
 
 # train_using_fake_data()
