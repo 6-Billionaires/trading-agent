@@ -416,6 +416,7 @@ class Agents(threading.Thread):
     # Thread interactive with environment
     def run(self):
         global total_episode
+        global total_step_count
         global graph
         for ep in range(self.n_max_episode):
             done = False
