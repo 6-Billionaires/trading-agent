@@ -62,6 +62,8 @@ def build_network_for_sparsed(optimizer='adam',init_mode='uniform',
     if activation == 'leaky_relu':
         activation = LeakyReLU(alpha=0.3)
 
+    neurons = model_params['neurons']
+
     input_order = Input(shape=(10, 2, _len_observation, 2), name="x1")
     input_tranx = Input(shape=(_len_observation, 11), name="x2")
     input_elapedtime = Input(shape=(max_len,), name="x3")
@@ -253,7 +255,10 @@ def train_using_real_data_sparsed(pickle_dir):
     callbacks += [FileLogger(log_filename, interval=100)]
 
     print('start to train.')
-    history = model.fit({'x1': t_x1, 'x2': t_x2, 'x3': t_x3, 'x4': t_x4}, t_y1, epochs=70, verbose=2, batch_size=10, callbacks=callbacks)
+
+    param_epochs = model_params['epochs']
+    param_batch_size = model_params['batchsize']
+    history = model.fit({'x1': t_x1, 'x2': t_x2, 'x3': t_x3, 'x4': t_x4}, t_y1, epochs=param_epochs, verbose=2, batch_size=param_batch_size, callbacks=callbacks)
 
     f = open("ssa_model_history", 'wb')
     pickle.dump(history.history, f)
@@ -405,9 +410,9 @@ dict_to_plot = {
     "Theil's U" : 'theil_u'
 }
 model_params = {
-    'epochs' : 70,
-    'batchsize' : 10,
-    'neurons' : 100,
+    'epochs' : 80,
+    'batchsize' : 40,
+    'neurons' : 125,
     'activation' : 'leaky_relu'
 }
 
@@ -424,7 +429,7 @@ def seconds_to_binary_array(seconds, max_len):
     return np.binary_repr(seconds).zfill(max_len)
 
 max_len = get_maxlen_of_binary_array(120)
-#train_using_real_data_sparsed(_pickle_training_dir)
-train_using_real_data_sparsed_gs(_pickle_training_dir)
+train_using_real_data_sparsed(_pickle_training_dir)
+#train_using_real_data_sparsed_gs(_pickle_training_dir)
 
 
