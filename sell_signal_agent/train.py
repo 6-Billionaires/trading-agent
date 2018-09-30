@@ -258,17 +258,20 @@ def train_using_real_data_sparsed(pickle_dir):
 
     param_epochs = model_params['epochs']
     param_batch_size = model_params['batchsize']
+    param_neurons = model_params['neurons']
     history = model.fit({'x1': t_x1, 'x2': t_x2, 'x3': t_x3, 'x4': t_x4}, t_y1, epochs=param_epochs, verbose=2, batch_size=param_batch_size, callbacks=callbacks)
 
-    f = open("ssa_model_history", 'wb')
+    name_subfix = '_e' + str(param_epochs) + "_b" + str(param_batch_size) + "_n" + str(param_neurons)
+
+    f = open("ssa_model_history" + name_subfix, 'wb')
     pickle.dump(history.history, f)
     f.close()
 
     # with open('ssa_model_history', 'wb') as file_pi:
     #     pickle.dump(history.history, file_pi)
 
-    model.save_weights('final_weight.h5f')
-    model.save('final_model.h5')
+    model.save_weights('weight' + name_subfix + '.h5f')
+    model.save('model' + name_subfix + '.h5')
     plot_history(history, dict_to_plot, model_params, 'fig_save')
 
 
@@ -410,7 +413,7 @@ dict_to_plot = {
     "Theil's U" : 'theil_u'
 }
 model_params = {
-    'epochs' : 80,
+    'epochs' : 1,
     'batchsize' : 40,
     'neurons' : 125,
     'activation' : 'leaky_relu'

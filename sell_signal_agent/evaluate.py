@@ -28,6 +28,19 @@ os.environ["CUDA_VISIBLE_DEVICES"] = str(config.SSA_PARAMS['P_TRAINING_GPU'])
 _len_observation = int(config.SSA_PARAMS['P_OBSERVATION_LEN'])
 _pickle_evaluate_dir = config.SSA_PARAMS['PICKLE_DIR_FOR_TEST']
 
+model_params = {
+    'epochs' : 1,
+    'batchsize' : 40,
+    'neurons' : 125,
+    'activation' : 'leaky_relu'
+}
+param_epochs = model_params["epochs"]
+param_batchsize = model_params["batchsize"]
+param_neurons = model_params["neurons"]
+
+name_subfix = '_e' + str(param_epochs) + '_b' + str(param_batchsize) + '_n' + str(param_neurons)
+
+
 """
 it will prevent process not to occupying 100% of gpu memory for the first time. 
 Instead, it will use memory incrementally.
@@ -41,6 +54,8 @@ def build_network_for_sparsed(optimizer='adam',init_mode='uniform',
 
     if activation == 'leaky_relu':
         activation = LeakyReLU(alpha=0.3)
+
+    neurons = model_params['neurons']
 
     input_order = Input(shape=(10, 2, _len_observation, 2), name="x1")
     input_tranx = Input(shape=(_len_observation, 11), name="x2")
@@ -91,6 +106,8 @@ def build_network_for_sparsed(optimizer='adam',init_mode='uniform',
     model = Model([input_order, input_tranx, input_elapedtime, input_lefttime], output)
     # model.compile(optimizer=optimizer, loss='mean_squared_error', metrics=['mae', 'mape'])
     model.compile(optimizer=optimizer, loss='mean_squared_error', metrics=['accuracy', mean_pred, theil_u, r])
+    model.summary()
+
     return model
 
 
@@ -198,7 +215,7 @@ def seconds_to_binary_array(seconds, max_len):
 max_len = get_maxlen_of_binary_array(120)
 
 model = build_network_for_sparsed()
-model.load_weights('final_weight.h5f')
+model.load_weights('weight' + name_subfix + '.h5f')
 
 t_x1, t_x2, t_x3, t_x4, t_y1 = [],[],[],[],[]
 l = load_ticker_yyyymmdd_list_from_directory(_pickle_evaluate_dir)
@@ -223,8 +240,7 @@ t_y1 = np.concatenate(t_y1)
 scores = model.evaluate({'x1': t_x1, 'x2': t_x2, 'x3': t_x3, 'x4': t_x4}, t_y1, verbose=0, steps=10)
 print("%s: %.2f    %s: %.2f    %s: %.2f    %s: %.2f" % (model.metrics_names[1], scores[1], model.metrics_names[2], scores[2], model.metrics_names[3], scores[3], model.metrics_names[4], scores[4]))
 
-with open('ssa_evaluate_model_history', 'wb') as file_pi:
+with open('ssa_evaluate_model_history'+name_subfix, 'wb') as file_pi:
     pickle.dump(scores, file_pi)
-
 
 
