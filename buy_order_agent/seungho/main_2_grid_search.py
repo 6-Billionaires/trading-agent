@@ -1,22 +1,36 @@
-import os
-import sys
-newPath = os.path.dirname(os.path.abspath(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))) + os.path.sep + 'trading-gym'
-sys.path.append(newPath)
-
 from gym_core.ioutil import *  # file i/o to load stock csv files
 from keras import metrics
 from keras.models import Model
 from keras.layers import Input, Conv3D, Conv1D, Dense, Flatten, MaxPooling1D, MaxPooling3D, Concatenate
+import keras.backend as K
 import numpy as np
 import pickle
 from rl.callbacks import FileLogger, ModelIntervalCheckpoint
 from core import util
 from core.scikit_learn_multi_input_boa import KerasRegressor
 from sklearn.model_selection import GridSearchCV
+import os
+import sys
+newPath = os.path.dirname(os.path.abspath(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))) + os.path.sep + 'trading-gym'
+sys.path.append(newPath)
 
 """
 build q newtork using cnn and dense layer
 """
+
+def theil_u(y_true, y_pred):
+    up = K.mean(K.square(y_true-y_pred))
+    bottom = K.mean(K.square(y_true)) + K.mean(K.square(y_pred))
+    return up/bottom
+
+
+def r(y_true, y_pred):
+    mean_y_true = K.mean(y_true)
+    mean_y_pred = K.mean(y_pred)
+
+    up = K.sum((y_true-mean_y_true) * (y_pred-mean_y_pred))
+    bottom = K.mean(K.square(y_true-mean_y_true) * K.square(y_pred-mean_y_pred))
+    return up/bottom
 
 
 def build_network(max_len=7, optimizer='adam',init_mode='uniform', filters=16, neurons=20):
@@ -52,7 +66,7 @@ def build_network(max_len=7, optimizer='adam',init_mode='uniform', filters=16, n
     output = Dense(1, kernel_initializer=init_mode, activation='linear')(i_concatenated_all_h)
 
     model = Model([input_order, input_tranx, input_left_time], output)
-    model.compile(optimizer=optimizer, loss='mse', metrics=[metrics.mae, metrics.mape])
+    model.compile(optimizer=optimizer, loss='mse', metrics=[metrics.mae, metrics.mape, theil_u, r])
     model.summary()
 
     return model
@@ -150,7 +164,7 @@ def train_using_real_data(d, max_len, save_dir):
     # model.load_weights(filePath = checkpoint_weights_filename.format(step='end'), by_name=True, skip_mismatch=True)
 
     # TODO: here we can add hyperparameters information like below!!
-    log_filename = 'soa_{}_log.json'.format('fill_params_information_in_here')
+    log_filename = 'boa_{}_log.json'.format('fill_params_information_in_here')
     checkpoint_interval = 50
 
     callbacks = [ModelIntervalCheckpoint(checkpoint_weights_filename, interval=checkpoint_interval)]

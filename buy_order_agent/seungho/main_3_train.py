@@ -1,3 +1,13 @@
+from gym_core.ioutil import *  # file i/o to load stock csv files
+from keras import metrics
+from keras.models import Model
+from keras.layers import LeakyReLU, Input, Conv3D, Conv1D, Dense, Flatten, MaxPooling1D, MaxPooling3D, Concatenate
+import keras.backend as K
+import numpy as np
+import pickle
+from rl.callbacks import FileLogger, ModelIntervalCheckpoint
+from core import util
+from datetime import datetime
 import os
 import sys
 newPath = os.path.dirname(os.path.abspath(os.path.dirname(os.path.abspath(os.path.dirname(__file__))))) + os.path.sep + 'trading-gym'
@@ -6,22 +16,27 @@ sys.path.append(newPath)
 # import os
 # os.environ["CUDA_VISIBLE_DEVICES"] = 0
 
-from gym_core.ioutil import *  # file i/o to load stock csv files
-from keras import metrics
-from keras.models import Model
-from keras.layers import LeakyReLU, Input, Conv3D, Conv1D, Dense, Flatten, MaxPooling1D, MaxPooling3D,Concatenate
-import numpy as np
-import pickle
-from rl.callbacks import FileLogger, ModelIntervalCheckpoint
-from core import util
-from datetime import datetime
-
 """
 build q newtork using cnn and dense layer
 """
 
 
-def build_network(max_len=7, init_mode='uniform', neurons=20, activation='relu'):
+def theil_u(y_true, y_pred):
+    up = K.mean(K.square(y_true-y_pred))
+    bottom = K.mean(K.square(y_true)) + K.mean(K.square(y_pred))
+    return up/bottom
+
+
+def r(y_true, y_pred):
+    mean_y_true = K.mean(y_true)
+    mean_y_pred = K.mean(y_pred)
+
+    up = K.sum((y_true-mean_y_true) * (y_pred-mean_y_pred))
+    bottom = K.mean(K.square(y_true-mean_y_true) * K.square(y_pred-mean_y_pred))
+    return up/bottom
+
+
+def build_network(max_len=7, init_mode='uniform', neurons=30, activation='relu'):
     if activation == 'leaky_relu':
         input_order = Input(shape=(10, 2, 120, 2), name="x1")
         input_tranx = Input(shape=(120, 11), name="x2")
@@ -103,18 +118,6 @@ def build_network(max_len=7, init_mode='uniform', neurons=20, activation='relu')
 
 
 def get_real_data(date, ticker, save_dir, train_data_rows=None):
-    '''
-    left_secs : SSA 에서 신호를 보낼때 남은 시간
-    elapsed_secs : SSA 에서 신호를 보낸 후 경과 시간
-    최초 pickle 을 생성할 때, left_secs 은 랜덤 생성 하고 elapsed_secs 를 0 ~ left_secs 만큼 생성 했었는데, 데이터가 너무 많아서 랜덤하게 30% 데이터만 생성하도록 하였음. (if random.random() > 0.3: continue)
-    한번 학습 시에 모든 종목에 대해 40개의 pickle 을 뽑아서 1개의 episode 를 구성함. 시간 순서를 random 으로 뽑지는 않음. (종목 수 36 * 피클 데이터 수 40 = 1440)
-    :param max_len:
-    :param pickles:
-    :param str_episode:
-    :param end_episode:
-    :param train_all_periods:
-    :return:
-    '''
 
     x1_dimension_info = (10, 2, 120, 2)
     x2_dimension_info = (120, 11)
@@ -171,7 +174,7 @@ def get_real_data(date, ticker, save_dir, train_data_rows=None):
 
 def train_using_real_data(d, max_len, save_dir):
     model = build_network(max_len, neurons=100, activation='leaky_relu')
-    model.compile(optimizer='adam', loss='mse', metrics=[metrics.mae, metrics.mape])
+    model.compile(optimizer='adam', loss='mse', metrics=[metrics.mae, metrics.mape, theil_u, r])
     model.summary()
 
     l = load_ticker_yyyymmdd_list_from_directory(d)
@@ -192,7 +195,7 @@ def train_using_real_data(d, max_len, save_dir):
     print('total x1 : {}, total x2 : {}, total x3 : {}, total y1 : {}'.format(len(t_x1), len(t_x2), len(t_x3), len(t_y1)))
 
     # {steps} --> this file will be saved whenver it runs every steps as much as {step}
-    checkpoint_weights_filename = 'soa_weights_{step}.{extension}'
+    checkpoint_weights_filename = 'boa_weights_{step}.{extension}'
 
     # model.load_weights(filepath = checkpoint_weights_filename.format(step='end'), by_name=True, skip_mismatch=True)
 
@@ -204,7 +207,7 @@ def train_using_real_data(d, max_len, save_dir):
     callbacks += [FileLogger(log_filename, interval=100)]
 
     print('start to train.')
-    history = model.fit({'x1': t_x1, 'x2': t_x2, 'x3': t_x3}, t_y1, epochs=70, verbose=2, batch_size=10, callbacks=callbacks)
+    history = model.fit({'x1': t_x1, 'x2': t_x2, 'x3': t_x3}, t_y1, epochs=50, verbose=2, batch_size=10, callbacks=callbacks)
 
     with open(datetime.now().strftime('boa_train_history_%Y%m%d_%H%M%S'), 'wb') as file_pi:
         pickle.dump(history.history, file_pi)
