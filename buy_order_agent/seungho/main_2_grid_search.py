@@ -174,11 +174,11 @@ def train_using_real_data(d, max_len, save_dir):
     # create model
     model = KerasRegressor(build_fn=build_network, verbose=0)
     # define the grid search parameters
-    batch_size = [10, 20, 40, 60, 80, 100]
     epochs = [10, 50, 100]
+    batch_size = [10, 20, 40, 60, 80, 100]
     neurons = [15, 20, 25, 30]
-    # batch_size = [10, 50, 100]
     # epochs = [10, 50, 100]
+    # batch_size = [10, 50, 100]
     # neurons = [15, 20, 30]
     param_grid = dict(batch_size=batch_size, epochs=epochs, neurons=neurons)
 

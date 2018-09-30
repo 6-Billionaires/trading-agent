@@ -6,6 +6,7 @@ import keras.backend as K
 import numpy as np
 import pickle
 from rl.callbacks import FileLogger, ModelIntervalCheckpoint
+import matplotlib.pyplot as plt
 from core import util
 from datetime import datetime
 import os
@@ -19,6 +20,10 @@ sys.path.append(newPath)
 """
 build q newtork using cnn and dense layer
 """
+
+
+def mean_pred(y_true, y_pred):
+    return K.mean(y_pred)
 
 
 def theil_u(y_true, y_pred):
@@ -117,7 +122,7 @@ def build_network(max_len=7, init_mode='uniform', neurons=30, activation='relu')
     return model
 
 
-def get_real_data(date, ticker, save_dir, train_data_rows=None):
+def get_real_data(date, ticker, max_len, save_dir, train_data_rows=None):
 
     x1_dimension_info = (10, 2, 120, 2)
     x2_dimension_info = (120, 11)
@@ -172,17 +177,23 @@ def get_real_data(date, ticker, save_dir, train_data_rows=None):
     return np.asarray(d_x1), np.asarray(d_x2), np.asarray(d_x3), np.asarray(d_y1)
 
 
-def train_using_real_data(d, max_len, save_dir):
-    model = build_network(max_len, neurons=100, activation='leaky_relu')
-    model.compile(optimizer='adam', loss='mse', metrics=[metrics.mae, metrics.mape, theil_u, r])
+def train_using_real_data(directory, max_len, params, save_dir, train_dir):
+    ## params
+    batch_size = params['batch_size']
+    epochs = params['epochs']
+    neurons = params['neurons']
+    activation = params["activation"]
+
+    model = build_network(max_len, neurons=neurons, activation=activation)
+    model.compile(optimizer='adam', loss='mse', metrics=[metrics.mae, metrics.mape, mean_pred, theil_u, r])
     model.summary()
 
-    l = load_ticker_yyyymmdd_list_from_directory(d)
+    l = load_ticker_yyyymmdd_list_from_directory(directory)
 
     t_x1, t_x2, t_x3, t_y1 = [], [], [], []
 
     for (da, ti) in l:
-        x1, x2, x3, y1 = get_real_data(da, ti, save_dir=save_dir)
+        x1, x2, x3, y1 = get_real_data(da, ti, max_len, save_dir=save_dir)
         t_x1.append(x1)
         t_x2.append(x2)
         t_x3.append(x3)
@@ -195,7 +206,7 @@ def train_using_real_data(d, max_len, save_dir):
     print('total x1 : {}, total x2 : {}, total x3 : {}, total y1 : {}'.format(len(t_x1), len(t_x2), len(t_x3), len(t_y1)))
 
     # {steps} --> this file will be saved whenver it runs every steps as much as {step}
-    checkpoint_weights_filename = 'boa_weights_{step}.{extension}'
+    checkpoint_weights_filename = 'boa_{info}.{extension}'
 
     # model.load_weights(filepath = checkpoint_weights_filename.format(step='end'), by_name=True, skip_mismatch=True)
 
@@ -207,19 +218,83 @@ def train_using_real_data(d, max_len, save_dir):
     callbacks += [FileLogger(log_filename, interval=100)]
 
     print('start to train.')
-    history = model.fit({'x1': t_x1, 'x2': t_x2, 'x3': t_x3}, t_y1, epochs=50, verbose=2, batch_size=10, callbacks=callbacks)
+    history = model.fit({'x1': t_x1, 'x2': t_x2, 'x3': t_x3}, t_y1,
+                        epochs=epochs, verbose=2, batch_size=batch_size, callbacks=callbacks)
 
-    with open(datetime.now().strftime('boa_train_history_%Y%m%d_%H%M%S'), 'wb') as file_pi:
+    info = str(epochs) + 'epochs_' + str(batch_size) + 'batch_' + str(neurons) + 'neurons_' + 'act(' + str(
+        activation) + ')'
+
+    history_dir = train_dir + os.path.sep + 'history'
+    if not os.path.isdir(history_dir):
+        os.makedirs(history_dir)
+    with open(history_dir + os.path.sep +
+              checkpoint_weights_filename.format(info=info, extension='history'), 'wb') as file_pi:
         pickle.dump(history.history, file_pi)
 
-    model.save(filepath=checkpoint_weights_filename.format(step='final', extension='h5'))
-    model.save_weights(filepath=checkpoint_weights_filename.format(step='final', extension='h5f'))
+    model.save(filepath=train_dir + os.path.sep + checkpoint_weights_filename.format(info=info, extension='h5'))
+    model.save_weights(filepath=train_dir + os.path.sep + checkpoint_weights_filename.format(info=info, extension='h5f'))
+
+    return history
 
 
-# train_using_fake_data()
-# pickle path
-save_dir = 'pickles'
-directory = os.path.abspath(make_dir(os.path.dirname(os.path.abspath(__file__)), save_dir))
-# max length of bit for 120
-max_len = util.get_maxlen_of_binary_array(120)
-train_using_real_data(directory, max_len, save_dir)
+def plot_history(history, to_plot, params, train_dir):
+
+    plots_dir = train_dir + os.path.sep + 'plots'
+    if not os.path.isdir(plots_dir):
+        os.makedirs(plots_dir)
+
+    # print(history.history)
+
+    ## params ##
+    batch_size = params['batch_size']
+    epochs = params['epochs']
+    neurons = params['neurons']
+    activation = params["activation"]
+
+    for key in to_plot.keys():
+
+        file_name = 'boa_' + str(epochs) + 'epochs_' + str(batch_size) + 'batch_' + str(neurons) + 'neurons_' + \
+                    'act(' + str(activation) + ')_' + key + '.png'
+
+        category = to_plot[key]
+        plt.plot(history.history[category])
+        plt.title(key)
+        plt.ylabel(key)
+        plt.xlabel('Epoch')
+        plt.legend(['Train', 'Validation'], loc='upper left')
+        plt.savefig(plots_dir + os.path.sep + file_name)
+
+
+def main():
+
+    # train_using_fake_data()
+    # pickle path
+    pickle_dir = 'pickles'
+    directory = os.path.abspath(make_dir(os.path.dirname(os.path.abspath(__file__)), pickle_dir))
+
+    train_dir = 'train'
+    if not os.path.isdir(train_dir):
+        os.makedirs(train_dir)
+
+    # max length of bit for 120
+    max_len = util.get_maxlen_of_binary_array(120)
+
+    dict_to_plot = {
+        'MAE' : 'mean_absolute_error',
+        'MAPE' : 'mean_absolute_percentage_error',
+        'Mean Pred': 'mean_pred',
+        'Corr': 'r',
+        "Theil's U": 'theil_u'
+    }
+    params = {
+        'epochs': 10,
+        'batch_size': 10,
+        'neurons': 30,
+        'activation': 'leaky_relu'
+    }
+
+    history = train_using_real_data(directory, max_len, params, pickle_dir, train_dir)
+    plot_history(history, dict_to_plot, params, train_dir)
+
+
+main()
