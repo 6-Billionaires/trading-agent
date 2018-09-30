@@ -247,10 +247,9 @@ n_save_model_episode_interval = 20
 tf.reset_default_graph()
 graph = tf.get_default_graph()  # todo : graph is not thread safe
 
-# self.sess = tf.InteractiveSession()
-# K.set_session(self.sess)
-# self.sess.run(tf.global_variables_initializer())
-
+sess = tf.InteractiveSession()
+K.set_session(sess)
+sess.run(tf.global_variables_initializer())
 
 # this is a replay memory of buy signal agent
 rb_bsa = deque(maxlen=c_rb_size)
