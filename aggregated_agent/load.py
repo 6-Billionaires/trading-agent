@@ -23,27 +23,27 @@ def load_model(model_type):
     if model_type == 'bsa':
         model = build_bsa_network(activation='leaky_relu', neurons=100)
         model.compile(optimizer='adam', loss='mse', metrics=['mae', 'mape', 'mse'])
-        model.load_weights('aggregated_agent/networks/bsa.h5f')
+        model.load_weights('/Git/trading-agent/aggregated_agent/networks/bsa.h5f')
         return model
 
     if model_type == 'boa':
         max_len = util.get_maxlen_of_binary_array(120)
         model = build_boa_network(max_len, neurons=100, activation='leaky_relu')
         model.compile(optimizer='adam', loss='mse', metrics=['mae', 'mape'])
-        model.load_weights('aggregated_agent/networks/boa.h5f')
+        model.load_weights('/Git/trading-agent/aggregated_agent/networks/boa.h5f')
         return model
 
     if model_type == 'ssa':
         model = build_ssa_network()
         model.compile(optimizer='adam', loss='mse', metrics=['mae', 'mape', 'accuracy'])
-        model.load_weights('aggregated_agent/networks/ssa.h5f')
+        model.load_weights('/Git/trading-agent/aggregated_agent/networks/ssa.h5f')
         return model
 
     if model_type == 'soa':
         max_len = util.get_maxlen_of_binary_array(120)
         model = build_soa_network(max_len, neurons=100, activation='leaky_relu')
         model.compile(optimizer='adam', loss='mse', metrics=['mae', 'mape'])
-        model.load_weights('aggregated_agent/networks/soa.h5f')  # << soa weight 경로
+        model.load_weights('/Git/trading-agent/aggregated_agent/networks/soa.h5f')  # << soa weight 경로
         return model
 
 

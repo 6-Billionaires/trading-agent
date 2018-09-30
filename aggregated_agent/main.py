@@ -135,7 +135,8 @@ class DDQNAgent:
         model.built = False
 
     def update_target_model(self):
-        self.target_model.set_weights(self.model.get_weights())
+        with graph.as_default():
+            self.target_model.set_weights(self.model.get_weights())
 
     def get_action(self, state):
         if np.random.random() <= self.epsilon:
@@ -196,8 +197,11 @@ class DDQNAgent:
         lock_update_policy_nw.release()
 
         if total_episode % n_save_model_episode_interval == 0:
-            with graph.as_default():
-                self.model.save_weights('aggregated_agent/networks/' + self.agent_type + '_rl.h5f')
+            try:
+                with graph.as_default():
+                    self.model.save_weights('aggregated_agent/networks/' + self.agent_type + '_rl.h5f')
+            except:
+                pass
 
 
 def load_model(agent_type):
@@ -416,68 +420,71 @@ class Agents(threading.Thread):
         global total_episode
         global graph
         for ep in range(self.n_max_episode):
-            done = False
-            state = self.env.reset()
+            try:
+                done = False
+                state = self.env.reset()
 
-            if self.thread_step % c_update_step_interval == 0:
-                with graph.as_default():
-                    self.update_target_network()
+                if self.thread_step % c_update_step_interval == 0:
+                    with graph.as_default():
+                        self.update_target_network()
 
-            reward_sum = 0
-            step_count = 0
-            buy_count = 0
-            profit = 0
-            profit_comm = 0
-            buy_price, sell_price = 0, 0
-            commission = 0.33
+                reward_sum = 0
+                step_count = 0
+                buy_count = 0
+                profit = 0
+                profit_comm = 0
+                buy_price, sell_price = 0, 0
+                commission = 0.33
 
-            while not done:
-                action = self.get_action(state)
-                if self.sequence == 0 and action == 1:
-                    buy_count += 1
-                    buy_price = self.env.holder_observation[-1][0]
-                if self.sequence == 3 and action == 1:
-                    sell_price = self.env.holder_observation[-1][0]
-                    if buy_price != 0:
-                        profit += (sell_price - buy_price) / buy_price
-                        profit_comm += (sell_price - buy_price) / buy_price - commission * 0.01
+                while not done:
+                    action = self.get_action(state)
+                    if self.sequence == 0 and action == 1:
+                        buy_count += 1
+                        buy_price = self.env.holder_observation[-1][0]
+                    if self.sequence == 3 and action == 1:
+                        sell_price = self.env.holder_observation[-1][0]
+                        if buy_price != 0:
+                            profit += (sell_price - buy_price) / buy_price
+                            profit_comm += (sell_price - buy_price) / buy_price - commission * 0.01
 
-                next_state, reward, done, info = self.env.step(action)
-                lock_rb_append.acquire()
-                agent_reward = self.append_sample(state, action, reward, next_state, done)
-                lock_rb_append.release()
+                    next_state, reward, done, info = self.env.step(action)
+                    lock_rb_append.acquire()
+                    agent_reward = self.append_sample(state, action, reward, next_state, done)
+                    lock_rb_append.release()
 
-                reward_sum += agent_reward
+                    reward_sum += agent_reward
 
-                step_count += 1
-                state = next_state
-                if self.trainable:
-                    self.train_agents()
-                # todo : here we need to change 1 hour * 60 minutes * 60 seconds = 3600 seconds
-                if step_count >= 1 * 60 * 60:
-                    done = True
-                    total_episode = total_episode + 1
+                    step_count += 1
+                    state = next_state
+                    if self.trainable:
+                        self.train_agents()
+                    # todo : here we need to change 1 hour * 60 minutes * 60 seconds = 3600 seconds
+                    if step_count >= 1 * 60 * 60 - 100:
+                        done = True
+                        total_episode = total_episode + 1
 
-            if step_count > 0:
-                avg_reward = round(reward_sum / step_count, 7)
-                profit = round(profit * 100, 5)
-                profit_comm = round(profit_comm * 100, 5)
-                if buy_count == 0:
-                    avg_profit, avg_comm_profit = 0, 0
-                else:
-                    avg_profit = profit / buy_count
-                    avg_comm_profit = profit_comm / buy_count
-                print('ep :', ep, end='  ')
-                print('epsilon :', round(self.agents[0].epsilon, 3), end='  ')
-                print('avg reward :', avg_reward, end='  ')
-                print('buy :', buy_count, end='  ')
-                print('profit :', round(profit, 3), end='  ')
-                print('avg profit :', round(avg_profit, 3), end='  ')
-                print('profit(comm) :', round(profit_comm, 3), end='  ')
-                print('avg profit(comm) :', round(avg_comm_profit, 3))
+                if step_count > 0:
+                    avg_reward = round(reward_sum / step_count, 7)
+                    profit = round(profit * 100, 5)
+                    profit_comm = round(profit_comm * 100, 5)
+                    if buy_count == 0:
+                        avg_profit, avg_comm_profit = 0, 0
+                    else:
+                        avg_profit = profit / buy_count
+                        avg_comm_profit = profit_comm / buy_count
+                    print('ep :', ep, end='  ')
+                    print('epsilon :', round(self.agents[0].epsilon, 3), end='  ')
+                    print('avg reward :', avg_reward, end='  ')
+                    print('buy :', buy_count, end='  ')
+                    print('profit :', round(profit, 3), end='  ')
+                    print('avg profit :', round(avg_profit, 3), end='  ')
+                    print('profit(comm) :', round(profit_comm, 3), end='  ')
+                    print('avg profit(comm) :', round(avg_comm_profit, 3))
 
-                # todo : it could occur resource deadlock, so that it could be reason being slow.. but for now, move on!
-                self.cw.writerow([ep, avg_reward, buy_count, profit, avg_profit, profit_comm, avg_comm_profit])
+                    # todo : it could occur resource deadlock, so that it could be reason being slow.. but for now, move on!
+                    self.cw.writerow([ep, avg_reward, buy_count, profit, avg_profit, profit_comm, avg_comm_profit])
+            except:
+                pass
 
 
 class MyTGym(tgym.TradingGymEnv):  # MyTGym 수정해야 함 -> agent 별 reward 를 줘야 함 (4개 반환해서 agents 가 수정하거나 agent 입력해서 reward 주거나)
@@ -559,5 +566,5 @@ class FasterDQNAgent:
 
 
 if __name__ == '__main__':
-    fa = FasterDQNAgent(2, 40)  # thread, n_max_episdoe
+    fa = FasterDQNAgent(16, 40)  # thread, n_max_episdoe
     fa.play()
