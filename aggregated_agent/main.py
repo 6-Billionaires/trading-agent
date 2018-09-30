@@ -38,20 +38,11 @@ class DDQNAgent:
     def load_model(self):
         networks = glob.glob('./networks/*.h5f')
         if './networks/' + self.agent_type + '_rl.h5f' not in networks:
-            # model = load_model('./networks/' + self.agent_type + '.h5')
-            # model.layers.pop()
-            # output_layer = Dense(2, activation='linear', name='rl_output')(model.layers[-1].output)
-            # model = Model(inputs=model.input, outputs=output_layer)
-
             trained_model = load.load_model(self.agent_type)
-            # trained_model.compile(optimizer='adam', loss='mse', metrics=['mae', 'mape', 'mse'])
-            # trained_model.summary()
 
-            # trained_model = load_model('./networks/' + self.agent_type + '.h5')
             for layer in trained_model.layers:
                 layer.trainable = False
             rl_model = load.load_model(self.agent_type)
-            # rl_model = load_model('./networks/' + self.agent_type + '.h5')
             concat_layer = Concatenate(name='concat2')([trained_model(rl_model.input), rl_model.layers[-1].output])
             output_layer = Dense(2, activation='linear', name='q_value_output')(concat_layer)
             model = Model(inputs=rl_model.input, outputs=output_layer)
@@ -65,11 +56,6 @@ class DDQNAgent:
             output_layer = Dense(2, activation='linear', name='q_value_output')(concat_layer)
             model = Model(inputs=rl_model.input, outputs=output_layer)
             model.load_weights('aggregated_agent/networks/' + self.agent_type + '_rl.h5f')
-
-            # model = load_model('./networks/' + self.agent_type + '_rl.h5f')  # save weight 방식으로 수정할것
-
-        # for layer in model.layers[:-1]:
-        #     layer.trainable = False
 
         model.compile(optimizer='adam', loss='mse')
         model.summary()
