@@ -180,8 +180,9 @@ class DDQNAgent:
             input_states.append(np.array(states[i]))
             input_next_states.append(np.array(next_states[i]))
 
-        target = self.model.predict(input_states)
-        target_val = self.target_model.predict(input_next_states)
+        with graph.as_default():
+            target = self.model.predict(input_states)
+            target_val = self.target_model.predict(input_next_states)
 
         for i in range(self.batch_size):
             if dones[i]:
@@ -190,11 +191,13 @@ class DDQNAgent:
                 target[i][actions[i]] = rewards[i] + self.discount_factor * (np.amax(target_val[i]))
 
         lock_update_policy_nw.acquire()
-        self.model.fit(input_states, target, batch_size=self.batch_size, epochs=1, verbose=0)
+        with graph.as_default():
+            self.model.fit(input_states, target, batch_size=self.batch_size, epochs=1, verbose=0)
         lock_update_policy_nw.release()
 
         if total_episode % n_save_model_episode_interval == 0:
-            self.model.save_weights('aggregated_agent/networks/' + self.agent_type + '_rl.h5f')
+            with graph.as_default():
+                self.model.save_weights('aggregated_agent/networks/' + self.agent_type + '_rl.h5f')
 
 
 def load_model(agent_type):
