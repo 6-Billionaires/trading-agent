@@ -93,31 +93,31 @@ class DDQNAgent:
         self.discount_factor = 0.999
         self.data_num = data_num
 
-    def load_model(self):
-        networks = glob.glob('./networks/*.h5f')
-        if './networks/' + self.agent_type + '_rl.h5f' not in networks:
-
-            trained_model = load.load_model(self.agent_type)
-            for layer in trained_model.layers:
-                layer.trainable = False
-            rl_model = load.load_model(self.agent_type)
-            concat_layer = Concatenate(name='concat2')([trained_model(rl_model.input), rl_model.layers[-1].output])
-            output_layer = Dense(2, activation='linear', name='q_value_output')(concat_layer)
-            model = Model(inputs=rl_model.input, outputs=output_layer)
-
-        else:
-            trained_model = load.load_model(self.agent_type)
-            for layer in trained_model.layers:
-                layer.trainable = False
-            rl_model = load.load_model(self.agent_type)
-            concat_layer = Concatenate(name='concat2')([trained_model(rl_model.input), rl_model.layers[-1].output])
-            output_layer = Dense(2, activation='linear', name='q_value_output')(concat_layer)
-            model = Model(inputs=rl_model.input, outputs=output_layer)
-            model.load_weights('aggregated_agent/networks/' + self.agent_type + '_rl.h5f')
-
-        model.compile(optimizer='adam', loss='mse')
-        model.summary()
-        return model
+    # def load_model(self):
+    #     networks = glob.glob('./networks/*.h5f')
+    #     if './networks/' + self.agent_type + '_rl.h5f' not in networks:
+    #
+    #         trained_model = load.load_model(self.agent_type)
+    #         for layer in trained_model.layers:
+    #             layer.trainable = False
+    #         rl_model = load.load_model(self.agent_type)
+    #         concat_layer = Concatenate(name='concat2')([trained_model(rl_model.input), rl_model.layers[-1].output])
+    #         output_layer = Dense(2, activation='linear', name='q_value_output')(concat_layer)
+    #         model = Model(inputs=rl_model.input, outputs=output_layer)
+    #
+    #     else:
+    #         trained_model = load.load_model(self.agent_type)
+    #         for layer in trained_model.layers:
+    #             layer.trainable = False
+    #         rl_model = load.load_model(self.agent_type)
+    #         concat_layer = Concatenate(name='concat2')([trained_model(rl_model.input), rl_model.layers[-1].output])
+    #         output_layer = Dense(2, activation='linear', name='q_value_output')(concat_layer)
+    #         model = Model(inputs=rl_model.input, outputs=output_layer)
+    #         model.load_weights('aggregated_agent/networks/' + self.agent_type + '_rl.h5f')
+    #
+    #     model.compile(optimizer='adam', loss='mse')
+    #     model.summary()
+    #     return model
 
     @staticmethod
     def pop_layer(model):
@@ -208,8 +208,8 @@ def load_model(agent_type):
             layer.trainable = False
         rl_model = load.load_model(agent_type)
         # rl_model = load_model('./networks/' + self.agent_type + '.h5')
-        concat_layer = Concatenate(name='concat2')([trained_model(rl_model.input), rl_model.layers[-1].output])
-        output_layer = Dense(2, activation='linear', name='q_value_output')(concat_layer)
+        concat_layer = Concatenate()([trained_model(rl_model.input), rl_model.layers[-1].output]) # name='concat2'
+        output_layer = Dense(2, activation='linear')(concat_layer) # name='q_value_output'
         model = Model(inputs=rl_model.input, outputs=output_layer)
 
     else:
@@ -217,8 +217,8 @@ def load_model(agent_type):
         for layer in trained_model.layers:
             layer.trainable = False
         rl_model = load.load_model(agent_type)
-        concat_layer = Concatenate(name='concat2')([trained_model(rl_model.input), rl_model.layers[-1].output])
-        output_layer = Dense(2, activation='linear', name='q_value_output')(concat_layer)
+        concat_layer = Concatenate()([trained_model(rl_model.input), rl_model.layers[-1].output]) # name='concat2'
+        output_layer = Dense(2, activation='linear')(concat_layer) # name='q_value_output'
         model = Model(inputs=rl_model.input, outputs=output_layer)
         model.load_weights('aggregated_agent/networks/' + agent_type + '_rl.h5f')
     model.compile(optimizer='adam', loss='mse')
@@ -416,8 +416,10 @@ class Agents(threading.Thread):
     # Thread interactive with environment
     def run(self):
         global total_episode
+        global total_step_count
         global graph
         for ep in range(self.n_max_episode):
+            print('{} thread {} episode started'.format(self.idx, ep))
             done = False
             state = self.env.reset()
 
@@ -562,5 +564,5 @@ class FasterDQNAgent:
 
 
 if __name__ == '__main__':
-    fa = FasterDQNAgent(2, 40)  # thread, n_max_episdoe
+    fa = FasterDQNAgent(1, 40)  # thread, n_max_episode
     fa.play()
