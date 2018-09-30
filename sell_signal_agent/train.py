@@ -25,11 +25,18 @@ from rl.callbacks import FileLogger, ModelIntervalCheckpoint
 from gym_core.ioutil import *  # file i/o to load stock csv files
 from core.scikit_learn_multi_input_4 import KerasRegressor
 from sklearn.model_selection import GridSearchCV
+
+import matplotlib
+matplotlib.use('agg')
 import matplotlib.pyplot as plt
 
-os.environ["CUDA_VISIBLE_DEVICES"] = str(config.SSA_PARAMS['P_TRAINING_GPU'])
-_len_observation = int(config.SSA_PARAMS['P_OBSERVATION_LEN'])
-_pickle_training_dir = config.SSA_PARAMS['PICKLE_DIR_FOR_TRAINING']
+import logging
+import pickle
+import config
+
+os.environ["CUDA_VISIBLE_DEVICES"] = str(config.SSA_PARAMS2['P_TRAINING_GPU'])
+_len_observation = int(config.SSA_PARAMS2['P_OBSERVATION_LEN'])
+_pickle_training_dir = config.SSA_PARAMS2['PICKLE_DIR_FOR_TRAINING']
 
 
 """
@@ -104,6 +111,8 @@ def build_network_for_sparsed(optimizer='adam',init_mode='uniform',
     model = Model([input_order, input_tranx, input_elapedtime, input_lefttime], output)
     # model.compile(optimizer=optimizer, loss='mean_squared_error', metrics=['mae', 'mape'])
     model.compile(optimizer=optimizer, loss='mean_squared_error', metrics=['accuracy', mean_pred, theil_u, r])
+    model.summary()
+
     return model
 
 def get_sample_data(count):
@@ -330,9 +339,9 @@ def train_using_real_data_sparsed_gs(pickle_dir):
     # activation = ['leaky_relu']
 
     # todo : third try!
-    batch_size = [10]
-    epochs = [10]
-    neurons = [100]
+    batch_size = [10,20,30]
+    epochs = [50]
+    neurons = [75]
     activation = ['leaky_relu']
 
     param_grid = dict(batch_size=batch_size, epochs=epochs, neurons=neurons, activation=activation)
@@ -396,7 +405,7 @@ dict_to_plot = {
     "Theil's U" : 'theil_u'
 }
 model_params = {
-    'epochs' : 1,
+    'epochs' : 70,
     'batchsize' : 10,
     'neurons' : 100,
     'activation' : 'leaky_relu'
@@ -415,7 +424,7 @@ def seconds_to_binary_array(seconds, max_len):
     return np.binary_repr(seconds).zfill(max_len)
 
 max_len = get_maxlen_of_binary_array(120)
-train_using_real_data_sparsed(_pickle_training_dir)
-#train_using_real_data_sparsed_gs(_pickle_training_dir)
+#train_using_real_data_sparsed(_pickle_training_dir)
+train_using_real_data_sparsed_gs(_pickle_training_dir)
 
 
