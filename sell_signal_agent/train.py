@@ -34,8 +34,8 @@ import logging
 import pickle
 import config
 
-os.environ["CUDA_VISIBLE_DEVICES"] = str(config.SSA_PARAMS2['P_TRAINING_GPU'])
-_len_observation = int(config.SSA_PARAMS2['P_OBSERVATION_LEN'])
+os.environ["CUDA_VISIBLE_DEVICES"] = str(config.SSA_PARAMS['P_TRAINING_GPU'])
+_len_observation = int(config.SSA_PARAMS['P_OBSERVATION_LEN'])
 _pickle_training_dir = config.SSA_PARAMS2['PICKLE_DIR_FOR_TRAINING']
 
 
