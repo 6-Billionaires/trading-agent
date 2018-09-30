@@ -71,77 +71,16 @@ from aggregated_agent import load
 import csv
 import threading
 import  tensorflow as tf
-
-
-
-# shared global variables
-total_step_count = 0
-total_episode = 0
-scores = []
-target_network = None
-
-# hyperparameter
-c_rb_size = 100000
-c_warm_up_step = 10000
-c_update_step_interval = 1000
-lr = 1e-4
-epsilon_min = 0.02
-epsilon_max = 1.0
-epsilon_period_decaying = 100000
-
-# other operating parameters
-n_save_model_episode_interval = 20
-
-
-# this is a replay memory of buy signal agent
-rb_bsa = deque(maxlen=c_rb_size)
-# this is a replay memory of buy order agent
-rb_boa = deque(maxlen=c_rb_size)
-# this is a replay memory of sell signal agent
-rb_ssa = deque(maxlen=c_rb_size)
-# this is a replay memory of sell order agent
-rb_soa = deque(maxlen=c_rb_size)
-
-# check lock when thread agent try appending state transition information into replay memory.
-lock_rb_append = threading.Lock()
-# check lock when thread agent try updating policy network using target network
-lock_update_policy_nw = threading.Lock()
-
-def load_model(agent_type):
-    return None
-#     networks = glob.glob('./networks/*.h5f')
-#     if './networks/' + agent_type + '_rl.h5f' not in networks:
-#         trained_model = load.load_model(agent_type)
-#         for layer in trained_model.layers:
-#             layer.trainable = False
-#         rl_model = load.load_model(agent_type)
-#         # rl_model = load_model('./networks/' + self.agent_type + '.h5')
-#         concat_layer = Concatenate(name='concat2')([trained_model(rl_model.input), rl_model.layers[-1].output])
-#         output_layer = Dense(2, activation='linear', name='q_value_output')(concat_layer)
-#         model = Model(inputs=rl_model.input, outputs=output_layer)
-#
-#     else:
-#         trained_model = load.load_model(agent_type)
-#         for layer in trained_model.layers:
-#             layer.trainable = False
-#         rl_model = load.load_model(agent_type)
-#         concat_layer = Concatenate(name='concat2')([trained_model(rl_model.input), rl_model.layers[-1].output])
-#         output_layer = Dense(2, activation='linear', name='q_value_output')(concat_layer)
-#         model = Model(inputs=rl_model.input, outputs=output_layer)
-#         model.load_weights('aggregated_agent/networks/' + agent_type + '_rl.h5f')
-#     model.compile(optimizer='adam', loss='mse')
-#     model.summary()
-#     return model
-
+from keras import backend as K
 
 class DDQNAgent:
     def __init__(self, agent_type, model, target_model, data_num, action_size, rb):
         # load models
         self.agent_type = agent_type
-        # self.model = model
-        # self.target_model = target_model
-        self.model = self.load_model()
-        self.target_model = self.load_model()
+        self.model = model
+        self.target_model = target_model
+        # self.model = self.load_model()
+        # self.target_model = self.load_model()
 
         self.epsilon = 0.3
         self.epsilon_min = 0.001
@@ -205,7 +144,8 @@ class DDQNAgent:
             states = []
             for i in range(self.data_num):
                 states.append(np.array([state[i]]))
-            q_value = self.model.predict(states)
+            with graph.as_default():
+                q_value = self.model.predict(states)
             return np.argmax(q_value[0])
 
     def append_sample(self, state, action, reward, next_state, done):
@@ -257,16 +197,107 @@ class DDQNAgent:
             self.model.save_weights('aggregated_agent/networks/' + self.agent_type + '_rl.h5f')
 
 
+def load_model(agent_type):
+    networks = glob.glob('./networks/*.h5f')
+    if './networks/' + agent_type + '_rl.h5f' not in networks:
+        trained_model = load.load_model(agent_type)
+        for layer in trained_model.layers:
+            layer.trainable = False
+        rl_model = load.load_model(agent_type)
+        # rl_model = load_model('./networks/' + self.agent_type + '.h5')
+        concat_layer = Concatenate(name='concat2')([trained_model(rl_model.input), rl_model.layers[-1].output])
+        output_layer = Dense(2, activation='linear', name='q_value_output')(concat_layer)
+        model = Model(inputs=rl_model.input, outputs=output_layer)
+
+    else:
+        trained_model = load.load_model(agent_type)
+        for layer in trained_model.layers:
+            layer.trainable = False
+        rl_model = load.load_model(agent_type)
+        concat_layer = Concatenate(name='concat2')([trained_model(rl_model.input), rl_model.layers[-1].output])
+        output_layer = Dense(2, activation='linear', name='q_value_output')(concat_layer)
+        model = Model(inputs=rl_model.input, outputs=output_layer)
+        model.load_weights('aggregated_agent/networks/' + agent_type + '_rl.h5f')
+    model.compile(optimizer='adam', loss='mse')
+    model.summary()
+    return model
+
+
+
+# shared global variables
+total_step_count = 0
+total_episode = 0
+scores = []
+target_network = None
+
+# hyperparameter
+c_rb_size = 100000
+c_warm_up_step = 10000
+c_update_step_interval = 1000
+lr = 1e-4
+epsilon_min = 0.02
+epsilon_max = 1.0
+epsilon_period_decaying = 100000
+
+# other operating parameters
+n_save_model_episode_interval = 20
+tf.reset_default_graph()
+graph = tf.get_default_graph()  # todo : graph is not thread safe
+
+# self.sess = tf.InteractiveSession()
+# K.set_session(self.sess)
+# self.sess.run(tf.global_variables_initializer())
+
+
+# this is a replay memory of buy signal agent
+rb_bsa = deque(maxlen=c_rb_size)
+# this is a replay memory of buy order agent
+rb_boa = deque(maxlen=c_rb_size)
+# this is a replay memory of sell signal agent
+rb_ssa = deque(maxlen=c_rb_size)
+# this is a replay memory of sell order agent
+rb_soa = deque(maxlen=c_rb_size)
+
+# check lock when thread agent try appending state transition information into replay memory.
+lock_rb_append = threading.Lock()
+# check lock when thread agent try updating policy network using target network
+lock_update_policy_nw = threading.Lock()
+
+
+nw_bsa = load_model(agent_type='bsa')
+t_nw_bsa = load_model(agent_type='bsa')
+
+nw_boa = load_model(agent_type='boa')
+t_nw_boa = load_model(agent_type='boa')
+
+nw_ssa = load_model(agent_type='ssa')
+t_nw_ssa = load_model(agent_type='ssa')
+
+nw_soa = load_model(agent_type='soa')
+t_nw_soa = load_model(agent_type='soa')
+
+bsa = DDQNAgent('bsa', model=nw_bsa, target_model=t_nw_bsa, data_num=2, action_size=2, rb=rb_bsa)
+boa = DDQNAgent('boa', model=nw_boa, target_model=t_nw_boa, data_num=3, action_size=2, rb=rb_boa)
+ssa = DDQNAgent('ssa', model=nw_ssa, target_model=t_nw_ssa, data_num=4, action_size=2, rb=rb_ssa)
+soa = DDQNAgent('soa', model=nw_soa, target_model=t_nw_soa, data_num=4, action_size=2, rb=rb_soa)
+
+
 class Agents(threading.Thread):
     agent_name = ['BSA', 'BOA', 'SSA', 'SOA']
     step_limit = [61, 60, 1, 0]
     additional_reward_rate = 0.1
 
-    def __init__(self, env, n_max_episode, csv_writer, bsa, boa, ssa, soa):
+    def __init__(self, env, n_max_episode, csv_writer, _bsa, _boa, _ssa, _soa):
         super(Agents, self).__init__()
         self.env = env
         self.n_max_episode = n_max_episode
         self.cw = csv_writer
+
+        global bsa
+        global boa
+        global ssa
+        global soa
+
         self.agents = [bsa, boa, ssa, soa]
         self.sequence = 0
 
@@ -381,12 +412,14 @@ class Agents(threading.Thread):
     # Thread interactive with environment
     def run(self):
         global total_episode
+        global graph
         for ep in range(self.n_max_episode):
             done = False
             state = self.env.reset()
 
             if self.thread_step % c_update_step_interval == 0:
-                self.update_target_network()
+                with graph.as_default():
+                    self.update_target_network()
 
             reward_sum = 0
             step_count = 0
@@ -466,10 +499,10 @@ class MyTGym(tgym.TradingGymEnv):  # MyTGym 수정해야 함 -> agent 별 reward
         for j in range(secs):
             if j == 0:
                 price_at_signal = self.d_episodes_data[self.p_current_episode_ref_idx]['quote'].loc[
-                    self.c_range_timestamp[self.p_current_step_in_episode]]['Price(last executed)']  # 데이터 자체에 오타 나 있으므로 수정 x
+                    self.c_range_timestamp[self.p_current_step_in_episode]]['Price(last excuted)']  # 데이터 자체에 오타 나 있으므로 수정 x
             else:
                 price = self.d_episodes_data[self.p_current_episode_ref_idx]['quote'].loc[self.c_range_timestamp[
-                    self.p_current_step_in_episode+j]]['Price(last executed)']
+                    self.p_current_step_in_episode+j]]['Price(last excuted)']
                 gap = price - price_at_signal - threshold
                 width += gap
         rewards['BSA'] = width / secs
@@ -514,34 +547,15 @@ class FasterDQNAgent:
         train_log_file = open('train_log.csv', 'a', encoding='utf-8', newline='')
         csv_writer = csv.writer(train_log_file)
 
-        nw_bsa = load_model(agent_type='bsa')
-        t_nw_bsa = load_model(agent_type='bsa')
-
-        nw_boa = load_model(agent_type='boa')
-        t_nw_boa = load_model(agent_type='boa')
-
-        nw_ssa = load_model(agent_type='ssa')
-        t_nw_ssa = load_model(agent_type='ssa')
-
-        nw_soa = load_model(agent_type='soa')
-        t_nw_soa = load_model(agent_type='soa')
-
         for i in range(self.n_threads):
             env = MyTGym(episode_type='0', percent_goal_profit=2, percent_stop_loss=5, episode_duration_min=60)
-
-            buy_signal_agent = DDQNAgent('bsa', model=nw_bsa, target_model=t_nw_bsa, data_num=2, action_size=2, rb=rb_bsa)
-            buy_order_agent = DDQNAgent('boa', model=nw_boa, target_model=t_nw_boa, data_num=3, action_size=2, rb=rb_boa)
-            sell_signal_agent = DDQNAgent('ssa', model=nw_ssa, target_model=t_nw_ssa, data_num=4, action_size=2, rb=rb_ssa)
-            sell_order_agent = DDQNAgent('soa', model=nw_soa, target_model=t_nw_soa, data_num=4, action_size=2, rb=rb_soa)
-            agent = Agents(env, 10000, csv_writer, buy_signal_agent, buy_order_agent, sell_signal_agent, sell_order_agent)
+            agent = Agents(env, 10000, csv_writer, bsa, boa, ssa, soa)
             faster_dqn_agents.append(agent)
-
-        tf.reset_default_graph()
 
         for a in faster_dqn_agents:
             a.start()
 
 
 if __name__ == '__main__':
-    fa = FasterDQNAgent(2, 40)
+    fa = FasterDQNAgent(2, 40)  # thread, n_max_episdoe
     fa.play()
