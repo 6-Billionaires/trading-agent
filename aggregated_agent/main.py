@@ -108,37 +108,40 @@ lock_rb_append = threading.Lock()
 lock_update_policy_nw = threading.Lock()
 
 def load_model(agent_type):
-    networks = glob.glob('./networks/*.h5f')
-    if './networks/' + agent_type + '_rl.h5f' not in networks:
-        trained_model = load.load_model(agent_type)
-        for layer in trained_model.layers:
-            layer.trainable = False
-        rl_model = load.load_model(agent_type)
-        # rl_model = load_model('./networks/' + self.agent_type + '.h5')
-        concat_layer = Concatenate(name='concat2')([trained_model(rl_model.input), rl_model.layers[-1].output])
-        output_layer = Dense(2, activation='linear', name='q_value_output')(concat_layer)
-        model = Model(inputs=rl_model.input, outputs=output_layer)
-
-    else:
-        trained_model = load.load_model(agent_type)
-        for layer in trained_model.layers:
-            layer.trainable = False
-        rl_model = load.load_model(agent_type)
-        concat_layer = Concatenate(name='concat2')([trained_model(rl_model.input), rl_model.layers[-1].output])
-        output_layer = Dense(2, activation='linear', name='q_value_output')(concat_layer)
-        model = Model(inputs=rl_model.input, outputs=output_layer)
-        model.load_weights('aggregated_agent/networks/' + agent_type + '_rl.h5f')
-    model.compile(optimizer='adam', loss='mse')
-    model.summary()
-    return model
+    return None
+#     networks = glob.glob('./networks/*.h5f')
+#     if './networks/' + agent_type + '_rl.h5f' not in networks:
+#         trained_model = load.load_model(agent_type)
+#         for layer in trained_model.layers:
+#             layer.trainable = False
+#         rl_model = load.load_model(agent_type)
+#         # rl_model = load_model('./networks/' + self.agent_type + '.h5')
+#         concat_layer = Concatenate(name='concat2')([trained_model(rl_model.input), rl_model.layers[-1].output])
+#         output_layer = Dense(2, activation='linear', name='q_value_output')(concat_layer)
+#         model = Model(inputs=rl_model.input, outputs=output_layer)
+#
+#     else:
+#         trained_model = load.load_model(agent_type)
+#         for layer in trained_model.layers:
+#             layer.trainable = False
+#         rl_model = load.load_model(agent_type)
+#         concat_layer = Concatenate(name='concat2')([trained_model(rl_model.input), rl_model.layers[-1].output])
+#         output_layer = Dense(2, activation='linear', name='q_value_output')(concat_layer)
+#         model = Model(inputs=rl_model.input, outputs=output_layer)
+#         model.load_weights('aggregated_agent/networks/' + agent_type + '_rl.h5f')
+#     model.compile(optimizer='adam', loss='mse')
+#     model.summary()
+#     return model
 
 
 class DDQNAgent:
     def __init__(self, agent_type, model, target_model, data_num, action_size, rb):
         # load models
         self.agent_type = agent_type
-        self.model = model
-        self.target_model = target_model
+        # self.model = model
+        # self.target_model = target_model
+        self.model = self.load_model()
+        self.target_model = self.load_model()
 
         self.epsilon = 0.3
         self.epsilon_min = 0.001
@@ -154,8 +157,8 @@ class DDQNAgent:
     def load_model(self):
         networks = glob.glob('./networks/*.h5f')
         if './networks/' + self.agent_type + '_rl.h5f' not in networks:
-            trained_model = load.load_model(self.agent_type)
 
+            trained_model = load.load_model(self.agent_type)
             for layer in trained_model.layers:
                 layer.trainable = False
             rl_model = load.load_model(self.agent_type)
