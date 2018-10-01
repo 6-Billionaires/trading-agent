@@ -1,0 +1,14 @@
+1. {'batch_size': 10, 'epochs': 100, 'neurons': 15}
+- 28s - loss: 2.7773e-04 - mean_absolute_error: 0.0105 - mean_absolute_percentage_error: 2567416.9194 - mean_pred: 0.9573 - theil_u: 0.0016 - r: nan
+
+2. {'batch_size': 10, 'epochs': 10, 'neurons': 15}
+- 27s - loss: 0.0251 - mean_absolute_error: 0.1150 - mean_absolute_percentage_error: 34162295.8477 - mean_pred: 0.9566 - theil_u: 0.0111 - r: 5.6391
+
+3. {'batch_size': 10, 'epochs': 10, 'neurons': 20}
+- 19s - loss: 0.0202 - mean_absolute_error: 0.1035 - mean_absolute_percentage_error: 29944652.4587 - mean_pred: 0.9568 - theil_u: 0.0102 - r: 6.1006
+
+4. {'batch_size': 10, 'epochs': 10, 'neurons': 25}
+- 28s - loss: 0.0085 - mean_absolute_error: 0.0625 - mean_absolute_percentage_error: 20736036.8652 - mean_pred: 0.9579 - theil_u: 0.0037 - r: 4.8339
+
+5. {'batch_size': 10, 'epochs': 10, 'neurons': 30}
+- 19s - loss: 0.0637 - mean_absolute_error: 0.1975 - mean_absolute_percentage_error: 61004635.4115 - mean_pred: 0.9551 - theil_u: 0.0327 - r: nan

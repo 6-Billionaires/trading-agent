@@ -1,0 +1,129 @@
+/Users/onmylife/.virtualenvs/trading/bin/python /Development/6-Billionaires/trading-agent/buy_order_agent/seungho/main_3_train.py
+/Users/onmylife/.virtualenvs/trading/lib/python3.6/site-packages/h5py/__init__.py:36: FutureWarning: Conversion of the second argument of issubdtype from `float` to `np.floating` is deprecated. In future, it will be treated as `np.float64 == np.dtype(float).type`.
+  from ._conv import register_converters as _register_converters
+Using TensorFlow backend.
+__________________________________________________________________________________________________
+Layer (type)                    Output Shape         Param #     Connected to
+==================================================================================================
+x1 (InputLayer)                 (None, 10, 2, 120, 2 0
+__________________________________________________________________________________________________
+x2 (InputLayer)                 (None, 120, 11)      0
+__________________________________________________________________________________________________
+conv3d_1 (Conv3D)               (None, 9, 2, 116, 16 336         x1[0][0]
+__________________________________________________________________________________________________
+conv3d_2 (Conv3D)               (None, 10, 1, 116, 1 336         x1[0][0]
+__________________________________________________________________________________________________
+conv1d_1 (Conv1D)               (None, 118, 16)      544         x2[0][0]
+__________________________________________________________________________________________________
+leaky_re_lu_3 (LeakyReLU)       (None, 9, 2, 116, 16 0           conv3d_1[0][0]
+__________________________________________________________________________________________________
+leaky_re_lu_4 (LeakyReLU)       (None, 10, 1, 116, 1 0           conv3d_2[0][0]
+__________________________________________________________________________________________________
+leaky_re_lu_1 (LeakyReLU)       (None, 118, 16)      0           conv1d_1[0][0]
+__________________________________________________________________________________________________
+max_pooling3d_1 (MaxPooling3D)  (None, 9, 2, 38, 16) 0           leaky_re_lu_3[0][0]
+__________________________________________________________________________________________________
+max_pooling3d_2 (MaxPooling3D)  (None, 10, 1, 38, 16 0           leaky_re_lu_4[0][0]
+__________________________________________________________________________________________________
+max_pooling1d_1 (MaxPooling1D)  (None, 39, 16)       0           leaky_re_lu_1[0][0]
+__________________________________________________________________________________________________
+conv3d_3 (Conv3D)               (None, 9, 1, 34, 32) 5152        max_pooling3d_1[0][0]
+__________________________________________________________________________________________________
+conv3d_4 (Conv3D)               (None, 9, 1, 34, 32) 5152        max_pooling3d_2[0][0]
+__________________________________________________________________________________________________
+conv1d_2 (Conv1D)               (None, 37, 32)       1568        max_pooling1d_1[0][0]
+__________________________________________________________________________________________________
+leaky_re_lu_5 (LeakyReLU)       (None, 9, 1, 34, 32) 0           conv3d_3[0][0]
+__________________________________________________________________________________________________
+leaky_re_lu_6 (LeakyReLU)       (None, 9, 1, 34, 32) 0           conv3d_4[0][0]
+__________________________________________________________________________________________________
+leaky_re_lu_2 (LeakyReLU)       (None, 37, 32)       0           conv1d_2[0][0]
+__________________________________________________________________________________________________
+max_pooling3d_3 (MaxPooling3D)  (None, 9, 1, 6, 32)  0           leaky_re_lu_5[0][0]
+__________________________________________________________________________________________________
+max_pooling3d_4 (MaxPooling3D)  (None, 9, 1, 6, 32)  0           leaky_re_lu_6[0][0]
+__________________________________________________________________________________________________
+max_pooling1d_2 (MaxPooling1D)  (None, 18, 32)       0           leaky_re_lu_2[0][0]
+__________________________________________________________________________________________________
+concatenate_1 (Concatenate)     (None, 9, 1, 6, 64)  0           max_pooling3d_3[0][0]
+                                                                 max_pooling3d_4[0][0]
+__________________________________________________________________________________________________
+flatten_2 (Flatten)             (None, 576)          0           max_pooling1d_2[0][0]
+__________________________________________________________________________________________________
+flatten_1 (Flatten)             (None, 3456)         0           concatenate_1[0][0]
+__________________________________________________________________________________________________
+x3 (InputLayer)                 (None, 7)            0
+__________________________________________________________________________________________________
+concatenate_2 (Concatenate)     (None, 4039)         0           flatten_2[0][0]
+                                                                 flatten_1[0][0]
+                                                                 x3[0][0]
+__________________________________________________________________________________________________
+dense_1 (Dense)                 (None, 20)           80800       concatenate_2[0][0]
+__________________________________________________________________________________________________
+dense_2 (Dense)                 (None, 1)            21          dense_1[0][0]
+==================================================================================================
+Total params: 93,909
+Trainable params: 93,909
+Non-trainable params: 0
+__________________________________________________________________________________________________
+loading data from ticker 000910, yyyymmdd 20180424 is finished.
+loading data from ticker 002150, yyyymmdd 20180502 is finished.
+loading data from ticker 004310, yyyymmdd 20180405 is finished.
+loading data from ticker 002100, yyyymmdd 20180503 is finished.
+loading data from ticker 000430, yyyymmdd 20180503 is finished.
+loading data from ticker 002410, yyyymmdd 20180502 is finished.
+loading data from ticker 002690, yyyymmdd 20180503 is finished.
+loading data from ticker 002760, yyyymmdd 20180405 is finished.
+loading data from ticker 003580, yyyymmdd 20180418 is finished.
+loading data from ticker 000720, yyyymmdd 20180502 is finished.
+loading data from ticker 003350, yyyymmdd 20180403 is finished.
+loading data from ticker 002820, yyyymmdd 20180508 is finished.
+loading data from ticker 000520, yyyymmdd 20180410 is finished.
+loading data from ticker 003010, yyyymmdd 20180424 is finished.
+loading data from ticker 001210, yyyymmdd 20180423 is finished.
+loading data from ticker 003520, yyyymmdd 20180405 is finished.
+loading data from ticker 000950, yyyymmdd 20180508 is finished.
+loading data from ticker 003410, yyyymmdd 20180502 is finished.
+loading data from ticker 002900, yyyymmdd 20180503 is finished.
+loading data from ticker 001470, yyyymmdd 20180420 is finished.
+loading data from ticker 002150, yyyymmdd 20180417 is finished.
+loading data from ticker 001470, yyyymmdd 20180424 is finished.
+loading data from ticker 002000, yyyymmdd 20180508 is finished.
+loading data from ticker 003010, yyyymmdd 20180502 is finished.
+loading data from ticker 002900, yyyymmdd 20180420 is finished.
+loading data from ticker 001260, yyyymmdd 20180420 is finished.
+loading data from ticker 001550, yyyymmdd 20180503 is finished.
+loading data from ticker 003010, yyyymmdd 20180508 is finished.
+loading data from ticker 002690, yyyymmdd 20180508 is finished.
+loading data from ticker 003300, yyyymmdd 20180420 is finished.
+loading data from ticker 004090, yyyymmdd 20180502 is finished.
+loading data from ticker 002760, yyyymmdd 20180409 is finished.
+loading data from ticker 004440, yyyymmdd 20180502 is finished.
+loading data from ticker 001260, yyyymmdd 20180423 is finished.
+loading data from ticker 002410, yyyymmdd 20180420 is finished.
+loading data from ticker 002140, yyyymmdd 20180503 is finished.
+total x1 : 1332, total x2 : 1332, total x3 : 1332, total y1 : 1332
+start to train.
+Epoch 1/10
+2018-10-01 09:31:06.564920: I tensorflow/core/platform/cpu_feature_guard.cc:140] Your CPU supports instructions that this TensorFlow binary was not compiled to use: AVX2 FMA
+ - 30s - loss: 1.1556 - mean_absolute_error: 0.7633 - mean_absolute_percentage_error: 226330857.3467 - mean_pred: 0.9185 - theil_u: 0.3271 - r: 4.9795
+Epoch 2/10
+ - 31s - loss: 0.1973 - mean_absolute_error: 0.3480 - mean_absolute_percentage_error: 109251321.0015 - mean_pred: 0.9493 - theil_u: 0.0889 - r: 7.5756
+Epoch 3/10
+ - 30s - loss: 0.1206 - mean_absolute_error: 0.2716 - mean_absolute_percentage_error: 85548575.0769 - mean_pred: 0.9535 - theil_u: 0.0577 - r: 8.5103
+Epoch 4/10
+ - 30s - loss: 0.1062 - mean_absolute_error: 0.2486 - mean_absolute_percentage_error: 81484838.7240 - mean_pred: 0.9485 - theil_u: 0.0472 - r: 7.3205
+Epoch 5/10
+ - 28s - loss: 0.0510 - mean_absolute_error: 0.1744 - mean_absolute_percentage_error: 60315983.1032 - mean_pred: 0.9584 - theil_u: 0.0204 - r: 6.5911
+Epoch 6/10
+ - 29s - loss: 0.0552 - mean_absolute_error: 0.1691 - mean_absolute_percentage_error: 53474776.9098 - mean_pred: 0.9559 - theil_u: 0.0237 - r: nan
+Epoch 7/10
+ - 29s - loss: 0.0714 - mean_absolute_error: 0.1899 - mean_absolute_percentage_error: 62082633.5961 - mean_pred: 0.9548 - theil_u: 0.0292 - r: 5.9005
+Epoch 8/10
+ - 28s - loss: 0.0253 - mean_absolute_error: 0.1130 - mean_absolute_percentage_error: 38357938.6146 - mean_pred: 0.9561 - theil_u: 0.0109 - r: 6.3104
+Epoch 9/10
+ - 28s - loss: 0.0838 - mean_absolute_error: 0.1878 - mean_absolute_percentage_error: 62053499.6562 - mean_pred: 0.9548 - theil_u: 0.0286 - r: 7.0358
+Epoch 10/10
+ - 19s - loss: 0.0202 - mean_absolute_error: 0.1035 - mean_absolute_percentage_error: 29944652.4587 - mean_pred: 0.9568 - theil_u: 0.0102 - r: 6.1006
+
+Process finished with exit code 0

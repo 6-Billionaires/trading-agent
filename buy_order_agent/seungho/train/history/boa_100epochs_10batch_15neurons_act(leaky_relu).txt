@@ -1,0 +1,309 @@
+/Users/onmylife/.virtualenvs/trading/bin/python /Development/6-Billionaires/trading-agent/buy_order_agent/seungho/main_3_train.py
+/Users/onmylife/.virtualenvs/trading/lib/python3.6/site-packages/h5py/__init__.py:36: FutureWarning: Conversion of the second argument of issubdtype from `float` to `np.floating` is deprecated. In future, it will be treated as `np.float64 == np.dtype(float).type`.
+  from ._conv import register_converters as _register_converters
+Using TensorFlow backend.
+__________________________________________________________________________________________________
+Layer (type)                    Output Shape         Param #     Connected to
+==================================================================================================
+x1 (InputLayer)                 (None, 10, 2, 120, 2 0
+__________________________________________________________________________________________________
+x2 (InputLayer)                 (None, 120, 11)      0
+__________________________________________________________________________________________________
+conv3d_1 (Conv3D)               (None, 9, 2, 116, 16 336         x1[0][0]
+__________________________________________________________________________________________________
+conv3d_2 (Conv3D)               (None, 10, 1, 116, 1 336         x1[0][0]
+__________________________________________________________________________________________________
+conv1d_1 (Conv1D)               (None, 118, 16)      544         x2[0][0]
+__________________________________________________________________________________________________
+leaky_re_lu_3 (LeakyReLU)       (None, 9, 2, 116, 16 0           conv3d_1[0][0]
+__________________________________________________________________________________________________
+leaky_re_lu_4 (LeakyReLU)       (None, 10, 1, 116, 1 0           conv3d_2[0][0]
+__________________________________________________________________________________________________
+leaky_re_lu_1 (LeakyReLU)       (None, 118, 16)      0           conv1d_1[0][0]
+__________________________________________________________________________________________________
+max_pooling3d_1 (MaxPooling3D)  (None, 9, 2, 38, 16) 0           leaky_re_lu_3[0][0]
+__________________________________________________________________________________________________
+max_pooling3d_2 (MaxPooling3D)  (None, 10, 1, 38, 16 0           leaky_re_lu_4[0][0]
+__________________________________________________________________________________________________
+max_pooling1d_1 (MaxPooling1D)  (None, 39, 16)       0           leaky_re_lu_1[0][0]
+__________________________________________________________________________________________________
+conv3d_3 (Conv3D)               (None, 9, 1, 34, 32) 5152        max_pooling3d_1[0][0]
+__________________________________________________________________________________________________
+conv3d_4 (Conv3D)               (None, 9, 1, 34, 32) 5152        max_pooling3d_2[0][0]
+__________________________________________________________________________________________________
+conv1d_2 (Conv1D)               (None, 37, 32)       1568        max_pooling1d_1[0][0]
+__________________________________________________________________________________________________
+leaky_re_lu_5 (LeakyReLU)       (None, 9, 1, 34, 32) 0           conv3d_3[0][0]
+__________________________________________________________________________________________________
+leaky_re_lu_6 (LeakyReLU)       (None, 9, 1, 34, 32) 0           conv3d_4[0][0]
+__________________________________________________________________________________________________
+leaky_re_lu_2 (LeakyReLU)       (None, 37, 32)       0           conv1d_2[0][0]
+__________________________________________________________________________________________________
+max_pooling3d_3 (MaxPooling3D)  (None, 9, 1, 6, 32)  0           leaky_re_lu_5[0][0]
+__________________________________________________________________________________________________
+max_pooling3d_4 (MaxPooling3D)  (None, 9, 1, 6, 32)  0           leaky_re_lu_6[0][0]
+__________________________________________________________________________________________________
+max_pooling1d_2 (MaxPooling1D)  (None, 18, 32)       0           leaky_re_lu_2[0][0]
+__________________________________________________________________________________________________
+concatenate_1 (Concatenate)     (None, 9, 1, 6, 64)  0           max_pooling3d_3[0][0]
+                                                                 max_pooling3d_4[0][0]
+__________________________________________________________________________________________________
+flatten_2 (Flatten)             (None, 576)          0           max_pooling1d_2[0][0]
+__________________________________________________________________________________________________
+flatten_1 (Flatten)             (None, 3456)         0           concatenate_1[0][0]
+__________________________________________________________________________________________________
+x3 (InputLayer)                 (None, 7)            0
+__________________________________________________________________________________________________
+concatenate_2 (Concatenate)     (None, 4039)         0           flatten_2[0][0]
+                                                                 flatten_1[0][0]
+                                                                 x3[0][0]
+__________________________________________________________________________________________________
+dense_1 (Dense)                 (None, 15)           60600       concatenate_2[0][0]
+__________________________________________________________________________________________________
+dense_2 (Dense)                 (None, 1)            16          dense_1[0][0]
+==================================================================================================
+Total params: 73,704
+Trainable params: 73,704
+Non-trainable params: 0
+__________________________________________________________________________________________________
+loading data from ticker 000910, yyyymmdd 20180424 is finished.
+loading data from ticker 002150, yyyymmdd 20180502 is finished.
+loading data from ticker 004310, yyyymmdd 20180405 is finished.
+loading data from ticker 002100, yyyymmdd 20180503 is finished.
+loading data from ticker 000430, yyyymmdd 20180503 is finished.
+loading data from ticker 002410, yyyymmdd 20180502 is finished.
+loading data from ticker 002690, yyyymmdd 20180503 is finished.
+loading data from ticker 002760, yyyymmdd 20180405 is finished.
+loading data from ticker 003580, yyyymmdd 20180418 is finished.
+loading data from ticker 000720, yyyymmdd 20180502 is finished.
+loading data from ticker 003350, yyyymmdd 20180403 is finished.
+loading data from ticker 002820, yyyymmdd 20180508 is finished.
+loading data from ticker 000520, yyyymmdd 20180410 is finished.
+loading data from ticker 003010, yyyymmdd 20180424 is finished.
+loading data from ticker 001210, yyyymmdd 20180423 is finished.
+loading data from ticker 003520, yyyymmdd 20180405 is finished.
+loading data from ticker 000950, yyyymmdd 20180508 is finished.
+loading data from ticker 003410, yyyymmdd 20180502 is finished.
+loading data from ticker 002900, yyyymmdd 20180503 is finished.
+loading data from ticker 001470, yyyymmdd 20180420 is finished.
+loading data from ticker 002150, yyyymmdd 20180417 is finished.
+loading data from ticker 001470, yyyymmdd 20180424 is finished.
+loading data from ticker 002000, yyyymmdd 20180508 is finished.
+loading data from ticker 003010, yyyymmdd 20180502 is finished.
+loading data from ticker 002900, yyyymmdd 20180420 is finished.
+loading data from ticker 001260, yyyymmdd 20180420 is finished.
+loading data from ticker 001550, yyyymmdd 20180503 is finished.
+loading data from ticker 003010, yyyymmdd 20180508 is finished.
+loading data from ticker 002690, yyyymmdd 20180508 is finished.
+loading data from ticker 003300, yyyymmdd 20180420 is finished.
+loading data from ticker 004090, yyyymmdd 20180502 is finished.
+loading data from ticker 002760, yyyymmdd 20180409 is finished.
+loading data from ticker 004440, yyyymmdd 20180502 is finished.
+loading data from ticker 001260, yyyymmdd 20180423 is finished.
+loading data from ticker 002410, yyyymmdd 20180420 is finished.
+loading data from ticker 002140, yyyymmdd 20180503 is finished.
+total x1 : 1332, total x2 : 1332, total x3 : 1332, total y1 : 1332
+start to train.
+Epoch 1/100
+2018-10-01 09:03:35.137873: I tensorflow/core/platform/cpu_feature_guard.cc:140] Your CPU supports instructions that this TensorFlow binary was not compiled to use: AVX2 FMA
+ - 18s - loss: 1.3849 - mean_absolute_error: 0.8329 - mean_absolute_percentage_error: 247842347.8321 - mean_pred: 0.8987 - theil_u: 0.3608 - r: -2.0941e-01
+Epoch 2/100
+ - 17s - loss: 0.2822 - mean_absolute_error: 0.4071 - mean_absolute_percentage_error: 128220072.7185 - mean_pred: 0.9452 - theil_u: 0.1038 - r: nan
+Epoch 3/100
+ - 17s - loss: 0.2093 - mean_absolute_error: 0.3514 - mean_absolute_percentage_error: 113582736.2865 - mean_pred: 0.9571 - theil_u: 0.0740 - r: 5.4465
+Epoch 4/100
+ - 17s - loss: 0.2060 - mean_absolute_error: 0.3235 - mean_absolute_percentage_error: 109332545.2992 - mean_pred: 0.9549 - theil_u: 0.0682 - r: 5.4083
+Epoch 5/100
+ - 17s - loss: 0.0381 - mean_absolute_error: 0.1281 - mean_absolute_percentage_error: 41192178.9633 - mean_pred: 0.9496 - theil_u: 0.0148 - r: 5.7555
+Epoch 6/100
+ - 17s - loss: 0.0537 - mean_absolute_error: 0.1567 - mean_absolute_percentage_error: 52358758.5312 - mean_pred: 0.9552 - theil_u: 0.0241 - r: 8.9831
+Epoch 7/100
+ - 17s - loss: 0.0284 - mean_absolute_error: 0.1242 - mean_absolute_percentage_error: 39341603.6759 - mean_pred: 0.9582 - theil_u: 0.0094 - r: 6.1929
+Epoch 8/100
+ - 17s - loss: 0.0167 - mean_absolute_error: 0.0924 - mean_absolute_percentage_error: 29714783.4757 - mean_pred: 0.9560 - theil_u: 0.0056 - r: 3.8212
+Epoch 9/100
+ - 17s - loss: 0.0437 - mean_absolute_error: 0.1519 - mean_absolute_percentage_error: 50693028.6389 - mean_pred: 0.9561 - theil_u: 0.0146 - r: 6.0401
+Epoch 10/100
+ - 17s - loss: 0.1622 - mean_absolute_error: 0.2688 - mean_absolute_percentage_error: 80204272.2267 - mean_pred: 0.9489 - theil_u: 0.0446 - r: 4.9360
+Epoch 11/100
+ - 17s - loss: 0.0174 - mean_absolute_error: 0.0921 - mean_absolute_percentage_error: 29584567.1754 - mean_pred: 0.9583 - theil_u: 0.0066 - r: 6.3608
+Epoch 12/100
+ - 17s - loss: 0.0063 - mean_absolute_error: 0.0614 - mean_absolute_percentage_error: 19786949.3431 - mean_pred: 0.9567 - theil_u: 0.0024 - r: 6.0557
+Epoch 13/100
+ - 17s - loss: 0.0022 - mean_absolute_error: 0.0343 - mean_absolute_percentage_error: 10801416.8443 - mean_pred: 0.9562 - theil_u: 0.0011 - r: 6.8258
+Epoch 14/100
+ - 17s - loss: 9.7540e-04 - mean_absolute_error: 0.0217 - mean_absolute_percentage_error: 7125755.1860 - mean_pred: 0.9574 - theil_u: 3.7498e-04 - r: 5.3976
+Epoch 15/100
+ - 17s - loss: 0.0012 - mean_absolute_error: 0.0265 - mean_absolute_percentage_error: 9059515.0642 - mean_pred: 0.9574 - theil_u: 5.0745e-04 - r: 5.9697
+Epoch 16/100
+ - 17s - loss: 0.0061 - mean_absolute_error: 0.0536 - mean_absolute_percentage_error: 17450960.7442 - mean_pred: 0.9555 - theil_u: 0.0042 - r: nan
+Epoch 17/100
+ - 17s - loss: 0.8949 - mean_absolute_error: 0.5281 - mean_absolute_percentage_error: 142974577.9730 - mean_pred: 0.8923 - theil_u: 0.1996 - r: 9.0381
+Epoch 18/100
+ - 17s - loss: 0.0124 - mean_absolute_error: 0.0789 - mean_absolute_percentage_error: 25667933.2931 - mean_pred: 0.9545 - theil_u: 0.0074 - r: nan
+Epoch 19/100
+ - 17s - loss: 0.0017 - mean_absolute_error: 0.0317 - mean_absolute_percentage_error: 9511029.5476 - mean_pred: 0.9574 - theil_u: 0.0014 - r: 8.2925
+Epoch 20/100
+ - 17s - loss: 3.8967e-04 - mean_absolute_error: 0.0154 - mean_absolute_percentage_error: 4555010.4242 - mean_pred: 0.9570 - theil_u: 1.5324e-04 - r: 5.6916
+Epoch 21/100
+ - 17s - loss: 1.6902e-04 - mean_absolute_error: 0.0100 - mean_absolute_percentage_error: 3103405.6129 - mean_pred: 0.9570 - theil_u: 1.0512e-04 - r: nan
+Epoch 22/100
+ - 17s - loss: 3.9705e-04 - mean_absolute_error: 0.0147 - mean_absolute_percentage_error: 4600777.5378 - mean_pred: 0.9572 - theil_u: 2.7181e-04 - r: 9.8322
+Epoch 23/100
+ - 17s - loss: 4.4110e-05 - mean_absolute_error: 0.0052 - mean_absolute_percentage_error: 1567620.0875 - mean_pred: 0.9572 - theil_u: 1.9597e-05 - r: nan
+Epoch 24/100
+ - 17s - loss: 4.6608e-05 - mean_absolute_error: 0.0049 - mean_absolute_percentage_error: 1469329.0319 - mean_pred: 0.9572 - theil_u: 2.1653e-05 - r: 5.8657
+Epoch 25/100
+ - 17s - loss: 5.7297e-06 - mean_absolute_error: 0.0017 - mean_absolute_percentage_error: 531161.8668 - mean_pred: 0.9571 - theil_u: 2.1602e-06 - r: 6.8885
+Epoch 26/100
+ - 17s - loss: 5.0288e-06 - mean_absolute_error: 0.0017 - mean_absolute_percentage_error: 553636.8458 - mean_pred: 0.9572 - theil_u: 2.1070e-06 - r: 7.2137
+Epoch 27/100
+ - 17s - loss: 3.0613e-06 - mean_absolute_error: 0.0013 - mean_absolute_percentage_error: 387483.5508 - mean_pred: 0.9572 - theil_u: 1.2621e-06 - r: 6.3735
+Epoch 28/100
+ - 17s - loss: 7.0945e-05 - mean_absolute_error: 0.0055 - mean_absolute_percentage_error: 1727582.2637 - mean_pred: 0.9572 - theil_u: 3.9281e-05 - r: 7.6078
+Epoch 29/100
+ - 17s - loss: 0.0113 - mean_absolute_error: 0.0624 - mean_absolute_percentage_error: 18044586.0066 - mean_pred: 0.9577 - theil_u: 0.0061 - r: nan
+Epoch 30/100
+ - 17s - loss: 0.0389 - mean_absolute_error: 0.1468 - mean_absolute_percentage_error: 46382429.4499 - mean_pred: 0.9534 - theil_u: 0.0129 - r: 5.8431
+Epoch 31/100
+ - 17s - loss: 0.0082 - mean_absolute_error: 0.0572 - mean_absolute_percentage_error: 16202497.6305 - mean_pred: 0.9583 - theil_u: 0.0033 - r: 7.4906
+Epoch 32/100
+ - 17s - loss: 3.3685e-04 - mean_absolute_error: 0.0109 - mean_absolute_percentage_error: 3372584.5273 - mean_pred: 0.9576 - theil_u: 1.1411e-04 - r: nan
+Epoch 33/100
+ - 17s - loss: 4.9040e-05 - mean_absolute_error: 0.0050 - mean_absolute_percentage_error: 1434889.7180 - mean_pred: 0.9572 - theil_u: 1.5969e-05 - r: 5.9170
+Epoch 34/100
+ - 17s - loss: 1.5327e-05 - mean_absolute_error: 0.0028 - mean_absolute_percentage_error: 785733.6804 - mean_pred: 0.9572 - theil_u: 5.7824e-06 - r: 5.0607
+Epoch 35/100
+ - 17s - loss: 2.4841e-04 - mean_absolute_error: 0.0112 - mean_absolute_percentage_error: 3388068.5150 - mean_pred: 0.9572 - theil_u: 6.1786e-05 - r: 4.8077
+Epoch 36/100
+ - 17s - loss: 0.0077 - mean_absolute_error: 0.0670 - mean_absolute_percentage_error: 20761161.8904 - mean_pred: 0.9566 - theil_u: 0.0033 - r: 4.2205
+Epoch 37/100
+ - 17s - loss: 0.0837 - mean_absolute_error: 0.1999 - mean_absolute_percentage_error: 59850526.0761 - mean_pred: 0.9532 - theil_u: 0.0310 - r: 6.4861
+Epoch 38/100
+ - 17s - loss: 0.0874 - mean_absolute_error: 0.1768 - mean_absolute_percentage_error: 50052512.1142 - mean_pred: 0.9540 - theil_u: 0.0222 - r: 8.3420
+Epoch 39/100
+ - 17s - loss: 4.9982e-04 - mean_absolute_error: 0.0155 - mean_absolute_percentage_error: 4405886.5421 - mean_pred: 0.9574 - theil_u: 2.3540e-04 - r: 6.3406
+Epoch 40/100
+ - 17s - loss: 5.5815e-05 - mean_absolute_error: 0.0048 - mean_absolute_percentage_error: 1402641.1577 - mean_pred: 0.9572 - theil_u: 1.9330e-05 - r: 5.3860
+Epoch 41/100
+ - 17s - loss: 2.8764e-06 - mean_absolute_error: 0.0013 - mean_absolute_percentage_error: 394576.3925 - mean_pred: 0.9571 - theil_u: 1.0556e-06 - r: 7.1425
+Epoch 42/100
+ - 17s - loss: 1.8854e-07 - mean_absolute_error: 3.1720e-04 - mean_absolute_percentage_error: 94224.8490 - mean_pred: 0.9572 - theil_u: 1.1017e-07 - r: 9.0831
+Epoch 43/100
+ - 18s - loss: 2.5020e-08 - mean_absolute_error: 9.8293e-05 - mean_absolute_percentage_error: 30206.5730 - mean_pred: 0.9572 - theil_u: 8.6408e-09 - r: 5.9031
+Epoch 44/100
+ - 17s - loss: 3.8027e-09 - mean_absolute_error: 4.1156e-05 - mean_absolute_percentage_error: 12448.9803 - mean_pred: 0.9572 - theil_u: 1.2048e-09 - r: 4.6801
+Epoch 45/100
+ - 17s - loss: 1.9126e-09 - mean_absolute_error: 2.9137e-05 - mean_absolute_percentage_error: 8796.6783 - mean_pred: 0.9572 - theil_u: 7.1741e-10 - r: 7.2776
+Epoch 46/100
+ - 17s - loss: 2.1700e-09 - mean_absolute_error: 3.3798e-05 - mean_absolute_percentage_error: 9989.8907 - mean_pred: 0.9572 - theil_u: 9.4787e-10 - r: 5.3134
+Epoch 47/100
+ - 17s - loss: 1.2532e-06 - mean_absolute_error: 6.0876e-04 - mean_absolute_percentage_error: 186168.0466 - mean_pred: 0.9571 - theil_u: 4.3155e-07 - r: 5.1562
+Epoch 48/100
+ - 17s - loss: 3.7404e-05 - mean_absolute_error: 0.0038 - mean_absolute_percentage_error: 1121008.8855 - mean_pred: 0.9573 - theil_u: 0.0015 - r: nan
+Epoch 49/100
+ - 17s - loss: 0.0633 - mean_absolute_error: 0.1671 - mean_absolute_percentage_error: 47014169.1448 - mean_pred: 0.9524 - theil_u: 0.0197 - r: 5.4401
+Epoch 50/100
+ - 17s - loss: 0.0206 - mean_absolute_error: 0.0927 - mean_absolute_percentage_error: 27958110.2704 - mean_pred: 0.9571 - theil_u: 0.0071 - r: 6.0756
+Epoch 51/100
+ - 17s - loss: 0.0100 - mean_absolute_error: 0.0689 - mean_absolute_percentage_error: 21336829.8656 - mean_pred: 0.9575 - theil_u: 0.0044 - r: 8.3531
+Epoch 52/100
+ - 17s - loss: 0.0020 - mean_absolute_error: 0.0244 - mean_absolute_percentage_error: 6792865.0240 - mean_pred: 0.9561 - theil_u: 6.5184e-04 - r: 6.2050
+Epoch 53/100
+ - 17s - loss: 3.3051e-04 - mean_absolute_error: 0.0124 - mean_absolute_percentage_error: 3447381.0683 - mean_pred: 0.9572 - theil_u: 9.3414e-05 - r: 6.3480
+Epoch 54/100
+ - 17s - loss: 1.9343e-04 - mean_absolute_error: 0.0098 - mean_absolute_percentage_error: 2744713.0855 - mean_pred: 0.9571 - theil_u: 5.2192e-05 - r: 6.9688
+Epoch 55/100
+ - 17s - loss: 1.5193e-05 - mean_absolute_error: 0.0026 - mean_absolute_percentage_error: 790355.4531 - mean_pred: 0.9571 - theil_u: 5.4655e-06 - r: 5.1020
+Epoch 56/100
+ - 17s - loss: 3.8175e-04 - mean_absolute_error: 0.0137 - mean_absolute_percentage_error: 3851933.9856 - mean_pred: 0.9571 - theil_u: 1.6521e-04 - r: 6.0684
+Epoch 57/100
+ - 17s - loss: 8.0878e-04 - mean_absolute_error: 0.0170 - mean_absolute_percentage_error: 4664137.8922 - mean_pred: 0.9569 - theil_u: 2.9736e-04 - r: 6.2197
+Epoch 58/100
+ - 17s - loss: 0.0098 - mean_absolute_error: 0.0682 - mean_absolute_percentage_error: 20700507.1823 - mean_pred: 0.9546 - theil_u: 0.0045 - r: 7.7257
+Epoch 59/100
+ - 17s - loss: 0.1494 - mean_absolute_error: 0.2582 - mean_absolute_percentage_error: 71262231.5642 - mean_pred: 0.9486 - theil_u: 0.0482 - r: 6.7609
+Epoch 60/100
+ - 17s - loss: 0.0050 - mean_absolute_error: 0.0455 - mean_absolute_percentage_error: 12381508.0978 - mean_pred: 0.9561 - theil_u: 0.0016 - r: 10.1841
+Epoch 61/100
+ - 17s - loss: 7.9038e-05 - mean_absolute_error: 0.0056 - mean_absolute_percentage_error: 1890292.1803 - mean_pred: 0.9572 - theil_u: 4.4933e-05 - r: 6.9664
+Epoch 62/100
+ - 18s - loss: 4.5392e-06 - mean_absolute_error: 0.0015 - mean_absolute_percentage_error: 421539.9824 - mean_pred: 0.9571 - theil_u: 1.5002e-06 - r: 5.3389
+Epoch 63/100
+ - 17s - loss: 8.9647e-07 - mean_absolute_error: 6.9732e-04 - mean_absolute_percentage_error: 228365.3582 - mean_pred: 0.9572 - theil_u: 4.2031e-07 - r: 5.8004
+Epoch 64/100
+ - 17s - loss: 6.5249e-07 - mean_absolute_error: 5.8162e-04 - mean_absolute_percentage_error: 197693.4089 - mean_pred: 0.9572 - theil_u: 2.6089e-07 - r: 5.9371
+Epoch 65/100
+ - 17s - loss: 5.7430e-06 - mean_absolute_error: 0.0018 - mean_absolute_percentage_error: 610313.0470 - mean_pred: 0.9572 - theil_u: 2.9061e-06 - r: 7.2257
+Epoch 66/100
+ - 17s - loss: 3.9950e-07 - mean_absolute_error: 4.4043e-04 - mean_absolute_percentage_error: 136878.2588 - mean_pred: 0.9572 - theil_u: 3.0432e-07 - r: 7.2904
+Epoch 67/100
+ - 17s - loss: 1.0180e-05 - mean_absolute_error: 0.0023 - mean_absolute_percentage_error: 735065.7275 - mean_pred: 0.9572 - theil_u: 4.5419e-06 - r: 8.9416
+Epoch 68/100
+ - 17s - loss: 5.0831e-05 - mean_absolute_error: 0.0042 - mean_absolute_percentage_error: 1506925.2890 - mean_pred: 0.9571 - theil_u: 2.7521e-05 - r: 5.2798
+Epoch 69/100
+ - 17s - loss: 0.0037 - mean_absolute_error: 0.0407 - mean_absolute_percentage_error: 13934336.1778 - mean_pred: 0.9571 - theil_u: 0.0015 - r: 6.1808
+Epoch 70/100
+ - 17s - loss: 0.0234 - mean_absolute_error: 0.1088 - mean_absolute_percentage_error: 32355234.9769 - mean_pred: 0.9548 - theil_u: 0.0085 - r: 7.2399
+Epoch 71/100
+ - 17s - loss: 0.0106 - mean_absolute_error: 0.0703 - mean_absolute_percentage_error: 19453020.1217 - mean_pred: 0.9564 - theil_u: 0.0041 - r: 7.0271
+Epoch 72/100
+ - 17s - loss: 6.7693e-04 - mean_absolute_error: 0.0169 - mean_absolute_percentage_error: 4598741.7305 - mean_pred: 0.9580 - theil_u: 2.6792e-04 - r: 8.0196
+Epoch 73/100
+ - 17s - loss: 3.7453e-04 - mean_absolute_error: 0.0135 - mean_absolute_percentage_error: 3785181.8188 - mean_pred: 0.9568 - theil_u: 2.0074e-04 - r: 9.5691
+Epoch 74/100
+ - 17s - loss: 5.1620e-04 - mean_absolute_error: 0.0154 - mean_absolute_percentage_error: 4379258.5976 - mean_pred: 0.9574 - theil_u: 0.0017 - r: nan
+Epoch 75/100
+ - 18s - loss: 0.0060 - mean_absolute_error: 0.0470 - mean_absolute_percentage_error: 13064435.4477 - mean_pred: 0.9567 - theil_u: 0.0030 - r: 7.4069
+Epoch 76/100
+ - 17s - loss: 0.0018 - mean_absolute_error: 0.0285 - mean_absolute_percentage_error: 8617042.9768 - mean_pred: 0.9573 - theil_u: 7.8094e-04 - r: 5.1941
+Epoch 77/100
+ - 18s - loss: 0.0017 - mean_absolute_error: 0.0284 - mean_absolute_percentage_error: 7853744.6413 - mean_pred: 0.9573 - theil_u: 5.6906e-04 - r: 6.1803
+Epoch 78/100
+ - 18s - loss: 0.0556 - mean_absolute_error: 0.1423 - mean_absolute_percentage_error: 43361564.5499 - mean_pred: 0.9522 - theil_u: 0.0177 - r: 4.5871
+Epoch 79/100
+ - 23s - loss: 0.0472 - mean_absolute_error: 0.1357 - mean_absolute_percentage_error: 34939098.2887 - mean_pred: 0.9552 - theil_u: 0.0141 - r: 5.1170
+Epoch 80/100
+ - 27s - loss: 0.0020 - mean_absolute_error: 0.0264 - mean_absolute_percentage_error: 8114161.3827 - mean_pred: 0.9568 - theil_u: 0.0084 - r: nan
+Epoch 81/100
+ - 27s - loss: 2.9808e-05 - mean_absolute_error: 0.0040 - mean_absolute_percentage_error: 1171969.2226 - mean_pred: 0.9572 - theil_u: 1.0959e-05 - r: 5.4948
+Epoch 82/100
+ - 27s - loss: 3.6508e-06 - mean_absolute_error: 0.0012 - mean_absolute_percentage_error: 357036.9751 - mean_pred: 0.9572 - theil_u: 1.1993e-06 - r: 6.6641
+Epoch 83/100
+ - 27s - loss: 1.0859e-07 - mean_absolute_error: 2.2104e-04 - mean_absolute_percentage_error: 59782.4772 - mean_pred: 0.9572 - theil_u: 0.0015 - r: nan
+Epoch 84/100
+ - 27s - loss: 1.5356e-08 - mean_absolute_error: 8.5851e-05 - mean_absolute_percentage_error: 21582.0029 - mean_pred: 0.9572 - theil_u: 4.7894e-09 - r: 6.0829
+Epoch 85/100
+ - 27s - loss: 4.1212e-09 - mean_absolute_error: 3.6713e-05 - mean_absolute_percentage_error: 9830.4970 - mean_pred: 0.9572 - theil_u: 1.2501e-09 - r: 5.5144
+Epoch 86/100
+ - 27s - loss: 1.9630e-10 - mean_absolute_error: 8.9464e-06 - mean_absolute_percentage_error: 2822.5629 - mean_pred: 0.9572 - theil_u: 8.0994e-11 - r: 5.4102
+Epoch 87/100
+ - 27s - loss: 1.4133e-11 - mean_absolute_error: 2.5589e-06 - mean_absolute_percentage_error: 724.6531 - mean_pred: 0.9572 - theil_u: 1.6112e-11 - r: 11.2111
+Epoch 88/100
+ - 26s - loss: 2.8068e-11 - mean_absolute_error: 3.4041e-06 - mean_absolute_percentage_error: 956.7735 - mean_pred: 0.9572 - theil_u: 0.0015 - r: nan
+Epoch 89/100
+ - 22s - loss: 5.4128e-09 - mean_absolute_error: 3.5199e-05 - mean_absolute_percentage_error: 9362.8778 - mean_pred: 0.9572 - theil_u: 2.1473e-09 - r: 6.0994
+Epoch 90/100
+ - 18s - loss: 2.2669e-07 - mean_absolute_error: 3.2964e-04 - mean_absolute_percentage_error: 88364.4054 - mean_pred: 0.9572 - theil_u: 0.0015 - r: nan
+Epoch 91/100
+ - 19s - loss: 1.0126e-04 - mean_absolute_error: 0.0036 - mean_absolute_percentage_error: 1015560.2110 - mean_pred: 0.9572 - theil_u: 2.3159e-05 - r: nan
+Epoch 92/100
+ - 29s - loss: 0.0013 - mean_absolute_error: 0.0232 - mean_absolute_percentage_error: 6189844.4724 - mean_pred: 0.9570 - theil_u: 4.2510e-04 - r: 4.7338
+Epoch 93/100
+ - 31s - loss: 0.0040 - mean_absolute_error: 0.0397 - mean_absolute_percentage_error: 10638481.5475 - mean_pred: 0.9572 - theil_u: 0.0013 - r: nan
+Epoch 94/100
+ - 31s - loss: 0.0175 - mean_absolute_error: 0.0940 - mean_absolute_percentage_error: 27221234.0991 - mean_pred: 0.9555 - theil_u: 0.0069 - r: 6.6645
+Epoch 95/100
+ - 31s - loss: 0.0035 - mean_absolute_error: 0.0410 - mean_absolute_percentage_error: 10272605.3445 - mean_pred: 0.9569 - theil_u: 0.0029 - r: nan
+Epoch 96/100
+ - 28s - loss: 0.0015 - mean_absolute_error: 0.0267 - mean_absolute_percentage_error: 7482871.1501 - mean_pred: 0.9574 - theil_u: 5.0918e-04 - r: 4.9785
+Epoch 97/100
+ - 29s - loss: 6.2465e-04 - mean_absolute_error: 0.0167 - mean_absolute_percentage_error: 4335834.3898 - mean_pred: 0.9574 - theil_u: 2.4385e-04 - r: 5.9730
+Epoch 98/100
+ - 29s - loss: 3.7585e-04 - mean_absolute_error: 0.0135 - mean_absolute_percentage_error: 3538968.8831 - mean_pred: 0.9572 - theil_u: 1.2143e-04 - r: 6.6610
+Epoch 99/100
+ - 28s - loss: 1.2369e-04 - mean_absolute_error: 0.0080 - mean_absolute_percentage_error: 2462933.1855 - mean_pred: 0.9571 - theil_u: 4.0187e-05 - r: 6.1753
+Epoch 100/100
+ - 28s - loss: 2.7773e-04 - mean_absolute_error: 0.0105 - mean_absolute_percentage_error: 2567416.9194 - mean_pred: 0.9573 - theil_u: 0.0016 - r: nan
+
+Process finished with exit code 0
