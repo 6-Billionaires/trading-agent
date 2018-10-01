@@ -27,8 +27,7 @@ import config
 
 os.environ["CUDA_VISIBLE_DEVICES"] = str(config.SOA_PARAMS['P_TRAINING_GPU'])
 pickle_dir = config.SOA_PARAMS['PICKLE_DIR_FOR_TEST']
-metrics_dir = config.SOA_PARAMS['METRICS_DIR_FOR_TEST']
-model_dir = config.SOA_PARAMS['MODEL_DIR_FOR_TEST']
+model_dir = config.SOA_PARAMS['MODEL_DIR']
 model_history_dir = config.SOA_PARAMS['MODEL_HISTORY_DIR_FOR_TEST']
 
 i_epochs=args.epochs
@@ -193,7 +192,7 @@ def get_real_data(date, ticker, save_dir, train_data_rows=None):
     sys.stdout.flush()
     return np.asarray(d_x1), np.asarray(d_x2), np.asarray(d_x3), np.asarray(d_x4), np.asarray(d_y1)
 
-def train_using_real_data(pickle_dir, metrics_dir, model_dir, model_history_dir, params, max_len):
+def train_using_real_data(pickle_dir, model_dir, model_history_dir, params, max_len):
     neurons = params['neurons']
     activation = params["activation"]
 
@@ -229,10 +228,8 @@ def train_using_real_data(pickle_dir, metrics_dir, model_dir, model_history_dir,
     scores = model.evaluate({'x1': t_x1, 'x2': t_x2, 'x3': t_x3, 'x4': t_x4}, t_y1, verbose=0)
     print("%s: %.2f%%" % (model.metrics_names[1], scores[1] * 100))
 
-    with open(datetime.now().strftime(model_history_dir+os.path.sep+'soa_model_history_%Y%m%d_%H%M%S'), 'wb') as file_pi:
-        pickle.dump(scores.history, file_pi)
-
-    plot_history(scores, params, metrics_dir)
+    with open(datetime.now().strftime(model_history_dir+os.path.sep+'soa_model_scores_%Y%m%d_%H%M%S'), 'wb') as file_pi:
+        pickle.dump(scores, file_pi)
 
 def mean_pred(y_true, y_pred):
     return K.mean(y_pred)
@@ -250,31 +247,6 @@ def r(y_true, y_pred):
     return up/bottom
 
 
-def plot_history(history, params, save_path):
-    to_plot = {
-        'MAE': 'loss',
-        'MAPE': 'mean_pred',
-        'Corr': 'r',
-        "Theil's U": 'theil_u'
-    }
-    ## params ##
-    batch_size = params['batchsize']
-    epochs = params['epochs']
-    neurons = params['neurons']
-    activation = params["activation"]
-    for key in to_plot.keys():
-        file_name = 'so' + str(batch_size) + '_ep' + str(epochs) + '_nrs' + str(neurons) + '_act(' + str(
-            activation) + ')_' + key + '.png'
-        category = to_plot[key]
-        plt.plot(history.history[category])
-        plt.plot(history.history['val_' + category])
-        plt.title(key)
-        plt.ylabel(key)
-        plt.xlabel('Epoch')
-        plt.legend(['Train', 'Validation'], loc='upper left')
-        plt.savefig(save_path +os.path.sep+ file_name)
-        plt.show()
-
 params = {
     'epochs': i_epochs,
     'batchsize': i_batchsize,
@@ -285,4 +257,4 @@ params = {
 
 # max length of bit for 120
 max_len = util.get_maxlen_of_binary_array(120)
-train_using_real_data(pickle_dir, metrics_dir, model_dir, model_history_dir, params, max_len)
+train_using_real_data(pickle_dir, model_dir, model_history_dir, params, max_len)

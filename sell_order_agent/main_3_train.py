@@ -28,8 +28,8 @@ import config
 
 os.environ["CUDA_VISIBLE_DEVICES"] = str(config.SOA_PARAMS['P_TRAINING_GPU'])
 pickle_dir = config.SOA_PARAMS['PICKLE_DIR_FOR_TRAINING']
-metrics_dir = config.SOA_PARAMS['METRICS_DIR_FOR_TRAINING']
-model_dir = config.SOA_PARAMS['MODEL_DIR_FOR_TRAINING']
+metrics_dir = config.SOA_PARAMS['METRICS_DIR']
+model_dir = config.SOA_PARAMS['MODEL_DIR']
 model_history_dir = config.SOA_PARAMS['MODEL_HISTORY_DIR_FOR_TRAINING']
 
 i_epochs=args.epochs
@@ -234,7 +234,7 @@ def train_using_real_data(pickle_dir, metrics_dir, model_dir, model_history_dir,
     callbacks += [FileLogger(log_filename, interval=100)]
 
     print('start to train.')
-    history = model.fit({'x1': t_x1, 'x2': t_x2, 'x3': t_x3, 'x4': t_x4}, t_y1, epochs=epochs, verbose=2, batch_size=batch_size, callbacks=callbacks)
+    history = model.fit({'x1': t_x1, 'x2': t_x2, 'x3': t_x3, 'x4': t_x4}, t_y1, epochs=epochs, verbose=2, batch_size=batch_size, validation_split=0.1, callbacks=callbacks)
 
     with open(datetime.now().strftime(model_history_dir+os.path.sep+'soa_model_history_%Y%m%d_%H%M%S'), 'wb') as file_pi:
         pickle.dump(history.history, file_pi)
@@ -271,17 +271,27 @@ def plot_history(history, params, save_path):
     epochs = params['epochs']
     neurons = params['neurons']
     activation = params["activation"]
+
+    plt.switch_backend('agg')
+
     for key in to_plot.keys():
-        file_name = 'so' + str(batch_size) + '_ep' + str(epochs) + '_nrs' + str(neurons) + '_act(' + str(
+        file_name = 'soa' + str(batch_size) + '_ep' + str(epochs) + '_nrs' + str(neurons) + '_act(' + str(
             activation) + ')_' + key + '.png'
         category = to_plot[key]
+        plt.gcf().clear()
         plt.plot(history.history[category])
+        if key != 'Corr':
+            plt.plot(history.history['val_' + category])
         plt.title(key)
         plt.ylabel(key)
         plt.xlabel('Epoch')
-        plt.legend(['Train', 'Validation'], loc='upper left')
+        if key != 'Corr':
+            plt.legend(['Train', 'Validation'], loc='upper left')
+        else:
+            plt.legend(['Train'], loc='upper left')
+
         plt.savefig(save_path +os.path.sep+ file_name)
-        plt.show()
+        #plt.show()
 
 params = {
     'epochs': i_epochs,
