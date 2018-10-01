@@ -5,3 +5,4 @@ gipython
 #docs/_builid
 venv/
 .log
+.DS_Store
