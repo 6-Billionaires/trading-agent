@@ -243,14 +243,16 @@ def main():
     # max length of bit for 120
     max_len = util.get_maxlen_of_binary_array(120)
 
-    params = {
-        'epochs': 100,
-        'batch_size': 10,
-        'neurons': 15,
-        'activation': 'leaky_relu'
-    }
+    param_list = [
+        {'epochs': 100, 'batch_size': 10, 'neurons': 15, 'activation': 'leaky_relu'},
+        {'epochs': 10, 'batch_size': 10, 'neurons': 15, 'activation': 'leaky_relu'},
+        {'epochs': 10, 'batch_size': 10, 'neurons': 20, 'activation': 'leaky_relu'},
+        {'epochs': 10, 'batch_size': 10, 'neurons': 25, 'activation': 'leaky_relu'},
+        {'epochs': 10, 'batch_size': 10, 'neurons': 30, 'activation': 'leaky_relu'}
+    ]
 
-    train_using_real_data(directory, max_len, params, pickles_dir, train_dir)
+    for params in param_list:
+        train_using_real_data(directory, max_len, params, pickles_dir, train_dir)
 
 
 main()

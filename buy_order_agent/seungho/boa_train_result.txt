@@ -1,14 +1,14 @@
 1. {'batch_size': 10, 'epochs': 100, 'neurons': 15}
-- 28s - loss: 2.7773e-04 - mean_absolute_error: 0.0105 - mean_absolute_percentage_error: 2567416.9194 - mean_pred: 0.9573 - theil_u: 0.0016 - r: nan
+- 15s - loss: 2.1622e-06 - mean_absolute_error: 9.2521e-04 - mean_absolute_percentage_error: 187147.8306 - mean_pred: 1.0210 - theil_u: 7.8958e-07 - r: 4.3980 - val_loss: 0.7528 - val_mean_absolute_error: 0.7667 - val_mean_absolute_percentage_error: 600423339.5129 - val_mean_pred: 1.1528 - val_theil_u: 0.5684 - val_r: nan
 
 2. {'batch_size': 10, 'epochs': 10, 'neurons': 15}
-- 27s - loss: 0.0251 - mean_absolute_error: 0.1150 - mean_absolute_percentage_error: 34162295.8477 - mean_pred: 0.9566 - theil_u: 0.0111 - r: 5.6391
+- 15s - loss: 0.1603 - mean_absolute_error: 0.3189 - mean_absolute_percentage_error: 109702009.4665 - mean_pred: 1.0166 - theil_u: 0.0464 - r: 4.3979 - val_loss: 1.0707 - val_mean_absolute_error: 0.9110 - val_mean_absolute_percentage_error: 563559684.8890 - val_mean_pred: 0.7628 - val_theil_u: 0.7626 - val_r: nan
 
 3. {'batch_size': 10, 'epochs': 10, 'neurons': 20}
-- 19s - loss: 0.0202 - mean_absolute_error: 0.1035 - mean_absolute_percentage_error: 29944652.4587 - mean_pred: 0.9568 - theil_u: 0.0102 - r: 6.1006
+- 15s - loss: 0.0038 - mean_absolute_error: 0.0453 - mean_absolute_percentage_error: 11780108.7066 - mean_pred: 1.0209 - theil_u: 0.0012 - r: 4.8094 - val_loss: 1.4161 - val_mean_absolute_error: 0.9073 - val_mean_absolute_percentage_error: 883165395.1797 - val_mean_pred: 1.2937 - val_theil_u: 0.5691 - val_r: nan
 
 4. {'batch_size': 10, 'epochs': 10, 'neurons': 25}
-- 28s - loss: 0.0085 - mean_absolute_error: 0.0625 - mean_absolute_percentage_error: 20736036.8652 - mean_pred: 0.9579 - theil_u: 0.0037 - r: 4.8339
+- 15s - loss: 3.9619e-04 - mean_absolute_error: 0.0138 - mean_absolute_percentage_error: 3900862.1170 - mean_pred: 1.0208 - theil_u: 1.2571e-04 - r: 4.8146 - val_loss: 1.3731 - val_mean_absolute_error: 0.9251 - val_mean_absolute_percentage_error: 858108624.1957 - val_mean_pred: 1.1831 - val_theil_u: 0.5814 - val_r: nan
 
 5. {'batch_size': 10, 'epochs': 10, 'neurons': 30}
-- 19s - loss: 0.0637 - mean_absolute_error: 0.1975 - mean_absolute_percentage_error: 61004635.4115 - mean_pred: 0.9551 - theil_u: 0.0327 - r: nan
+- 15s - loss: 0.0252 - mean_absolute_error: 0.1120 - mean_absolute_percentage_error: 29687357.5982 - mean_pred: 1.0215 - theil_u: 0.0069 - r: 4.5485 - val_loss: 1.2240 - val_mean_absolute_error: 0.9684 - val_mean_absolute_percentage_error: 777115100.8089 - val_mean_pred: 1.3548 - val_theil_u: 0.5840 - val_r: nan

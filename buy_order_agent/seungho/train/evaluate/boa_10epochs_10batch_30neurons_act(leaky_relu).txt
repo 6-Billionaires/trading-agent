@@ -100,28 +100,6 @@ loading data from ticker 001260, yyyymmdd 20180423 is finished.
 loading data from ticker 002410, yyyymmdd 20180420 is finished.
 loading data from ticker 002140, yyyymmdd 20180503 is finished.
 total x1 : 1332, total x2 : 1332, total x3 : 1332, total y1 : 1332
-start to train.
-Train on 1198 samples, validate on 134 samples
-Epoch 1/10
- - 16s - loss: 1.1993 - mean_absolute_error: 0.7790 - mean_absolute_percentage_error: 223271356.5156 - mean_pred: 0.9631 - theil_u: 0.2963 - r: 4.1046 - val_loss: 1.4472 - val_mean_absolute_error: 1.0784 - val_mean_absolute_percentage_error: 806459809.0184 - val_mean_pred: 1.4648 - val_theil_u: 0.5970 - val_r: nan
-Epoch 2/10
- - 15s - loss: 0.2608 - mean_absolute_error: 0.4001 - mean_absolute_percentage_error: 117607848.2221 - mean_pred: 1.0193 - theil_u: 0.0854 - r: 5.3348 - val_loss: 2.1490 - val_mean_absolute_error: 1.3660 - val_mean_absolute_percentage_error: 1003391632.2489 - val_mean_pred: 1.7524 - val_theil_u: 0.6484 - val_r: nan
-Epoch 3/10
- - 15s - loss: 0.1251 - mean_absolute_error: 0.2799 - mean_absolute_percentage_error: 83953004.5171 - mean_pred: 1.0125 - theil_u: 0.0419 - r: 5.8515 - val_loss: 1.5869 - val_mean_absolute_error: 1.1912 - val_mean_absolute_percentage_error: 857257653.0073 - val_mean_pred: 1.5776 - val_theil_u: 0.6427 - val_r: nan
-Epoch 4/10
- - 15s - loss: 0.0531 - mean_absolute_error: 0.1800 - mean_absolute_percentage_error: 57811706.8769 - mean_pred: 1.0208 - theil_u: 0.0221 - r: 5.4157 - val_loss: 1.9799 - val_mean_absolute_error: 1.3039 - val_mean_absolute_percentage_error: 967282942.1128 - val_mean_pred: 1.6903 - val_theil_u: 0.6381 - val_r: nan
-Epoch 5/10
- - 15s - loss: 0.0742 - mean_absolute_error: 0.1761 - mean_absolute_percentage_error: 58000142.8296 - mean_pred: 1.0240 - theil_u: 0.0249 - r: 4.7284 - val_loss: 0.4432 - val_mean_absolute_error: 0.6290 - val_mean_absolute_percentage_error: 388541358.1511 - val_mean_pred: 0.5875 - val_theil_u: 0.6603 - val_r: nan
-Epoch 6/10
- - 15s - loss: 0.0629 - mean_absolute_error: 0.1644 - mean_absolute_percentage_error: 47583371.8762 - mean_pred: 1.0133 - theil_u: 0.0253 - r: 7.4837 - val_loss: 1.0491 - val_mean_absolute_error: 0.9200 - val_mean_absolute_percentage_error: 729277692.9793 - val_mean_pred: 1.3064 - val_theil_u: 0.5945 - val_r: nan
-Epoch 7/10
- - 15s - loss: 0.0047 - mean_absolute_error: 0.0487 - mean_absolute_percentage_error: 15712584.2582 - mean_pred: 1.0215 - theil_u: 0.0016 - r: 4.9661 - val_loss: 1.0310 - val_mean_absolute_error: 0.8923 - val_mean_absolute_percentage_error: 726837581.7372 - val_mean_pred: 1.2787 - val_theil_u: 0.5808 - val_r: nan
-Epoch 8/10
- - 15s - loss: 0.0103 - mean_absolute_error: 0.0781 - mean_absolute_percentage_error: 24381732.4842 - mean_pred: 1.0206 - theil_u: 0.0034 - r: 5.4961 - val_loss: 1.2685 - val_mean_absolute_error: 1.0017 - val_mean_absolute_percentage_error: 801483522.6255 - val_mean_pred: 1.3881 - val_theil_u: 0.5935 - val_r: nan
-Epoch 9/10
- - 15s - loss: 0.0046 - mean_absolute_error: 0.0502 - mean_absolute_percentage_error: 15579300.4833 - mean_pred: 1.0214 - theil_u: 0.0018 - r: 5.7347 - val_loss: 1.1976 - val_mean_absolute_error: 0.9498 - val_mean_absolute_percentage_error: 785416130.2968 - val_mean_pred: 1.3362 - val_theil_u: 0.5799 - val_r: nan
-Epoch 10/10
- - 15s - loss: 0.0252 - mean_absolute_error: 0.1120 - mean_absolute_percentage_error: 29687357.5982 - mean_pred: 1.0215 - theil_u: 0.0069 - r: 4.5485 - val_loss: 1.2240 - val_mean_absolute_error: 0.9684 - val_mean_absolute_percentage_error: 777115100.8089 - val_mean_pred: 1.3548 - val_theil_u: 0.5840 - val_r: nan
-<keras.callbacks.History object at 0x11c701dd8>
+mean_absolute_error: 26.95%
 
 Process finished with exit code 0

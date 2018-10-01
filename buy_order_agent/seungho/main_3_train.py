@@ -219,7 +219,8 @@ def train_using_real_data(directory, max_len, params, save_dir, train_dir):
 
     print('start to train.')
     history = model.fit({'x1': t_x1, 'x2': t_x2, 'x3': t_x3}, t_y1,
-                        epochs=epochs, verbose=2, batch_size=batch_size, callbacks=callbacks)
+                        epochs=epochs, verbose=2, batch_size=batch_size, validation_split=0.1,
+                        callbacks=callbacks)
 
     info = str(epochs) + 'epochs_' + str(batch_size) + 'batch_' + str(neurons) + 'neurons_' + 'act(' + str(
         activation) + ')'
@@ -251,19 +252,24 @@ def plot_history(history, to_plot, params, train_dir):
     neurons = params['neurons']
     activation = params["activation"]
 
+    print(history)
     for key in to_plot.keys():
 
         file_name = 'boa_' + str(epochs) + 'epochs_' + str(batch_size) + 'batch_' + str(neurons) + 'neurons_' + \
                     'act(' + str(activation) + ')_' + key + '.png'
-
         category = to_plot[key]
         plt.plot(history.history[category])
+        if key != 'Corr':
+            plt.plot(history.history['val_' + category])
         plt.title(key)
         plt.ylabel(key)
         plt.xlabel('Epoch')
-        plt.legend(['Train', 'Validation'], loc='upper left')
+        if key != 'Corr':
+            plt.legend(['Train', 'Validation'], loc='upper left')
+        else:
+            plt.legend(['Train'], loc='upper left')
         plt.savefig(plots_dir + os.path.sep + file_name)
-
+        plt.gcf().clear()
 
 def main():
 
@@ -286,15 +292,18 @@ def main():
         'Corr': 'r',
         "Theil's U": 'theil_u'
     }
-    params = {
-        'epochs': 10,
-        'batch_size': 10,
-        'neurons': 30,
-        'activation': 'leaky_relu'
-    }
 
-    history = train_using_real_data(directory, max_len, params, pickle_dir, train_dir)
-    plot_history(history, dict_to_plot, params, train_dir)
+    param_list = [
+        {'epochs': 100, 'batch_size': 10, 'neurons': 15, 'activation': 'leaky_relu'},
+        {'epochs': 10, 'batch_size': 10, 'neurons': 15, 'activation': 'leaky_relu'},
+        {'epochs': 10, 'batch_size': 10, 'neurons': 20, 'activation': 'leaky_relu'},
+        {'epochs': 10, 'batch_size': 10, 'neurons': 25, 'activation': 'leaky_relu'},
+        {'epochs': 10, 'batch_size': 10, 'neurons': 30, 'activation': 'leaky_relu'}
+    ]
+
+    for params in param_list:
+        history = train_using_real_data(directory, max_len, params, pickle_dir, train_dir)
+        plot_history(history, dict_to_plot, params, train_dir)
 
 
 main()
