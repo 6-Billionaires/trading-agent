@@ -33,6 +33,7 @@ import matplotlib.pyplot as plt
 import logging
 import pickle
 import config
+import sell_signal_agent.ssa_metrics as mt
 
 os.environ["CUDA_VISIBLE_DEVICES"] = str(config.SSA_PARAMS['P_TRAINING_GPU'])
 _len_observation = int(config.SSA_PARAMS['P_OBSERVATION_LEN'])
@@ -112,7 +113,7 @@ def build_network_for_sparsed(optimizer='adam',init_mode='uniform',
 
     model = Model([input_order, input_tranx, input_elapedtime, input_lefttime], output)
     # model.compile(optimizer=optimizer, loss='mean_squared_error', metrics=['mae', 'mape'])
-    model.compile(optimizer=optimizer, loss='mean_squared_error', metrics=['accuracy', mean_pred, theil_u, r])
+    model.compile(optimizer=optimizer, loss='mean_squared_error', metrics=['accuracy', mt.mean_pred, mt.theil_u, mt.r])
     model.summary()
 
     return model
@@ -367,22 +368,22 @@ def train_using_real_data_sparsed_gs(pickle_dir):
         print("%f (%f) with: %r" % (mean, stdev, param))
 
 
-def mean_pred(y_true, y_pred):
-    return K.mean(y_pred)
+#def mean_pred(y_true, y_pred):
+#    return K.mean(y_pred)
 
 
-def theil_u(y_true, y_pred):
-    up = K.mean(K.square(y_true-y_pred))
-    bottom = K.mean(K.square(y_true)) + K.mean(K.square(y_pred))
-    return up/bottom
+#def theil_u(y_true, y_pred):
+#    up = K.mean(K.square(y_true-y_pred))
+#    bottom = K.mean(K.square(y_true)) + K.mean(K.square(y_pred))
+#    return up/bottom
 
-def r(y_true, y_pred):
-    mean_y_true = K.mean(y_true)
-    mean_y_pred = K.mean(y_pred)
-
-    up = K.sum((y_true-mean_y_true) * (y_pred-mean_y_pred))
-    bottom = K.mean(K.square(y_true-mean_y_true) * K.square(y_pred-mean_y_pred))
-    return up/bottom
+#def r(y_true, y_pred):
+#    mean_y_true = K.mean(y_true)
+#    mean_y_pred = K.mean(y_pred)
+#
+#    up = K.sum((y_true-mean_y_true) * (y_pred-mean_y_pred))
+#    bottom = K.mean(K.square(y_true-mean_y_true) * K.square(y_pred-mean_y_pred))
+#    return up/bottom
 
 ### plot ###
 
