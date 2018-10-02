@@ -80,8 +80,15 @@ import threading
 import  tensorflow as tf
 from keras import backend as K
 
+K.clear_session()
+
+tf.reset_default_graph()
+shared_graph = tf.get_default_graph()  # todo : graph is not thread safe
+
+
 class DDQNAgent:
     def __init__(self, thread_idx, agent_type, policy_model, target_model, data_num, action_size, rb):
+        self.graph = tf.Graph()
         self.thread_idx = thread_idx
         # load models
         self.agent_type = agent_type
@@ -101,36 +108,37 @@ class DDQNAgent:
         self.discount_factor = 0.999
         self.data_num = data_num
 
+
     def load_model(self):
-        networks = glob.glob('./networks/*.h5f')
-        if './networks/' + self.agent_type + '_rl.h5f' not in networks:
+        with self.graph.as_default():
+            networks = glob.glob('./networks/*.h5f')
+            if './networks/' + self.agent_type + '_rl.h5f' not in networks:
+                trained_model = load.load_model(self.graph, self.agent_type)
+                for layer in trained_model.layers:
+                    layer.trainable = False
+                    layer.name = layer.name + "__trained__" + str(self.thread_idx)
+                rl_model = load.load_model(self.graph, self.agent_type)
+                for layer in rl_model.layers:
+                    layer.name = layer.name + "_rl_" + str(self.thread_idx)
+                concat_layer = Concatenate(name='concat2')([trained_model(rl_model.input), rl_model.layers[-1].output])
+                output_layer = Dense(2, activation='linear', name='q_value_output')(concat_layer)
+                model = Model(inputs=rl_model.input, outputs=output_layer)
 
-            trained_model = load.load_model(self.agent_type)
-            for layer in trained_model.layers:
-                layer.trainable = False
-                layer.name = layer.name + "__trained__" + str(self.thread_idx)
-            rl_model = load.load_model(self.agent_type)
-            for layer in rl_model.layers:
-                layer.name = layer.name + "_rl_" + str(self.thread_idx)
-            concat_layer = Concatenate(name='concat2')([trained_model(rl_model.input), rl_model.layers[-1].output])
-            output_layer = Dense(2, activation='linear', name='q_value_output')(concat_layer)
-            model = Model(inputs=rl_model.input, outputs=output_layer)
+            else:
+                trained_model = load.load_model(self.graph, self.agent_type)
+                for layer in trained_model.layers:
+                    layer.trainable = False
+                    layer.name = layer.name + "_trained_" + str(self.thread_idx)
+                rl_model = load.load_model(self.graph, self.agent_type)
+                for layer in rl_model.layers:
+                    layer.name = layer.name + "_rl_" + str(self.thread_idx)
+                concat_layer = Concatenate()([trained_model(rl_model.input), rl_model.layers[-1].output]) #name='concat2'
+                output_layer = Dense(2, activation='linear')(concat_layer) # name='q_value_output'
+                model = Model(inputs=rl_model.input, outputs=output_layer)
+                model.load_weights('aggregated_agent/networks/' + self.agent_type + '_rl.h5f')
 
-        else:
-            trained_model = load.load_model(self.agent_type)
-            for layer in trained_model.layers:
-                layer.trainable = False
-                layer.name = layer.name + "_trained_" + str(self.thread_idx)
-            rl_model = load.load_model(self.agent_type)
-            for layer in rl_model.layers:
-                layer.name = layer.name + "_rl_" + str(self.thread_idx)
-            concat_layer = Concatenate()([trained_model(rl_model.input), rl_model.layers[-1].output]) #name='concat2'
-            output_layer = Dense(2, activation='linear')(concat_layer) # name='q_value_output'
-            model = Model(inputs=rl_model.input, outputs=output_layer)
-            model.load_weights('aggregated_agent/networks/' + self.agent_type + '_rl.h5f')
-
-        model.compile(optimizer='adam', loss='mse')
-        model.summary()
+            model.compile(optimizer='adam', loss='mse')
+            # model.summary()
         return model
 
     @staticmethod
@@ -149,7 +157,9 @@ class DDQNAgent:
         model.built = False
 
     def update_target_model(self):
-        self.target_model.set_weights(self.model.get_weights())
+        with tf.Session(graph=self.graph) as sess:
+            with self.graph.as_default():
+                self.target_model.set_weights(self.model.get_weights())
 
     def get_action(self, state):
         if np.random.random() <= self.epsilon:
@@ -158,7 +168,7 @@ class DDQNAgent:
             states = []
             for i in range(self.data_num):
                 states.append(np.array([state[i]]))
-            with graph.as_default():
+            with shared_graph.as_default():
                 q_value = self.model.predict(states)
             return np.argmax(q_value[0])
 
@@ -194,8 +204,9 @@ class DDQNAgent:
             input_states.append(np.array(states[i]))
             input_next_states.append(np.array(next_states[i]))
 
-        with graph.as_default():
+        with shared_graph.as_default():
             target = self.model.predict(input_states)
+        with self.graph.as_default():
             target_val = self.target_model.predict(input_next_states)
 
         for i in range(self.batch_size):
@@ -204,7 +215,7 @@ class DDQNAgent:
             else:
                 target[i][actions[i]] = rewards[i] + self.discount_factor * (np.amax(target_val[i]))
 
-        with graph.as_default():
+        with shared_graph.as_default():
             lock_update_policy_nw.acquire()
             # print('lock_rb_append acquired')
             self.model.fit(input_states, target, batch_size=self.batch_size, epochs=1, verbose=0)
@@ -218,37 +229,36 @@ class DDQNAgent:
 
 
 def load_model(agent_type, i):
-    networks = glob.glob('./networks/*.h5f')
-    if './networks/' + agent_type + '_rl.h5f' not in networks:
-        trained_model = load.load_model(agent_type)
-        for layer in trained_model.layers:
-            layer.trainable = False
-            layer.name = layer.name + "__trained__" + str(i)
-        rl_model = load.load_model(agent_type)
-        for layer in trained_model.layers:
-            layer.name = layer.name + "__rl__" + str(i)
-        # rl_model = load_model('./networks/' + self.agent_type + '.h5')
-        concat_layer = Concatenate()([trained_model(rl_model.input), rl_model.layers[-1].output]) # name='concat2'
-        output_layer = Dense(2, activation='linear')(concat_layer) # name='q_value_output'
-        model = Model(inputs=rl_model.input, outputs=output_layer)
+    with shared_graph.as_default():
+        networks = glob.glob('./networks/*.h5f')
+        if './networks/' + agent_type + '_rl.h5f' not in networks:
+            trained_model = load.load_model(shared_graph, agent_type)
+            for layer in trained_model.layers:
+                layer.trainable = False
+                layer.name = layer.name + "__trained__" + str(i)
+            rl_model = load.load_model(shared_graph, agent_type)
+            for layer in trained_model.layers:
+                layer.name = layer.name + "__rl__" + str(i)
+            # rl_model = load_model('./networks/' + self.agent_type + '.h5')
+            concat_layer = Concatenate()([trained_model(rl_model.input), rl_model.layers[-1].output]) # name='concat2'
+            output_layer = Dense(2, activation='linear')(concat_layer) # name='q_value_output'
+            model = Model(inputs=rl_model.input, outputs=output_layer)
 
-    else:
-        trained_model = load.load_model(agent_type)
-        for layer in trained_model.layers:
-            layer.trainable = False
-            layer.name = layer.name + "__trained__" + str(i)
-        rl_model = load.load_model(agent_type)
-        for layer in trained_model.layers:
-            layer.name = layer.name + "__rl__" + str(i)
-        concat_layer = Concatenate()([trained_model(rl_model.input), rl_model.layers[-1].output]) # name='concat2'
-        output_layer = Dense(2, activation='linear')(concat_layer) # name='q_value_output'
-        model = Model(inputs=rl_model.input, outputs=output_layer)
-        model.load_weights('aggregated_agent/networks/' + agent_type + '_rl.h5f')
-    model.compile(optimizer='adam', loss='mse')
-    model.summary()
+        else:
+            trained_model = load.load_model(agent_type)
+            for layer in trained_model.layers:
+                layer.trainable = False
+                layer.name = layer.name + "__trained__" + str(i)
+            rl_model = load.load_model(agent_type)
+            for layer in trained_model.layers:
+                layer.name = layer.name + "__rl__" + str(i)
+            concat_layer = Concatenate()([trained_model(rl_model.input), rl_model.layers[-1].output]) # name='concat2'
+            output_layer = Dense(2, activation='linear')(concat_layer) # name='q_value_output'
+            model = Model(inputs=rl_model.input, outputs=output_layer)
+            model.load_weights('aggregated_agent/networks/' + agent_type + '_rl.h5f')
+        model.compile(optimizer='adam', loss='mse')
+        # model.summary()
     return model
-
-
 
 # shared global variables
 total_step_count = 0
@@ -267,8 +277,6 @@ epsilon_period_decaying = 100000
 
 # other operating parameters
 n_save_model_episode_interval = 20
-tf.reset_default_graph()
-graph = tf.get_default_graph()  # todo : graph is not thread safe
 
 # this is a replay memory of buy signal agent
 rb_bsa = deque(maxlen=c_rb_size)
@@ -443,14 +451,13 @@ class Agents(threading.Thread):
     def run(self):
         global total_episode
         global total_step_count
-        global graph
+        global shared_graph
         for ep in range(self.n_max_episode):
             print('{} thread {} episode started'.format(self.idx, ep))
             done = False
             state = self.env.reset()
 
             if self.idx == 0 and total_step_count % c_update_step_interval == 0:
-                with graph.as_default():
                     self.update_target_network()
 
             reward_sum = 0
@@ -487,7 +494,7 @@ class Agents(threading.Thread):
                 state = next_state
                 if self.trainable:
                     self.train_agents()
-                # todo : here we need to change 1 hour * 60 minutes * 60 seconds = 3600 seconds
+                # todo : need to change 1hr * 60 mins * 60 secs = 3600 secs - 120 secs needs to get enough observation for the first time
                 if step_count >= 1 * 60 * 60 - 100:
                     done = True
                     total_episode = total_episode + 1
@@ -588,14 +595,15 @@ class FasterDQNAgent:
             agent = Agents(i, env, self.n_max_episode, csv_writer)
             faster_dqn_agents.append(agent)
 
-        sess = tf.InteractiveSession()
-        K.set_session(sess)
-        sess.run(tf.global_variables_initializer())
+        # sess = tf.InteractiveSession()
+        # K.set_session(sess)
+        # sess_shared = tf.Session()
+        # sess_shared.run(tf.global_variables_initializer())
 
         for a in faster_dqn_agents:
             a.start()
 
 
 if __name__ == '__main__':
-    fa = FasterDQNAgent(4, 40)  # thread, n_max_episode
+    fa = FasterDQNAgent(2, 40)  # thread, n_max_episode
     fa.play()
