@@ -1,0 +1,103 @@
+
+__________________________________________________________________________________________________
+Layer (type)                    Output Shape         Param #     Connected to                     
+==================================================================================================
+x1 (InputLayer)                 (None, 10, 2, 120, 2 0                                            
+__________________________________________________________________________________________________
+x2 (InputLayer)                 (None, 120, 11)      0                                            
+__________________________________________________________________________________________________
+conv3d_13 (Conv3D)              (None, 9, 2, 116, 16 336         x1[0][0]                         
+__________________________________________________________________________________________________
+conv3d_14 (Conv3D)              (None, 10, 1, 116, 1 336         x1[0][0]                         
+__________________________________________________________________________________________________
+conv1d_7 (Conv1D)               (None, 118, 16)      544         x2[0][0]                         
+__________________________________________________________________________________________________
+leaky_re_lu_21 (LeakyReLU)      (None, 9, 2, 116, 16 0           conv3d_13[0][0]                  
+__________________________________________________________________________________________________
+leaky_re_lu_22 (LeakyReLU)      (None, 10, 1, 116, 1 0           conv3d_14[0][0]                  
+__________________________________________________________________________________________________
+leaky_re_lu_19 (LeakyReLU)      (None, 118, 16)      0           conv1d_7[0][0]                   
+__________________________________________________________________________________________________
+max_pooling3d_13 (MaxPooling3D) (None, 9, 2, 38, 16) 0           leaky_re_lu_21[0][0]             
+__________________________________________________________________________________________________
+max_pooling3d_14 (MaxPooling3D) (None, 10, 1, 38, 16 0           leaky_re_lu_22[0][0]             
+__________________________________________________________________________________________________
+max_pooling1d_7 (MaxPooling1D)  (None, 39, 16)       0           leaky_re_lu_19[0][0]             
+__________________________________________________________________________________________________
+conv3d_15 (Conv3D)              (None, 9, 1, 34, 32) 5152        max_pooling3d_13[0][0]           
+__________________________________________________________________________________________________
+conv3d_16 (Conv3D)              (None, 9, 1, 34, 32) 5152        max_pooling3d_14[0][0]           
+__________________________________________________________________________________________________
+conv1d_8 (Conv1D)               (None, 37, 32)       1568        max_pooling1d_7[0][0]            
+__________________________________________________________________________________________________
+leaky_re_lu_23 (LeakyReLU)      (None, 9, 1, 34, 32) 0           conv3d_15[0][0]                  
+__________________________________________________________________________________________________
+leaky_re_lu_24 (LeakyReLU)      (None, 9, 1, 34, 32) 0           conv3d_16[0][0]                  
+__________________________________________________________________________________________________
+leaky_re_lu_20 (LeakyReLU)      (None, 37, 32)       0           conv1d_8[0][0]                   
+__________________________________________________________________________________________________
+max_pooling3d_15 (MaxPooling3D) (None, 9, 1, 6, 32)  0           leaky_re_lu_23[0][0]             
+__________________________________________________________________________________________________
+max_pooling3d_16 (MaxPooling3D) (None, 9, 1, 6, 32)  0           leaky_re_lu_24[0][0]             
+__________________________________________________________________________________________________
+max_pooling1d_8 (MaxPooling1D)  (None, 18, 32)       0           leaky_re_lu_20[0][0]             
+__________________________________________________________________________________________________
+concatenate_7 (Concatenate)     (None, 9, 1, 6, 64)  0           max_pooling3d_15[0][0]           
+                                                                 max_pooling3d_16[0][0]           
+__________________________________________________________________________________________________
+flatten_8 (Flatten)             (None, 576)          0           max_pooling1d_8[0][0]            
+__________________________________________________________________________________________________
+flatten_7 (Flatten)             (None, 3456)         0           concatenate_7[0][0]              
+__________________________________________________________________________________________________
+x3 (InputLayer)                 (None, 7)            0                                            
+__________________________________________________________________________________________________
+concatenate_8 (Concatenate)     (None, 4039)         0           flatten_8[0][0]                  
+                                                                 flatten_7[0][0]                  
+                                                                 x3[0][0]                         
+__________________________________________________________________________________________________
+dense_7 (Dense)                 (None, 25)           101000      concatenate_8[0][0]              
+__________________________________________________________________________________________________
+dense_8 (Dense)                 (None, 1)            26          dense_7[0][0]                    
+==================================================================================================
+Total params: 114,114
+Trainable params: 114,114
+Non-trainable params: 0
+__________________________________________________________________________________________________
+loading data from ticker 000910, yyyymmdd 20180424 is finished.
+loading data from ticker 002150, yyyymmdd 20180502 is finished.
+loading data from ticker 004310, yyyymmdd 20180405 is finished.
+loading data from ticker 002100, yyyymmdd 20180503 is finished.
+loading data from ticker 000430, yyyymmdd 20180503 is finished.
+loading data from ticker 002410, yyyymmdd 20180502 is finished.
+loading data from ticker 002690, yyyymmdd 20180503 is finished.
+loading data from ticker 002760, yyyymmdd 20180405 is finished.
+loading data from ticker 003580, yyyymmdd 20180418 is finished.
+loading data from ticker 000720, yyyymmdd 20180502 is finished.
+loading data from ticker 003350, yyyymmdd 20180403 is finished.
+loading data from ticker 002820, yyyymmdd 20180508 is finished.
+loading data from ticker 000520, yyyymmdd 20180410 is finished.
+loading data from ticker 003010, yyyymmdd 20180424 is finished.
+loading data from ticker 001210, yyyymmdd 20180423 is finished.
+loading data from ticker 003520, yyyymmdd 20180405 is finished.
+loading data from ticker 000950, yyyymmdd 20180508 is finished.
+loading data from ticker 003410, yyyymmdd 20180502 is finished.
+loading data from ticker 002900, yyyymmdd 20180503 is finished.
+loading data from ticker 001470, yyyymmdd 20180420 is finished.
+loading data from ticker 002150, yyyymmdd 20180417 is finished.
+loading data from ticker 001470, yyyymmdd 20180424 is finished.
+loading data from ticker 002000, yyyymmdd 20180508 is finished.
+loading data from ticker 003010, yyyymmdd 20180502 is finished.
+loading data from ticker 002900, yyyymmdd 20180420 is finished.
+loading data from ticker 001260, yyyymmdd 20180420 is finished.
+loading data from ticker 001550, yyyymmdd 20180503 is finished.
+loading data from ticker 003010, yyyymmdd 20180508 is finished.
+loading data from ticker 002690, yyyymmdd 20180508 is finished.
+loading data from ticker 003300, yyyymmdd 20180420 is finished.
+loading data from ticker 004090, yyyymmdd 20180502 is finished.
+loading data from ticker 002760, yyyymmdd 20180409 is finished.
+loading data from ticker 004440, yyyymmdd 20180502 is finished.
+loading data from ticker 001260, yyyymmdd 20180423 is finished.
+loading data from ticker 002410, yyyymmdd 20180420 is finished.
+loading data from ticker 002140, yyyymmdd 20180503 is finished.
+total x1 : 6696, total x2 : 6696, total x3 : 6696, total y1 : 6696
+mean_absolute_error: 19.31%

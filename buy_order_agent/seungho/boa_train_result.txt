@@ -1,0 +1,14 @@
+1. {'batch_size': 10, 'epochs': 100, 'neurons': 15}
+- 77s - loss: 0.0018 - mean_absolute_error: 0.0216 - mean_absolute_percentage_error: 5161525.5932 - mean_pred: 1.0205 - theil_u: 0.0100 - r: 0.9997 - val_loss: 0.5318 - val_mean_absolute_error: 0.5488 - val_mean_absolute_percentage_error: 300403463.9551 - val_mean_pred: 0.4404 - val_theil_u: 0.7111 - val_r: nan
+
+2. {'batch_size': 10, 'epochs': 10, 'neurons': 15}
+- 77s - loss: 0.0326 - mean_absolute_error: 0.1441 - mean_absolute_percentage_error: 46498097.5400 - mean_pred: 1.0192 - theil_u: 0.0707 - r: 0.9781 - val_loss: 1.4884 - val_mean_absolute_error: 1.1091 - val_mean_absolute_percentage_error: 813263256.2055 - val_mean_pred: 1.4767 - val_theil_u: 0.6532 - val_r: nan
+
+3. {'batch_size': 10, 'epochs': 10, 'neurons': 20}
+- 76s - loss: 0.0569 - mean_absolute_error: 0.1734 - mean_absolute_percentage_error: 36394348.7211 - mean_pred: 1.0167 - theil_u: 0.0867 - r: 0.9707 - val_loss: 1.1386 - val_mean_absolute_error: 0.9708 - val_mean_absolute_percentage_error: 737001507.9327 - val_mean_pred: 1.3574 - val_theil_u: 0.6685 - val_r: nan
+
+4. {'batch_size': 10, 'epochs': 10, 'neurons': 25}
+- 77s - loss: 0.0217 - mean_absolute_error: 0.0645 - mean_absolute_percentage_error: 18191571.9122 - mean_pred: 1.0203 - theil_u: 0.0279 - r: 0.9963 - val_loss: 0.5069 - val_mean_absolute_error: 0.6259 - val_mean_absolute_percentage_error: 500424574.8242 - val_mean_pred: 1.0124 - val_theil_u: 0.6107 - val_r: nan
+
+5. {'batch_size': 10, 'epochs': 10, 'neurons': 30}
+- 79s - loss: 0.0055 - mean_absolute_error: 0.0455 - mean_absolute_percentage_error: 13970328.4773 - mean_pred: 1.0201 - theil_u: 0.0206 - r: 0.9988 - val_loss: 1.8212 - val_mean_absolute_error: 1.0459 - val_mean_absolute_percentage_error: 785318542.2217 - val_mean_pred: 1.4224 - val_theil_u: 0.6385 - val_r: nan
