@@ -81,14 +81,12 @@ import  tensorflow as tf
 from keras import backend as K
 
 K.clear_session()
-
 tf.reset_default_graph()
 shared_graph = tf.get_default_graph()  # todo : graph is not thread safe
 
 
 class DDQNAgent:
     def __init__(self, thread_idx, agent_type, policy_model, target_model, data_num, action_size, rb):
-        self.graph = tf.Graph()
         self.thread_idx = thread_idx
         # load models
         self.agent_type = agent_type
@@ -108,16 +106,15 @@ class DDQNAgent:
         self.discount_factor = 0.999
         self.data_num = data_num
 
-
     def load_model(self):
-        with self.graph.as_default():
+        with shared_graph.as_default():
             networks = glob.glob('./networks/*.h5f')
             if './networks/' + self.agent_type + '_rl.h5f' not in networks:
-                trained_model = load.load_model(self.graph, self.agent_type)
+                trained_model = load.load_model(shared_graph, self.agent_type)
                 for layer in trained_model.layers:
                     layer.trainable = False
                     layer.name = layer.name + "__trained__" + str(self.thread_idx)
-                rl_model = load.load_model(self.graph, self.agent_type)
+                rl_model = load.load_model(shared_graph, self.agent_type)
                 for layer in rl_model.layers:
                     layer.name = layer.name + "_rl_" + str(self.thread_idx)
                 concat_layer = Concatenate(name='concat2')([trained_model(rl_model.input), rl_model.layers[-1].output])
@@ -125,11 +122,11 @@ class DDQNAgent:
                 model = Model(inputs=rl_model.input, outputs=output_layer)
 
             else:
-                trained_model = load.load_model(self.graph, self.agent_type)
+                trained_model = load.load_model(shared_graph, self.agent_type)
                 for layer in trained_model.layers:
                     layer.trainable = False
                     layer.name = layer.name + "_trained_" + str(self.thread_idx)
-                rl_model = load.load_model(self.graph, self.agent_type)
+                rl_model = load.load_model(shared_graph, self.agent_type)
                 for layer in rl_model.layers:
                     layer.name = layer.name + "_rl_" + str(self.thread_idx)
                 concat_layer = Concatenate()([trained_model(rl_model.input), rl_model.layers[-1].output]) #name='concat2'
@@ -157,9 +154,9 @@ class DDQNAgent:
         model.built = False
 
     def update_target_model(self):
-        with tf.Session(graph=self.graph) as sess:
+        # with tf.Session(graph=self.graph) as sess:
             with self.graph.as_default():
-                self.target_model.set_weights(self.model.get_weights())
+            self.target_model.set_weights(self.model.get_weights())
 
     def get_action(self, state):
         if np.random.random() <= self.epsilon:
@@ -176,7 +173,6 @@ class DDQNAgent:
         self.memory.append((state, action, reward, next_state, done))
 
     def train_model(self):
-
         # todo : here self.train_start is same as c_warm_up_step hyperparameter!!!
         if len(self.memory) < self.train_start:
             return
@@ -206,7 +202,6 @@ class DDQNAgent:
 
         with shared_graph.as_default():
             target = self.model.predict(input_states)
-        with self.graph.as_default():
             target_val = self.target_model.predict(input_next_states)
 
         for i in range(self.batch_size):
@@ -595,15 +590,15 @@ class FasterDQNAgent:
             agent = Agents(i, env, self.n_max_episode, csv_writer)
             faster_dqn_agents.append(agent)
 
-        # sess = tf.InteractiveSession()
-        # K.set_session(sess)
+        sess = tf.InteractiveSession()
+        K.set_session(sess)
         # sess_shared = tf.Session()
-        # sess_shared.run(tf.global_variables_initializer())
+        sess.run(tf.global_variables_initializer())
 
         for a in faster_dqn_agents:
             a.start()
 
 
 if __name__ == '__main__':
-    fa = FasterDQNAgent(2, 40)  # thread, n_max_episode
+    fa = FasterDQNAgent(4, 40)  # thread, n_max_episode
     fa.play()
