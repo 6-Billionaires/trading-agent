@@ -155,8 +155,8 @@ class DDQNAgent:
 
     def update_target_model(self):
         # with tf.Session(graph=self.graph) as sess:
-            with self.graph.as_default():
-            self.target_model.set_weights(self.model.get_weights())
+        with self.graph.as_default():
+        self.target_model.set_weights(self.model.get_weights())
 
     def get_action(self, state):
         if np.random.random() <= self.epsilon:
@@ -600,5 +600,5 @@ class FasterDQNAgent:
 
 
 if __name__ == '__main__':
-    fa = FasterDQNAgent(4, 40)  # thread, n_max_episode
+    fa = FasterDQNAgent(2, 40)  # thread, n_max_episode
     fa.play()
