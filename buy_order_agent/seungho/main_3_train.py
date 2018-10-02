@@ -245,23 +245,19 @@ def plot_history(history, to_plot, params, train_dir):
     if not os.path.isdir(plots_dir):
         os.makedirs(plots_dir)
 
-    # print(history.history)
-
-    ## params ##
     batch_size = params['batch_size']
     epochs = params['epochs']
     neurons = params['neurons']
     activation = params["activation"]
 
-    print(history)
     for key in to_plot.keys():
 
         file_name = 'boa_' + str(epochs) + 'epochs_' + str(batch_size) + 'batch_' + str(neurons) + 'neurons_' + \
                     'act(' + str(activation) + ')_' + key + '.png'
         category = to_plot[key]
-        plt.plot(history.history[category])
+        plt.plot(history[category])
         if key != 'Corr':
-            plt.plot(history.history['val_' + category])
+            plt.plot(history['val_' + category])
         plt.title(key)
         plt.ylabel(key)
         plt.xlabel('Epoch')
@@ -272,7 +268,7 @@ def plot_history(history, to_plot, params, train_dir):
         plt.savefig(plots_dir + os.path.sep + file_name)
         plt.gcf().clear()
 
-def main():
+def main(useHistory = False):
 
     # train_using_fake_data()
     # pickle path
@@ -287,8 +283,9 @@ def main():
     max_len = util.get_maxlen_of_binary_array(120)
 
     dict_to_plot = {
-        'MAE' : 'mean_absolute_error',
-        'MAPE' : 'mean_absolute_percentage_error',
+        'Loss': 'loss',
+        'MAE': 'mean_absolute_error',
+        'MAPE': 'mean_absolute_percentage_error',
         'Mean Pred': 'mean_pred',
         'Corr': 'r',
         "Theil's U": 'theil_u'
@@ -314,8 +311,15 @@ def main():
     ]
 
     for params in param_list:
-        history = train_using_real_data(directory, max_len, params, pickle_dir, train_dir)
+        if useHistory:
+            info = str(params['epochs']) + 'epochs_' + str(params['batch_size']) + 'batch_' + str(params['neurons']) + 'neurons_' + 'act(' + str(params['activation']) + ')'
+            history_file = train_dir + os.path.sep + 'history' + os.path.sep + 'boa_{info}.{extension}'.format(info=info, extension='history')
+            f = open(history_file, 'rb')
+            history = pickle.load(f)
+        else:
+            history = train_using_real_data(directory, max_len, params, pickle_dir, train_dir)
+            history = history.history
         plot_history(history, dict_to_plot, params, train_dir)
 
 
-main()
+main(False)
