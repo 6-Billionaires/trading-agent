@@ -6,58 +6,58 @@ x1 (InputLayer)                 (None, 10, 2, 120, 2 0
 __________________________________________________________________________________________________
 x2 (InputLayer)                 (None, 120, 11)      0                                            
 __________________________________________________________________________________________________
-conv3d_13 (Conv3D)              (None, 9, 2, 116, 16 336         x1[0][0]                         
+conv3d_17 (Conv3D)              (None, 9, 2, 116, 16 336         x1[0][0]
 __________________________________________________________________________________________________
-conv3d_14 (Conv3D)              (None, 10, 1, 116, 1 336         x1[0][0]                         
+conv3d_18 (Conv3D)              (None, 10, 1, 116, 1 336         x1[0][0]
 __________________________________________________________________________________________________
-conv1d_7 (Conv1D)               (None, 118, 16)      544         x2[0][0]                         
+conv1d_9 (Conv1D)               (None, 118, 16)      544         x2[0][0]
 __________________________________________________________________________________________________
-leaky_re_lu_21 (LeakyReLU)      (None, 9, 2, 116, 16 0           conv3d_13[0][0]                  
+leaky_re_lu_27 (LeakyReLU)      (None, 9, 2, 116, 16 0           conv3d_17[0][0]
 __________________________________________________________________________________________________
-leaky_re_lu_22 (LeakyReLU)      (None, 10, 1, 116, 1 0           conv3d_14[0][0]                  
+leaky_re_lu_28 (LeakyReLU)      (None, 10, 1, 116, 1 0           conv3d_18[0][0]
 __________________________________________________________________________________________________
-leaky_re_lu_19 (LeakyReLU)      (None, 118, 16)      0           conv1d_7[0][0]                   
+leaky_re_lu_25 (LeakyReLU)      (None, 118, 16)      0           conv1d_9[0][0]
 __________________________________________________________________________________________________
-max_pooling3d_13 (MaxPooling3D) (None, 9, 2, 38, 16) 0           leaky_re_lu_21[0][0]             
+max_pooling3d_17 (MaxPooling3D) (None, 9, 2, 38, 16) 0           leaky_re_lu_27[0][0]
 __________________________________________________________________________________________________
-max_pooling3d_14 (MaxPooling3D) (None, 10, 1, 38, 16 0           leaky_re_lu_22[0][0]             
+max_pooling3d_18 (MaxPooling3D) (None, 10, 1, 38, 16 0           leaky_re_lu_28[0][0]
 __________________________________________________________________________________________________
-max_pooling1d_7 (MaxPooling1D)  (None, 39, 16)       0           leaky_re_lu_19[0][0]             
+max_pooling1d_9 (MaxPooling1D)  (None, 39, 16)       0           leaky_re_lu_25[0][0]
 __________________________________________________________________________________________________
-conv3d_15 (Conv3D)              (None, 9, 1, 34, 32) 5152        max_pooling3d_13[0][0]           
+conv3d_19 (Conv3D)              (None, 9, 1, 34, 32) 5152        max_pooling3d_17[0][0]
 __________________________________________________________________________________________________
-conv3d_16 (Conv3D)              (None, 9, 1, 34, 32) 5152        max_pooling3d_14[0][0]           
+conv3d_20 (Conv3D)              (None, 9, 1, 34, 32) 5152        max_pooling3d_18[0][0]
 __________________________________________________________________________________________________
-conv1d_8 (Conv1D)               (None, 37, 32)       1568        max_pooling1d_7[0][0]            
+conv1d_10 (Conv1D)              (None, 37, 32)       1568        max_pooling1d_9[0][0]
 __________________________________________________________________________________________________
-leaky_re_lu_23 (LeakyReLU)      (None, 9, 1, 34, 32) 0           conv3d_15[0][0]                  
+leaky_re_lu_29 (LeakyReLU)      (None, 9, 1, 34, 32) 0           conv3d_19[0][0]
 __________________________________________________________________________________________________
-leaky_re_lu_24 (LeakyReLU)      (None, 9, 1, 34, 32) 0           conv3d_16[0][0]                  
+leaky_re_lu_30 (LeakyReLU)      (None, 9, 1, 34, 32) 0           conv3d_20[0][0]
 __________________________________________________________________________________________________
-leaky_re_lu_20 (LeakyReLU)      (None, 37, 32)       0           conv1d_8[0][0]                   
+leaky_re_lu_26 (LeakyReLU)      (None, 37, 32)       0           conv1d_10[0][0]
 __________________________________________________________________________________________________
-max_pooling3d_15 (MaxPooling3D) (None, 9, 1, 6, 32)  0           leaky_re_lu_23[0][0]             
+max_pooling3d_19 (MaxPooling3D) (None, 9, 1, 6, 32)  0           leaky_re_lu_29[0][0]
 __________________________________________________________________________________________________
-max_pooling3d_16 (MaxPooling3D) (None, 9, 1, 6, 32)  0           leaky_re_lu_24[0][0]             
+max_pooling3d_20 (MaxPooling3D) (None, 9, 1, 6, 32)  0           leaky_re_lu_30[0][0]
 __________________________________________________________________________________________________
-max_pooling1d_8 (MaxPooling1D)  (None, 18, 32)       0           leaky_re_lu_20[0][0]             
+max_pooling1d_10 (MaxPooling1D) (None, 18, 32)       0           leaky_re_lu_26[0][0]
 __________________________________________________________________________________________________
-concatenate_7 (Concatenate)     (None, 9, 1, 6, 64)  0           max_pooling3d_15[0][0]           
-                                                                 max_pooling3d_16[0][0]           
+concatenate_9 (Concatenate)     (None, 9, 1, 6, 64)  0           max_pooling3d_19[0][0]
+                                                                 max_pooling3d_20[0][0]
 __________________________________________________________________________________________________
-flatten_8 (Flatten)             (None, 576)          0           max_pooling1d_8[0][0]            
+flatten_10 (Flatten)            (None, 576)          0           max_pooling1d_10[0][0]
 __________________________________________________________________________________________________
-flatten_7 (Flatten)             (None, 3456)         0           concatenate_7[0][0]              
+flatten_9 (Flatten)             (None, 3456)         0           concatenate_9[0][0]
 __________________________________________________________________________________________________
-x3 (InputLayer)                 (None, 7)            0                                            
+x3 (InputLayer)                 (None, 7)            0
 __________________________________________________________________________________________________
-concatenate_8 (Concatenate)     (None, 4039)         0           flatten_8[0][0]                  
-                                                                 flatten_7[0][0]                  
-                                                                 x3[0][0]                         
+concatenate_10 (Concatenate)    (None, 4039)         0           flatten_10[0][0]
+                                                                 flatten_9[0][0]
+                                                                 x3[0][0]
 __________________________________________________________________________________________________
-dense_7 (Dense)                 (None, 25)           101000      concatenate_8[0][0]              
+dense_9 (Dense)                 (None, 25)           101000      concatenate_10[0][0]
 __________________________________________________________________________________________________
-dense_8 (Dense)                 (None, 1)            26          dense_7[0][0]                    
+dense_10 (Dense)                (None, 1)            26          dense_9[0][0]
 ==================================================================================================
 Total params: 114,114
 Trainable params: 114,114
@@ -99,27 +99,27 @@ loading data from ticker 004440, yyyymmdd 20180502 is finished.
 loading data from ticker 001260, yyyymmdd 20180423 is finished.
 loading data from ticker 002410, yyyymmdd 20180420 is finished.
 loading data from ticker 002140, yyyymmdd 20180503 is finished.
-total x1 : 1332, total x2 : 1332, total x3 : 1332, total y1 : 1332
+total x1 : 6696, total x2 : 6696, total x3 : 6696, total y1 : 6696
 start to train.
-Train on 1198 samples, validate on 134 samples
+Train on 6026 samples, validate on 670 samples
 Epoch 1/10
- - 16s - loss: 1.0821 - mean_absolute_error: 0.7231 - mean_absolute_percentage_error: 196001954.4762 - mean_pred: 0.9616 - theil_u: 0.2691 - r: 11.5521 - val_loss: 1.7839 - val_mean_absolute_error: 1.1783 - val_mean_absolute_percentage_error: 922883950.8631 - val_mean_pred: 1.5057 - val_theil_u: 0.6199 - val_r: nan
+ - 77s - loss: 0.3736 - mean_absolute_error: 0.4463 - mean_absolute_percentage_error: 126194564.0596 - mean_pred: 0.9995 - theil_u: 0.2093 - r: 0.8548 - val_loss: 2.8723 - val_mean_absolute_error: 1.5446 - val_mean_absolute_percentage_error: 1000876426.2469 - val_mean_pred: 1.9312 - val_theil_u: 0.6812 - val_r: nan
 Epoch 2/10
- - 15s - loss: 0.2545 - mean_absolute_error: 0.3906 - mean_absolute_percentage_error: 104546803.0994 - mean_pred: 1.0053 - theil_u: 0.0883 - r: 4.9077 - val_loss: 0.9751 - val_mean_absolute_error: 0.7536 - val_mean_absolute_percentage_error: 730934385.3091 - val_mean_pred: 1.1400 - val_theil_u: 0.5627 - val_r: nan
+ - 77s - loss: 0.1719 - mean_absolute_error: 0.2906 - mean_absolute_percentage_error: 80218418.7217 - mean_pred: 1.0115 - theil_u: 0.1342 - r: 0.9632 - val_loss: 0.6163 - val_mean_absolute_error: 0.6979 - val_mean_absolute_percentage_error: 521711847.0777 - val_mean_pred: 1.0845 - val_theil_u: 0.6301 - val_r: nan
 Epoch 3/10
- - 15s - loss: 0.1113 - mean_absolute_error: 0.2503 - mean_absolute_percentage_error: 72327476.6779 - mean_pred: 1.0165 - theil_u: 0.0358 - r: 5.6808 - val_loss: 1.1979 - val_mean_absolute_error: 0.8241 - val_mean_absolute_percentage_error: 813087090.4807 - val_mean_pred: 1.2105 - val_theil_u: 0.5683 - val_r: nan
+ - 77s - loss: 1.8605 - mean_absolute_error: 0.3620 - mean_absolute_percentage_error: 111709877.8490 - mean_pred: 0.9813 - theil_u: 0.1150 - r: 0.9471 - val_loss: 0.9511 - val_mean_absolute_error: 0.9263 - val_mean_absolute_percentage_error: 593565705.1391 - val_mean_pred: 1.3129 - val_theil_u: 0.6821 - val_r: nan
 Epoch 4/10
- - 15s - loss: 0.1791 - mean_absolute_error: 0.3254 - mean_absolute_percentage_error: 101855761.2399 - mean_pred: 1.0171 - theil_u: 0.0484 - r: 3.9653 - val_loss: 1.0205 - val_mean_absolute_error: 0.9290 - val_mean_absolute_percentage_error: 604124719.1855 - val_mean_pred: 0.7099 - val_theil_u: 0.8069 - val_r: nan
+ - 77s - loss: 0.0192 - mean_absolute_error: 0.0921 - mean_absolute_percentage_error: 30509735.0238 - mean_pred: 1.0238 - theil_u: 0.0465 - r: 0.9930 - val_loss: 0.7608 - val_mean_absolute_error: 0.8013 - val_mean_absolute_percentage_error: 565499314.7410 - val_mean_pred: 1.1879 - val_theil_u: 0.6424 - val_r: nan
 Epoch 5/10
- - 15s - loss: 0.0875 - mean_absolute_error: 0.2062 - mean_absolute_percentage_error: 62746779.0595 - mean_pred: 1.0097 - theil_u: 0.0302 - r: 7.0662 - val_loss: 1.3856 - val_mean_absolute_error: 0.9160 - val_mean_absolute_percentage_error: 865816102.9347 - val_mean_pred: 1.2431 - val_theil_u: 0.5800 - val_r: nan
+ - 80s - loss: 0.0419 - mean_absolute_error: 0.0700 - mean_absolute_percentage_error: 22492990.1262 - mean_pred: 1.0212 - theil_u: 0.0317 - r: 0.9922 - val_loss: 0.8209 - val_mean_absolute_error: 0.8297 - val_mean_absolute_percentage_error: 568981230.1275 - val_mean_pred: 1.2163 - val_theil_u: 0.6440 - val_r: nan
 Epoch 6/10
- - 15s - loss: 0.0157 - mean_absolute_error: 0.0890 - mean_absolute_percentage_error: 27306585.0661 - mean_pred: 1.0201 - theil_u: 0.0070 - r: 5.6292 - val_loss: 1.6431 - val_mean_absolute_error: 1.0405 - val_mean_absolute_percentage_error: 907643104.2948 - val_mean_pred: 1.2058 - val_theil_u: 0.6064 - val_r: nan
+ - 78s - loss: 2.9082e-04 - mean_absolute_error: 0.0111 - mean_absolute_percentage_error: 3584293.4388 - mean_pred: 1.0206 - theil_u: 0.0056 - r: 0.9999 - val_loss: 0.8442 - val_mean_absolute_error: 0.8332 - val_mean_absolute_percentage_error: 572918276.3253 - val_mean_pred: 1.2198 - val_theil_u: 0.6355 - val_r: nan
 Epoch 7/10
- - 16s - loss: 0.0706 - mean_absolute_error: 0.1782 - mean_absolute_percentage_error: 54464626.9226 - mean_pred: 1.0205 - theil_u: 0.0206 - r: 3.9268 - val_loss: 1.2741 - val_mean_absolute_error: 0.9465 - val_mean_absolute_percentage_error: 795885098.7621 - val_mean_pred: 1.0373 - val_theil_u: 0.6186 - val_r: nan
+ - 77s - loss: 2.5211e-05 - mean_absolute_error: 0.0034 - mean_absolute_percentage_error: 1024678.6672 - mean_pred: 1.0206 - theil_u: 0.0016 - r: 1.0000 - val_loss: 0.8341 - val_mean_absolute_error: 0.8255 - val_mean_absolute_percentage_error: 569370563.4435 - val_mean_pred: 1.2121 - val_theil_u: 0.6315 - val_r: nan
 Epoch 8/10
- - 15s - loss: 0.0486 - mean_absolute_error: 0.1610 - mean_absolute_percentage_error: 44954569.0150 - mean_pred: 1.0168 - theil_u: 0.0145 - r: 4.2774 - val_loss: 1.2723 - val_mean_absolute_error: 0.8804 - val_mean_absolute_percentage_error: 833920998.3100 - val_mean_pred: 1.1886 - val_theil_u: 0.5746 - val_r: nan
+ - 77s - loss: 0.0116 - mean_absolute_error: 0.0373 - mean_absolute_percentage_error: 11003217.1430 - mean_pred: 1.0207 - theil_u: 0.0165 - r: 0.9979 - val_loss: 0.8195 - val_mean_absolute_error: 0.8185 - val_mean_absolute_percentage_error: 572939845.0610 - val_mean_pred: 1.2051 - val_theil_u: 0.6324 - val_r: nan
 Epoch 9/10
- - 15s - loss: 0.0029 - mean_absolute_error: 0.0386 - mean_absolute_percentage_error: 10771860.1345 - mean_pred: 1.0193 - theil_u: 0.0013 - r: 6.0807 - val_loss: 1.3401 - val_mean_absolute_error: 0.9224 - val_mean_absolute_percentage_error: 846737763.9179 - val_mean_pred: 1.1625 - val_theil_u: 0.5833 - val_r: nan
+ - 77s - loss: 5.8591e-05 - mean_absolute_error: 0.0052 - mean_absolute_percentage_error: 1556814.2590 - mean_pred: 1.0206 - theil_u: 0.0025 - r: 1.0000 - val_loss: 0.8155 - val_mean_absolute_error: 0.8138 - val_mean_absolute_percentage_error: 571531192.1322 - val_mean_pred: 1.2004 - val_theil_u: 0.6276 - val_r: nan
 Epoch 10/10
- - 15s - loss: 3.9619e-04 - mean_absolute_error: 0.0138 - mean_absolute_percentage_error: 3900862.1170 - mean_pred: 1.0208 - theil_u: 1.2571e-04 - r: 4.8146 - val_loss: 1.3731 - val_mean_absolute_error: 0.9251 - val_mean_absolute_percentage_error: 858108624.1957 - val_mean_pred: 1.1831 - val_theil_u: 0.5814 - val_r: nan
-<keras.callbacks.History object at 0x11b358048>
+ - 77s - loss: 0.0217 - mean_absolute_error: 0.0645 - mean_absolute_percentage_error: 18191571.9122 - mean_pred: 1.0203 - theil_u: 0.0279 - r: 0.9963 - val_loss: 0.5069 - val_mean_absolute_error: 0.6259 - val_mean_absolute_percentage_error: 500424574.8242 - val_mean_pred: 1.0124 - val_theil_u: 0.6107 - val_r: nan
+<keras.callbacks.History object at 0x125ad0160>

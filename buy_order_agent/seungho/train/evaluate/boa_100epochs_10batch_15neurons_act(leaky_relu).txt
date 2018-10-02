@@ -66,7 +66,7 @@ Total params: 73,704
 Trainable params: 73,704
 Non-trainable params: 0
 __________________________________________________________________________________________________
-2018-10-01 22:12:36.256578: I tensorflow/core/platform/cpu_feature_guard.cc:140] Your CPU supports instructions that this TensorFlow binary was not compiled to use: AVX2 FMA
+2018-10-03 00:17:15.096854: I tensorflow/core/platform/cpu_feature_guard.cc:140] Your CPU supports instructions that this TensorFlow binary was not compiled to use: AVX2 FMA
 loading data from ticker 000910, yyyymmdd 20180424 is finished.
 loading data from ticker 002150, yyyymmdd 20180502 is finished.
 loading data from ticker 004310, yyyymmdd 20180405 is finished.
@@ -103,5 +103,5 @@ loading data from ticker 004440, yyyymmdd 20180502 is finished.
 loading data from ticker 001260, yyyymmdd 20180423 is finished.
 loading data from ticker 002410, yyyymmdd 20180420 is finished.
 loading data from ticker 002140, yyyymmdd 20180503 is finished.
-total x1 : 1332, total x2 : 1332, total x3 : 1332, total y1 : 1332
-mean_absolute_error: 7.80%
+total x1 : 6696, total x2 : 6696, total x3 : 6696, total y1 : 6696
+mean_absolute_error: 11.24%

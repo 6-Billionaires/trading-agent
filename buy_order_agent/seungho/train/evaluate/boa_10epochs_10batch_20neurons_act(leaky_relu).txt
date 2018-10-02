@@ -99,5 +99,5 @@ loading data from ticker 004440, yyyymmdd 20180502 is finished.
 loading data from ticker 001260, yyyymmdd 20180423 is finished.
 loading data from ticker 002410, yyyymmdd 20180420 is finished.
 loading data from ticker 002140, yyyymmdd 20180503 is finished.
-total x1 : 1332, total x2 : 1332, total x3 : 1332, total y1 : 1332
-mean_absolute_error: 11.85%
+total x1 : 6696, total x2 : 6696, total x3 : 6696, total y1 : 6696
+mean_absolute_error: 21.91%

@@ -27,18 +27,19 @@ def mean_pred(y_true, y_pred):
 
 
 def theil_u(y_true, y_pred):
-    up = K.mean(K.square(y_true-y_pred))
-    bottom = K.mean(K.square(y_true)) + K.mean(K.square(y_pred))
-    return up/bottom
+    up = K.sqrt(K.mean(K.square(y_true - y_pred)))
+    bottom = K.sqrt(K.mean(K.square(y_true))) + K.sqrt(K.mean(K.square(y_pred)))
+    return up / bottom
 
 
 def r(y_true, y_pred):
     mean_y_true = K.mean(y_true)
     mean_y_pred = K.mean(y_pred)
 
-    up = K.sum((y_true-mean_y_true) * (y_pred-mean_y_pred))
-    bottom = K.mean(K.square(y_true-mean_y_true) * K.square(y_pred-mean_y_pred))
-    return up/bottom
+    up = K.sum((y_true - mean_y_true) * (y_pred - mean_y_pred))
+    bottom = K.sqrt(K.sum(K.square(y_true - mean_y_true)) * K.sum(K.square(y_pred - mean_y_pred)))
+
+    return up / bottom
 
 
 def build_network(max_len=7, init_mode='uniform', neurons=30, activation='relu'):
@@ -294,11 +295,22 @@ def main():
     }
 
     param_list = [
+        # BSA best result
+        # {'epochs': 50, 'batch_size': 64, 'neurons': 100, 'activation': 'leaky_relu'},
+        # BOA best result
         {'epochs': 100, 'batch_size': 10, 'neurons': 15, 'activation': 'leaky_relu'},
         {'epochs': 10, 'batch_size': 10, 'neurons': 15, 'activation': 'leaky_relu'},
         {'epochs': 10, 'batch_size': 10, 'neurons': 20, 'activation': 'leaky_relu'},
         {'epochs': 10, 'batch_size': 10, 'neurons': 25, 'activation': 'leaky_relu'},
         {'epochs': 10, 'batch_size': 10, 'neurons': 30, 'activation': 'leaky_relu'}
+        # SSA best result
+        # {'activation': 'leaky_relu', 'batch_size': 70, 'epochs': 50, 'neurons': 125},
+        # {'activation': 'leaky_relu', 'batch_size': 70, 'epochs': 75, 'neurons': 75},
+        # {'activation': 'leaky_relu', 'batch_size': 70, 'epochs': 100, 'neurons': 125},
+        # {'activation': 'leaky_relu', 'batch_size': 50, 'epochs': 100, 'neurons': 175},
+        # {'activation': 'leaky_relu', 'batch_size': 30, 'epochs': 100, 'neurons': 175},
+        # SOA best result
+        # {'batch_size': 30, 'epochs': 75, 'max_len': 7, 'neurons': 80}
     ]
 
     for params in param_list:

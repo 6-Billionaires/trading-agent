@@ -26,18 +26,19 @@ def mean_pred(y_true, y_pred):
 
 
 def theil_u(y_true, y_pred):
-    up = K.mean(K.square(y_true-y_pred))
-    bottom = K.mean(K.square(y_true)) + K.mean(K.square(y_pred))
-    return up/bottom
+    up = K.sqrt(K.mean(K.square(y_true - y_pred)))
+    bottom = K.sqrt(K.mean(K.square(y_true))) + K.sqrt(K.mean(K.square(y_pred)))
+    return up / bottom
 
 
 def r(y_true, y_pred):
     mean_y_true = K.mean(y_true)
     mean_y_pred = K.mean(y_pred)
 
-    up = K.sum((y_true-mean_y_true) * (y_pred-mean_y_pred))
-    bottom = K.mean(K.square(y_true-mean_y_true) * K.square(y_pred-mean_y_pred))
-    return up/bottom
+    up = K.sum((y_true - mean_y_true) * (y_pred - mean_y_pred))
+    bottom = K.sqrt(K.sum(K.square(y_true - mean_y_true)) * K.sum(K.square(y_pred - mean_y_pred)))
+
+    return up / bottom
 
 
 def build_network(max_len=7, init_mode='uniform', neurons=20, activation='relu'):

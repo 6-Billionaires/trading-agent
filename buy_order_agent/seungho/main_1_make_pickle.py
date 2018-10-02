@@ -107,7 +107,7 @@ def main():
     if not os.path.isdir(save_dir):
         os.makedirs(save_dir)
 
-    interval = 601
+    interval = 120
     len_sequence_secs = 120
     max_secs = 90
     threshold = 0.33

@@ -18,19 +18,25 @@ sys.path.append(newPath)
 build q newtork using cnn and dense layer
 """
 
+
+def mean_pred(y_true, y_pred):
+    return K.mean(y_pred)
+
+
 def theil_u(y_true, y_pred):
-    up = K.mean(K.square(y_true-y_pred))
-    bottom = K.mean(K.square(y_true)) + K.mean(K.square(y_pred))
-    return up/bottom
+    up = K.sqrt(K.mean(K.square(y_true - y_pred)))
+    bottom = K.sqrt(K.mean(K.square(y_true))) + K.sqrt(K.mean(K.square(y_pred)))
+    return up / bottom
 
 
 def r(y_true, y_pred):
     mean_y_true = K.mean(y_true)
     mean_y_pred = K.mean(y_pred)
 
-    up = K.sum((y_true-mean_y_true) * (y_pred-mean_y_pred))
-    bottom = K.mean(K.square(y_true-mean_y_true) * K.square(y_pred-mean_y_pred))
-    return up/bottom
+    up = K.sum((y_true - mean_y_true) * (y_pred - mean_y_pred))
+    bottom = K.sqrt(K.sum(K.square(y_true - mean_y_true)) * K.sum(K.square(y_pred - mean_y_pred)))
+
+    return up / bottom
 
 
 def build_network(max_len=7, optimizer='adam',init_mode='uniform', filters=16, neurons=20):
@@ -66,7 +72,7 @@ def build_network(max_len=7, optimizer='adam',init_mode='uniform', filters=16, n
     output = Dense(1, kernel_initializer=init_mode, activation='linear')(i_concatenated_all_h)
 
     model = Model([input_order, input_tranx, input_left_time], output)
-    model.compile(optimizer=optimizer, loss='mse', metrics=[metrics.mae, metrics.mape, theil_u, r])
+    model.compile(optimizer=optimizer, loss='mse', metrics=[metrics.mae, metrics.mape, mean_pred, theil_u, r])
     model.summary()
 
     return model
