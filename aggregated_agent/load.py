@@ -54,8 +54,8 @@ def build_bsa_network(optimizer='adam',init_mode='uniform', filters=16, neurons=
     if activation == 'leaky_relu':
         activation = LeakyReLU(alpha=0.3)
 
-    input_order = Input(shape=(10, 2, _len_observation, 2), name="x1")
-    input_tranx = Input(shape=(_len_observation, 11), name="x2")
+    input_order = Input(shape=(10, 2, _len_observation, 2), )
+    input_tranx = Input(shape=(_len_observation, 11), )
 
     h_conv1d_2 = Conv1D(filters=16, kernel_initializer=init_mode, kernel_size=3)(input_tranx)
     h_conv1d_2 = LeakyReLU(alpha=0.3)(h_conv1d_2)
@@ -101,9 +101,9 @@ def build_bsa_network(optimizer='adam',init_mode='uniform', filters=16, neurons=
 
 def build_boa_network(max_len=7, init_mode='uniform', neurons=20, activation='relu'):
     if activation == 'leaky_relu':
-        input_order = Input(shape=(10, 2, 120, 2), name="x1")
-        input_tranx = Input(shape=(120, 11), name="x2")
-        input_left_time = Input(shape=(max_len,), name="x3")
+        input_order = Input(shape=(10, 2, 120, 2), )
+        input_tranx = Input(shape=(120, 11), )
+        input_left_time = Input(shape=(max_len,), )
 
         h_conv1d_2 = Conv1D(kernel_initializer=init_mode, filters=16, kernel_size=3)(input_tranx)
         h_conv1d_2 = LeakyReLU(alpha=0.3)(h_conv1d_2)
@@ -143,9 +143,9 @@ def build_boa_network(max_len=7, init_mode='uniform', neurons=20, activation='re
 
         return model
 
-    input_order = Input(shape=(10, 2, 120, 2), name="x1")
-    input_tranx = Input(shape=(120, 11), name="x2")
-    input_left_time = Input(shape=(max_len,), name="x3")
+    input_order = Input(shape=(10, 2, 120, 2), )
+    input_tranx = Input(shape=(120, 11), )
+    input_left_time = Input(shape=(max_len,), )
 
     h_conv1d_2 = Conv1D(kernel_initializer=init_mode, filters=16, kernel_size=3, activation=activation)(input_tranx)
     h_conv1d_4 = MaxPooling1D(pool_size=3, strides=None, padding='valid')(h_conv1d_2)
@@ -184,10 +184,10 @@ def build_boa_network(max_len=7, init_mode='uniform', neurons=20, activation='re
 
 def build_ssa_network():
     max_len = util.get_maxlen_of_binary_array(120)
-    input_order = Input(shape=(10, 2, _len_observation, 2), name="x1")
-    input_tranx = Input(shape=(_len_observation, 11), name="x2")
-    input_elapedtime = Input(shape=(max_len,), name="x3")
-    input_lefttime = Input(shape=(max_len,), name="x4")
+    input_order = Input(shape=(10, 2, _len_observation, 2), )
+    input_tranx = Input(shape=(_len_observation, 11), )
+    input_elapedtime = Input(shape=(max_len,), )
+    input_lefttime = Input(shape=(max_len,), )
 
     h_conv1d_2 = Conv1D(filters=16, kernel_size=3)(input_tranx)
     h_conv1d_2 = LeakyReLU(alpha=0.3)(h_conv1d_2)
@@ -236,10 +236,10 @@ def build_ssa_network():
 
 def build_soa_network(max_len=7, init_mode='uniform', neurons=20, activation='relu'):
     if activation == 'leaky_relu':
-        input_order = Input(shape=(10, 2, 120, 2), name="x1")
-        input_tranx = Input(shape=(120, 11), name="x2")
-        input_left_time = Input(shape=(max_len,), name="x3")
-        elapsed_time = Input(shape=(max_len,), name="x4")
+        input_order = Input(shape=(10, 2, 120, 2), )
+        input_tranx = Input(shape=(120, 11), )
+        input_left_time = Input(shape=(max_len,), )
+        elapsed_time = Input(shape=(max_len,), )
 
         h_conv1d_2 = Conv1D(kernel_initializer=init_mode, filters=16, kernel_size=3)(input_tranx)
         h_conv1d_2 = LeakyReLU(alpha=0.3)(h_conv1d_2)
@@ -279,10 +279,10 @@ def build_soa_network(max_len=7, init_mode='uniform', neurons=20, activation='re
 
         return model
 
-    input_order = Input(shape=(10, 2, 120, 2), name="x1")
-    input_tranx = Input(shape=(120, 11), name="x2")
-    input_left_time = Input(shape=(max_len,), name="x3")
-    elapsed_time = Input(shape=(max_len,), name="x4")
+    input_order = Input(shape=(10, 2, 120, 2), )
+    input_tranx = Input(shape=(120, 11), )
+    input_left_time = Input(shape=(max_len,), )
+    elapsed_time = Input(shape=(max_len,), )
 
     h_conv1d_2 = Conv1D(kernel_initializer=init_mode, filters=16, kernel_size=3, activation=activation)(input_tranx)
     h_conv1d_4 = MaxPooling1D(pool_size=3, strides=None, padding='valid')(h_conv1d_2)
