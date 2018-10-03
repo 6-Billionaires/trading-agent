@@ -40,7 +40,7 @@ import sell_signal_agent.ssa_metrics as mt
 if args.device is None:
     os.environ["CUDA_VISIBLE_DEVICES"] = str(config.SSA_PARAMS['P_TRAINING_GPU'])
 else:
-    os.environ["CUDA_VISIBLE_DEVICES"] = args.device
+    os.environ["CUDA_VISIBLE_DEVICES"] = str(args.device)
 _len_observation = int(config.SSA_PARAMS['P_OBSERVATION_LEN'])
 _pickle_training_dir = config.SSA_PARAMS['PICKLE_DIR_FOR_TRAINING']
 

@@ -30,7 +30,7 @@ import sell_signal_agent.ssa_metrics as mt
 if args.device is None:
     os.environ["CUDA_VISIBLE_DEVICES"] = str(config.SSA_PARAMS['P_TRAINING_GPU'])
 else:
-    os.environ["CUDA_VISIBLE_DEVICES"] = args.device
+    os.environ["CUDA_VISIBLE_DEVICES"] = str(args.device)
 _len_observation = int(config.SSA_PARAMS['P_OBSERVATION_LEN'])
 _pickle_evaluate_dir = config.SSA_PARAMS['PICKLE_DIR_FOR_TEST']
 
@@ -260,7 +260,7 @@ t_x4 = np.concatenate(t_x4)
 t_y1 = np.concatenate(t_y1)
 
 
-scores = model.evaluate({'x1': t_x1, 'x2': t_x2, 'x3': t_x3, 'x4': t_x4}, t_y1, verbose=0, steps=10)
+scores = model.evaluate({'x1': t_x1, 'x2': t_x2, 'x3': t_x3, 'x4': t_x4}, t_y1, verbose=00)
 print("%s: %.2f    %s: %.2f    %s: %.2f    %s: %.2f" % (model.metrics_names[1], scores[1], model.metrics_names[2], scores[2], model.metrics_names[3], scores[3], model.metrics_names[4], scores[4]))
 
 with open('ssa_evaluate_model_history'+name_subfix, 'wb') as file_pi:
