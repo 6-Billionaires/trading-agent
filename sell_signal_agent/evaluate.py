@@ -22,7 +22,7 @@ import keras.backend as K
 from keras.models import Model
 from keras.layers import LeakyReLU, Input, Dense, Conv3D, Conv1D, Dense, Flatten, MaxPooling1D, MaxPooling2D,MaxPooling3D,Concatenate
 from gym_core.ioutil import *  # file i/o to load stock csv files
-
+import sell_signal_agent.ssa_metrics as mt
 
 os.environ["CUDA_VISIBLE_DEVICES"] = str(config.SSA_PARAMS['P_TRAINING_GPU'])
 _len_observation = int(config.SSA_PARAMS['P_OBSERVATION_LEN'])
@@ -105,7 +105,7 @@ def build_network_for_sparsed(optimizer='adam',init_mode='uniform',
 
     model = Model([input_order, input_tranx, input_elapedtime, input_lefttime], output)
     # model.compile(optimizer=optimizer, loss='mean_squared_error', metrics=['mae', 'mape'])
-    model.compile(optimizer=optimizer, loss='mean_squared_error', metrics=['accuracy', mean_pred, theil_u, r])
+    model.compile(optimizer=optimizer, loss='mean_squared_error', metrics=['accuracy', mt.mean_pred, mt.theil_u, mt.r])
     model.summary()
 
     return model
@@ -179,24 +179,6 @@ def get_real_data_sparsed(pickle_dir, ticker='001470', date='20180420', train_da
         d_y1.append(d[4][idx])
 
     return np.asarray(d_x1), np.asarray(d_x2), np.asarray(d_x3), np.asarray(d_x4), np.asarray(d_y1)
-
-
-def mean_pred(y_true, y_pred):
-    return K.mean(y_pred)
-
-
-def theil_u(y_true, y_pred):
-    up = K.mean(K.square(y_true-y_pred))
-    bottom = K.mean(K.square(y_true)) + K.mean(K.square(y_pred))
-    return up/bottom
-
-def r(y_true, y_pred):
-    mean_y_true = K.mean(y_true)
-    mean_y_pred = K.mean(y_pred)
-
-    up = K.sum((y_true-mean_y_true) * (y_pred-mean_y_pred))
-    bottom = K.mean(K.square(y_true-mean_y_true) * K.square(y_pred-mean_y_pred))
-    return up/bottom
 
 
 dat = np.arange(1, 13) / 2.0
