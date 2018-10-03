@@ -11,6 +11,8 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-import-gym", "--import-gym",help="import trading gym", action="store_true")
 parser.add_argument("-gym-dir", "--gym-dir", type=str, help="import trading gym")
 parser.add_argument("-project-dir", "--project-dir", type=str, help="import project home")
+parser.add_argument("-model-index", "--model-index", type=int, help="model parameters index")
+parser.add_argument("-device", "--device", type=int, help="model parameter")
 args = parser.parse_args()
 
 if args.import_gym:
@@ -24,19 +26,61 @@ from keras.layers import LeakyReLU, Input, Dense, Conv3D, Conv1D, Dense, Flatten
 from gym_core.ioutil import *  # file i/o to load stock csv files
 import sell_signal_agent.ssa_metrics as mt
 
-os.environ["CUDA_VISIBLE_DEVICES"] = str(config.SSA_PARAMS['P_TRAINING_GPU'])
+
+if args.device is None:
+    os.environ["CUDA_VISIBLE_DEVICES"] = str(config.SSA_PARAMS['P_TRAINING_GPU'])
+else:
+    os.environ["CUDA_VISIBLE_DEVICES"] = args.device
 _len_observation = int(config.SSA_PARAMS['P_OBSERVATION_LEN'])
 _pickle_evaluate_dir = config.SSA_PARAMS['PICKLE_DIR_FOR_TEST']
 
-model_params = {
-    'epochs' : 1,
-    'batchsize' : 40,
-    'neurons' : 125,
-    'activation' : 'leaky_relu'
-}
-param_epochs = model_params["epochs"]
-param_batchsize = model_params["batchsize"]
-param_neurons = model_params["neurons"]
+if args.model_index is None:
+    model_index = 0
+else:
+    model_index = args.model_index
+
+model_params = [
+    {
+        'epochs' : 1,
+        'batchsize' : 10,
+        'neurons' : 50,
+        'activation' : 'leaky_relu'
+    },
+    {
+        'epochs' : 75,
+        'batchsize' : 70,
+        'neurons' : 75,
+        'activation' : 'leaky_relu'
+    },
+    {
+        'epochs' : 50,
+        'batchsize' : 70,
+        'neurons' : 125,
+        'activation' : 'leaky_relu'
+    },
+    {
+        'epochs' : 100,
+        'batchsize' : 30,
+        'neurons' : 175,
+        'activation' : 'leaky_relu'
+    },
+    {
+        'epochs' : 100,
+        'batchsize' : 50,
+        'neurons' : 175,
+        'activation' : 'leaky_relu'
+    },
+    {
+        'epochs' : 100,
+        'batchsize' : 70,
+        'neurons' : 125,
+        'activation' : 'leaky_relu'
+    }
+]
+
+param_epochs = model_params[model_index]["epochs"]
+param_batchsize = model_params[model_index]["batchsize"]
+param_neurons = model_params[model_index]["neurons"]
 
 name_subfix = '_e' + str(param_epochs) + '_b' + str(param_batchsize) + '_n' + str(param_neurons)
 
@@ -50,12 +94,12 @@ Instead, it will use memory incrementally.
 build q newtork using cnn and dense layer
 """
 def build_network_for_sparsed(optimizer='adam',init_mode='uniform',
-                              filters=16, neurons=100, activation='relu'):
+                              filters=16, neurons=100, activation='relu', ssa_model_params=model_params):
 
     if activation == 'leaky_relu':
         activation = LeakyReLU(alpha=0.3)
 
-    neurons = model_params['neurons']
+    neurons = ssa_model_params['neurons']
 
     input_order = Input(shape=(10, 2, _len_observation, 2), name="x1")
     input_tranx = Input(shape=(_len_observation, 11), name="x2")
@@ -97,15 +141,12 @@ def build_network_for_sparsed(optimizer='adam',init_mode='uniform',
 
     i_concatenated_all_h = Concatenate()([i_concatenated_all_h_1, o_conv3d_1_1, input_elapedtime, input_lefttime])
 
-    # hidden_out = Dense(100)(i_concatenated_all_h)
-    # hidden_out = LeakyReLU(alpha=0.3)(hidden_out)
     i_concatenated_all_h = Dense(neurons, kernel_initializer=init_mode, activation='linear')(i_concatenated_all_h)
 
     output = Dense(1, kernel_initializer=init_mode, activation='linear')(i_concatenated_all_h)
 
     model = Model([input_order, input_tranx, input_elapedtime, input_lefttime], output)
-    # model.compile(optimizer=optimizer, loss='mean_squared_error', metrics=['mae', 'mape'])
-    model.compile(optimizer=optimizer, loss='mean_squared_error', metrics=['accuracy', mt.mean_pred, mt.theil_u, mt.r])
+    model.compile(optimizer=optimizer, loss='mean_squared_error', metrics=['accuracy', 'mae', 'mape', mt.mean_pred, mt.theil_u, mt.r])
     model.summary()
 
     return model
@@ -196,7 +237,7 @@ def seconds_to_binary_array(seconds, max_len):
 # train_using_real_data(d, 'sparse')
 max_len = get_maxlen_of_binary_array(120)
 
-model = build_network_for_sparsed()
+model = build_network_for_sparsed(ssa_model_params=model_params[model_index])
 model.load_weights('weight' + name_subfix + '.h5f')
 
 t_x1, t_x2, t_x3, t_x4, t_y1 = [],[],[],[],[]

@@ -11,6 +11,8 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-import-gym", "--import-gym",help="import trading gym", action="store_true")
 parser.add_argument("-gym-dir", "--gym-dir", type=str, help="import trading gym")
 parser.add_argument("-project-dir", "--project-dir", type=str, help="import project home")
+parser.add_argument("-model-index", "--model-index", type=int, help="model parameters index")
+parser.add_argument("-device", "--device", type=int, help="model parameter")
 args = parser.parse_args()
 
 if args.import_gym:
@@ -35,10 +37,56 @@ import pickle
 import config
 import sell_signal_agent.ssa_metrics as mt
 
-os.environ["CUDA_VISIBLE_DEVICES"] = str(config.SSA_PARAMS['P_TRAINING_GPU'])
+if args.device is None:
+    os.environ["CUDA_VISIBLE_DEVICES"] = str(config.SSA_PARAMS['P_TRAINING_GPU'])
+else:
+    os.environ["CUDA_VISIBLE_DEVICES"] = args.device
 _len_observation = int(config.SSA_PARAMS['P_OBSERVATION_LEN'])
 _pickle_training_dir = config.SSA_PARAMS['PICKLE_DIR_FOR_TRAINING']
 
+if args.model_index is None:
+    model_index = 0
+else:
+    model_index = args.model_index
+
+model_params = [
+    {
+        'epochs' : 1,
+        'batchsize' : 10,
+        'neurons' : 50,
+        'activation' : 'leaky_relu'
+    },
+    {
+        'epochs' : 75,
+        'batchsize' : 70,
+        'neurons' : 75,
+        'activation' : 'leaky_relu'
+    },
+    {
+        'epochs' : 50,
+        'batchsize' : 70,
+        'neurons' : 125,
+        'activation' : 'leaky_relu'
+    },
+    {
+        'epochs' : 100,
+        'batchsize' : 30,
+        'neurons' : 175,
+        'activation' : 'leaky_relu'
+    },
+    {
+        'epochs' : 100,
+        'batchsize' : 50,
+        'neurons' : 175,
+        'activation' : 'leaky_relu'
+    },
+    {
+        'epochs' : 100,
+        'batchsize' : 70,
+        'neurons' : 125,
+        'activation' : 'leaky_relu'
+    }
+]
 
 """
 it will prevent process not to occupying 100% of gpu memory for the first time. 
@@ -58,12 +106,12 @@ build q newtork using cnn and dense layer
 build q newtork using cnn and dense layer
 """
 def build_network_for_sparsed(optimizer='adam',init_mode='uniform',
-                              filters=16, neurons=100, activation='relu'):
+                              filters=16, neurons=100, activation='relu', ssa_model_params=model_params):
 
     if activation == 'leaky_relu':
         activation = LeakyReLU(alpha=0.3)
 
-    neurons = model_params['neurons']
+    neurons = ssa_model_params['neurons']
 
     input_order = Input(shape=(10, 2, _len_observation, 2), name="x1")
     input_tranx = Input(shape=(_len_observation, 11), name="x2")
@@ -105,15 +153,12 @@ def build_network_for_sparsed(optimizer='adam',init_mode='uniform',
 
     i_concatenated_all_h = Concatenate()([i_concatenated_all_h_1, o_conv3d_1_1, input_elapedtime, input_lefttime])
 
-    # hidden_out = Dense(100)(i_concatenated_all_h)
-    # hidden_out = LeakyReLU(alpha=0.3)(hidden_out)
     i_concatenated_all_h = Dense(neurons, kernel_initializer=init_mode, activation='linear')(i_concatenated_all_h)
 
     output = Dense(1, kernel_initializer=init_mode, activation='linear')(i_concatenated_all_h)
 
     model = Model([input_order, input_tranx, input_elapedtime, input_lefttime], output)
-    # model.compile(optimizer=optimizer, loss='mean_squared_error', metrics=['mae', 'mape'])
-    model.compile(optimizer=optimizer, loss='mean_squared_error', metrics=['accuracy', mt.mean_pred, mt.theil_u, mt.r])
+    model.compile(optimizer=optimizer, loss='mean_squared_error', metrics=['accuracy', 'mae', 'mape', mt.mean_pred, mt.theil_u, mt.r])
     model.summary()
 
     return model
@@ -218,9 +263,9 @@ def get_real_data_sparsed(pickle_dir, ticker='001470', date='20180420', train_da
     return np.asarray(d_x1), np.asarray(d_x2), np.asarray(d_x3), np.asarray(d_x4), np.asarray(d_y1)
 
 
-def train_using_real_data_sparsed(pickle_dir):
+def train_using_real_data_sparsed(pickle_dir, ssa_model_params=model_params):
 
-    model = build_network_for_sparsed()
+    model = build_network_for_sparsed(ssa_model_params=ssa_model_params)
 
     l = load_ticker_yyyymmdd_list_from_directory(pickle_dir)
 
@@ -257,9 +302,9 @@ def train_using_real_data_sparsed(pickle_dir):
 
     print('start to train.')
 
-    param_epochs = model_params['epochs']
-    param_batch_size = model_params['batchsize']
-    param_neurons = model_params['neurons']
+    param_epochs = ssa_model_params['epochs']
+    param_batch_size = ssa_model_params['batchsize']
+    param_neurons = ssa_model_params['neurons']
     history = model.fit({'x1': t_x1, 'x2': t_x2, 'x3': t_x3, 'x4': t_x4}, t_y1, epochs=param_epochs, verbose=2, batch_size=param_batch_size, callbacks=callbacks)
 
     name_subfix = '_e' + str(param_epochs) + "_b" + str(param_batch_size) + "_n" + str(param_neurons)
@@ -273,7 +318,7 @@ def train_using_real_data_sparsed(pickle_dir):
 
     model.save_weights('weight' + name_subfix + '.h5f')
     model.save('model' + name_subfix + '.h5')
-    plot_history(history, mt.dict_to_plot, model_params, 'fig_save')
+    plot_history(history, mt.dict_to_plot, ssa_model_params, 'fig_save')
 
 
 def load_data_sparsed(t, d, pickle_dir, use_fake_data=False):
@@ -368,25 +413,6 @@ def train_using_real_data_sparsed_gs(pickle_dir):
         print("%f (%f) with: %r" % (mean, stdev, param))
 
 
-#def mean_pred(y_true, y_pred):
-#    return K.mean(y_pred)
-
-
-#def theil_u(y_true, y_pred):
-#    up = K.mean(K.square(y_true-y_pred))
-#    bottom = K.mean(K.square(y_true)) + K.mean(K.square(y_pred))
-#    return up/bottom
-
-#def r(y_true, y_pred):
-#    mean_y_true = K.mean(y_true)
-#    mean_y_pred = K.mean(y_pred)
-#
-#    up = K.sum((y_true-mean_y_true) * (y_pred-mean_y_pred))
-#    bottom = K.mean(K.square(y_true-mean_y_true) * K.square(y_pred-mean_y_pred))
-#    return up/bottom
-
-### plot ###
-
 def plot_history(history, to_plot, params, save_path):
     ## params ##
     batch_size = params['batchsize']
@@ -407,13 +433,6 @@ def plot_history(history, to_plot, params, save_path):
         plt.savefig(save_path + '/' + file_name)
         # plt.show()
 
-model_params = {
-    'epochs' : 1,
-    'batchsize' : 40,
-    'neurons' : 125,
-    'activation' : 'leaky_relu'
-}
-
 dat = np.arange(1, 13) / 2.0
 def discretize(data, bins):
     split = np.array_split(np.sort(data), bins)
@@ -427,7 +446,7 @@ def seconds_to_binary_array(seconds, max_len):
     return np.binary_repr(seconds).zfill(max_len)
 
 max_len = get_maxlen_of_binary_array(120)
-train_using_real_data_sparsed(_pickle_training_dir)
+train_using_real_data_sparsed(_pickle_training_dir, model_params[model_index])
 #train_using_real_data_sparsed_gs(_pickle_training_dir)
 
 

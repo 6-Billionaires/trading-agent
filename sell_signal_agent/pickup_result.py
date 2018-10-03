@@ -1,7 +1,8 @@
 
 import pickle
 
-pickle_names = ['/Users/doni/99_study/git/trading-agent/sell_signal_agent/ssa_model_history_e75_b70_n75',
+pickle_names = [
+                '/Users/doni/99_study/git/trading-agent/sell_signal_agent/ssa_model_history_e75_b70_n75',
                 '/Users/doni/99_study/git/trading-agent/sell_signal_agent/ssa_model_history_e50_b70_n125',
                 '/Users/doni/99_study/git/trading-agent/sell_signal_agent/ssa_model_history_e100_b30_n175',
                 '/Users/doni/99_study/git/trading-agent/sell_signal_agent/ssa_model_history_e100_b50_n175',

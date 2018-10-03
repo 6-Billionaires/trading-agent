@@ -22,7 +22,8 @@ def r(y_true, y_pred):
 dict_to_plot = {
     'LOSS':'loss',
     'MAE' : 'mean_absolute_error',
-    'MAPE' : 'mean_pred',
+    'MAPE' : 'mean_absolute_percentage_error',
+    'Mean_Pred' : 'mean_pred',
     'Corr' : 'r',
-    "Theil's U" : 'theil_u'
+    "Theil_U" : 'theil_u'
 }
