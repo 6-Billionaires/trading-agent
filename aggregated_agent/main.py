@@ -83,7 +83,7 @@ from keras import backend as K
 import time
 
 SHARED_GRAPH = tf.get_default_graph()  # todo : graph is not thread safe
-N_THREADS = 4
+N_THREADS = 16
 N_MAX_EPISODE = 100
 TOTAL_STEP_COUNT = 0
 TOTAL_EPISODE = 0
@@ -212,9 +212,10 @@ class Agents(threading.Thread):
     step_limit = [61, 60, 1, 0]
     additional_reward_rate = 0.1
 
-    def __init__(self, idx, env, n_max_episode, file_dir, nw_bsa, nw_boa, nw_ssa, nw_soa,
+    def __init__(self, idx, n_max_episode, file_dir, nw_bsa, nw_boa, nw_ssa, nw_soa,
                  t_nw_bsa, t_nw_boa, t_nw_ssa, t_nw_soa, rb_bsa, rb_boa, rb_ssa, rb_soa):
         super(Agents, self).__init__()
+        env = MyTGym(episode_type='0', percent_goal_profit=2, percent_stop_loss=5, episode_duration_min=63)
         self.env = env
         self.n_max_episode = n_max_episode
         self.train_log_dir = file_dir
@@ -529,8 +530,7 @@ if __name__ == '__main__':
     faster_dqn_agents = []
 
     for i in range(N_THREADS):
-        env = MyTGym(episode_type='0', percent_goal_profit=2, percent_stop_loss=5, episode_duration_min=63)
-        agent = Agents(i, env, N_MAX_EPISODE, train_log_file_dir, NW_BSA, NW_BOA, NW_SSA, NW_SOA, T_NW_BSA,
+        agent = Agents(i, N_MAX_EPISODE, train_log_file_dir, NW_BSA, NW_BOA, NW_SSA, NW_SOA, T_NW_BSA,
                        T_NW_BOA, T_NW_SSA, T_NW_SOA, RB_BSA, RB_BOA, RB_SSA, RB_SOA)
         faster_dqn_agents.append(agent)
 
