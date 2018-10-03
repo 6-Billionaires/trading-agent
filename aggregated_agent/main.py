@@ -85,7 +85,6 @@ K.clear_session()
 tf.reset_default_graph()
 shared_graph = tf.get_default_graph()  # todo : graph is not thread safe
 
-
 class DDQNAgent:
     def __init__(self, thread_idx, agent_type, policy_model, target_model, data_num, action_size, rb):
         self.thread_idx = thread_idx
@@ -156,7 +155,7 @@ class DDQNAgent:
 
     def update_target_model(self):
         # with tf.Session(graph=self.graph) as sess:
-        with self.graph.as_default():
+        with shared_graph.as_default():
             self.target_model.set_weights(self.model.get_weights())
 
     def get_action(self, state):
@@ -202,7 +201,10 @@ class DDQNAgent:
             input_next_states.append(np.array(next_states[i]))
 
         with shared_graph.as_default():
+            # todo : here it needs to lock?
+            lock_update_policy_nw.acquire()
             target = self.model.predict(input_states)
+            lock_update_policy_nw.release()
             target_val = self.target_model.predict(input_next_states)
 
         for i in range(self.batch_size):
@@ -265,7 +267,7 @@ target_network = None
 # hyperparameter
 c_rb_size = 100000
 c_warm_up_step = 10000
-c_update_step_interval = 1000
+c_update_step_interval = 50
 lr = 1e-4
 epsilon_min = 0.02
 epsilon_max = 1.0
@@ -283,6 +285,7 @@ rb_ssa = deque(maxlen=c_rb_size)
 # this is a replay memory of sell order agent
 rb_soa = deque(maxlen=c_rb_size)
 
+# todo : lock declaration!!
 # check lock when thread agent try appending state transition information into replay memory.
 lock_rb_append = threading.Lock()
 # check lock when thread agent try updating policy network
@@ -452,6 +455,10 @@ class Agents(threading.Thread):
         global total_episode
         global total_step_count
         global shared_graph
+
+        global lock_update_policy_nw
+        global lock_rb_append
+
         for ep in range(self.n_max_episode):
             print('{} thread {} episode started'.format(self.idx, ep))
             episode_start_time = time.time()
@@ -513,7 +520,7 @@ class Agents(threading.Thread):
 
                 total_step_count += 1
                 state = next_state
-                if self.trainable:
+                if self.trainable and steps % c_update_step_interval == 0:
                     self.train_agents()
 
                 steps = 0
@@ -657,5 +664,5 @@ class FasterDQNAgent:
 
 
 if __name__ == '__main__':
-    fa = FasterDQNAgent(2, 40)  # thread, n_max_episode
+    fa = FasterDQNAgent(16, 40)  # thread, n_max_episode
     fa.play()
