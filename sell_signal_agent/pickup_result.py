@@ -12,4 +12,5 @@ for pickle_name in pickle_names:
     f = open(pickle_name, 'rb')
     d = pickle.load(f)  # d[data_type][second] : mapobject!!
     f.close()
-    print('loss: {}, acc: {}, mean_pred: {}, theil_u: {}, r: {}'.format(d['loss'][-1], d['acc'][-1], d['mean_pred'][-1], d['theil_u'][-1], d['r'][-1]))
+    print('loss: {}, mae: {}, mape: {}, mean_pred: {}, theil_u: {}, r: {}'
+          .format(d['loss'][-1], d['mean_absolute_error'][-1], d['mean_absolute_percentage_error'][-1], d['mean_pred'][-1], d['theil_u'][-1], d['r'][-1]))

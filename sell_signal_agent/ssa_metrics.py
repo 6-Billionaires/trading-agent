@@ -17,3 +17,12 @@ def r(y_true, y_pred):
     bottom = K.sqrt(K.sum(K.square(y_true - mean_y_true)) * K.sum(K.square(y_pred - mean_y_pred)))
 
     return up / bottom
+
+
+dict_to_plot = {
+    'LOSS':'loss',
+    'MAE' : 'mean_absolute_error',
+    'MAPE' : 'mean_pred',
+    'Corr' : 'r',
+    "Theil's U" : 'theil_u'
+}

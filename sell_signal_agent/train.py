@@ -273,7 +273,7 @@ def train_using_real_data_sparsed(pickle_dir):
 
     model.save_weights('weight' + name_subfix + '.h5f')
     model.save('model' + name_subfix + '.h5')
-    plot_history(history, dict_to_plot, model_params, 'fig_save')
+    plot_history(history, mt.dict_to_plot, model_params, 'fig_save')
 
 
 def load_data_sparsed(t, d, pickle_dir, use_fake_data=False):
@@ -407,12 +407,6 @@ def plot_history(history, to_plot, params, save_path):
         plt.savefig(save_path + '/' + file_name)
         # plt.show()
 
-dict_to_plot = {
-    'MAE' : 'loss',
-    'MAPE' : 'mean_pred',
-    'Corr' : 'r',
-    "Theil's U" : 'theil_u'
-}
 model_params = {
     'epochs' : 1,
     'batchsize' : 40,
