@@ -74,26 +74,65 @@ from keras.layers import Dense, Concatenate
 from collections import deque
 import glob
 import copy
-from aggregated_agent import load
+from aggregated_agent.loadnetwork import *
+from aggregated_agent import loadnetwork
 import csv
 import threading
 import  tensorflow as tf
 from keras import backend as K
 import time
 
-K.clear_session()
-tf.reset_default_graph()
-shared_graph = tf.get_default_graph()  # todo : graph is not thread safe
+SHARED_GRAPH = tf.get_default_graph()  # todo : graph is not thread safe
+N_THREADS = 4
+N_MAX_EPISODE = 100
+TOTAL_STEP_COUNT = 0
+TOTAL_EPISODE = 0
+SCORES = []
+
+# Hyperparameter
+C_RB_SIZE = 100000
+C_WARM_UP_STEP = 10000
+C_SYNC_STEP_INTEVAL = 100
+C_UPDATE_STEP_INTERVAL = 1000
+LR = 1E-4
+EPSILON_MIN = 0.02
+EPSILON_MAX = 1.0
+EPSILON_PERIOD_DECAYING = 100000
+
+# other operating parameters
+n_save_model_episode_interval = 20
+
+# this is a replay memory of buy signal agent
+RB_BSA = deque(maxlen=C_RB_SIZE)
+# this is a replay memory of buy order agent
+RB_BOA = deque(maxlen=C_RB_SIZE)
+# this is a replay memory of sell signal agent
+RB_SSA = deque(maxlen=C_RB_SIZE)
+# this is a replay memory of sell order agent
+RB_SOA = deque(maxlen=C_RB_SIZE)
+
+NW_BSA = load_rl_model(g=SHARED_GRAPH, agent_type='bsa', i=1)
+T_NW_BSA = load_rl_model(g=SHARED_GRAPH, agent_type='bsa', i=11)
+NW_BOA = load_rl_model(g=SHARED_GRAPH, agent_type='boa', i=2)
+T_NW_BOA = load_rl_model(g=SHARED_GRAPH, agent_type='boa', i=22)
+NW_SSA = load_rl_model(g=SHARED_GRAPH, agent_type='ssa', i=3)
+T_NW_SSA = load_rl_model(g=SHARED_GRAPH, agent_type='ssa', i=33)
+NW_SOA = load_rl_model(g=SHARED_GRAPH, agent_type='soa', i=4)
+T_NW_SOA = load_rl_model(g=SHARED_GRAPH, agent_type='soa', i=44)
 
 class DDQNAgent:
-    def __init__(self, thread_idx, agent_type, policy_model, target_model, data_num, action_size, rb):
+    def __init__(self, thread_idx, agent_type, policy_model, target_model,
+                 data_num, action_size, rb, use_thread_model=False):
         self.thread_idx = thread_idx
-        # load models
         self.agent_type = agent_type
-        self.model = policy_model
-        # self.target_model = target_model
-        # self.model = self.load_model()
-        self.target_model = self.load_model()
+
+        if use_thread_model:
+            # self.model = self.load_model()
+            self.model = policy_model
+            self.target_model = self.load_model()
+        else:
+            self.model = policy_model
+            self.target_model = target_model
 
         self.epsilon = 1.
         self.epsilon_min = 0.001
@@ -106,56 +145,8 @@ class DDQNAgent:
         self.discount_factor = 0.99
         self.data_num = data_num
 
-    def load_model(self):
-        with shared_graph.as_default():
-            networks = glob.glob('./networks/*.h5f')
-            if './networks/' + self.agent_type + '_rl.h5f' not in networks:
-                trained_model = load.load_model(shared_graph, self.agent_type)
-                for layer in trained_model.layers:
-                    layer.trainable = False
-                    layer.name = layer.name + "__trained__" + str(self.thread_idx)
-                rl_model = load.load_model(shared_graph, self.agent_type)
-                for layer in rl_model.layers:
-                    layer.name = layer.name + "_rl_" + str(self.thread_idx)
-                concat_layer = Concatenate(name='concat2')([trained_model(rl_model.input), rl_model.layers[-1].output])
-                output_layer = Dense(2, activation='linear', name='q_value_output')(concat_layer)
-                model = Model(inputs=rl_model.input, outputs=output_layer)
-
-            else:
-                trained_model = load.load_model(shared_graph, self.agent_type)
-                for layer in trained_model.layers:
-                    layer.trainable = False
-                    layer.name = layer.name + "_trained_" + str(self.thread_idx)
-                rl_model = load.load_model(shared_graph, self.agent_type)
-                for layer in rl_model.layers:
-                    layer.name = layer.name + "_rl_" + str(self.thread_idx)
-                concat_layer = Concatenate()([trained_model(rl_model.input), rl_model.layers[-1].output]) #name='concat2'
-                output_layer = Dense(2, activation='linear')(concat_layer) # name='q_value_output'
-                model = Model(inputs=rl_model.input, outputs=output_layer)
-                model.load_weights('aggregated_agent/networks/' + self.agent_type + '_rl.h5f')
-
-            model.compile(optimizer='adam', loss='mse')
-            # model.summary()
-        return model
-
-    @staticmethod
-    def pop_layer(model):
-        if not model.outputs:
-            raise Exception("model is empty")
-
-        model.layers.pop()
-        if not model.layers:
-            model.outputs = []
-            model.inbound_nodes = []
-            model.outbound_nodes = []
-        else:
-            model.layers[-1].outbound_nodes = []
-            model.outputs = [model.layers[-1].output]
-        model.built = False
-
     def update_target_model(self):
-        # with tf.Session(graph=self.graph) as sess:
-        with shared_graph.as_default():
+        with SHARED_GRAPH.as_default():
             self.target_model.set_weights(self.model.get_weights())
 
     def get_action(self, state):
@@ -165,7 +156,7 @@ class DDQNAgent:
             states = []
             for i in range(self.data_num):
                 states.append(np.array([state[i]]))
-            with shared_graph.as_default():
+            with SHARED_GRAPH.as_default():
                 q_value = self.model.predict(states)
             return np.argmax(q_value[0])
 
@@ -173,12 +164,10 @@ class DDQNAgent:
         self.memory.append((state, action, reward, next_state, done))
 
     def train_model(self):
-        # todo : here self.train_start is same as c_warm_up_step hyperparameter!!!
+        # todo : here self.train_start is same as c_warm_up_step hyper-parameter!!!
         if len(self.memory) < self.train_start:
             return
-
         self.epsilon = max(self.epsilon * self.epsilon_decay, self.epsilon_min)
-
         mini_batch = random.sample(self.memory, self.batch_size)
 
         states, next_states = [], []
@@ -200,11 +189,8 @@ class DDQNAgent:
             input_states.append(np.array(states[i]))
             input_next_states.append(np.array(next_states[i]))
 
-        with shared_graph.as_default():
-            # todo : here it needs to lock?
-            lock_update_policy_nw.acquire()
+        with SHARED_GRAPH.as_default():
             target = self.model.predict(input_states)
-            lock_update_policy_nw.release()
             target_val = self.target_model.predict(input_next_states)
 
         for i in range(self.batch_size):
@@ -213,126 +199,33 @@ class DDQNAgent:
             else:
                 target[i][actions[i]] = rewards[i] + self.discount_factor * (np.amax(target_val[i]))
 
-        with shared_graph.as_default():
-            lock_update_policy_nw.acquire()
-            # print('lock_rb_append acquired')
+        with SHARED_GRAPH.as_default():
             self.model.fit(input_states, target, batch_size=self.batch_size, epochs=1, verbose=0)
-            lock_update_policy_nw.release()
-            # print('lock_rb_append released')
 
-        if total_episode % n_save_model_episode_interval == 0:
+        if TOTAL_EPISODE % n_save_model_episode_interval == 0:
             pass
             # with graph.as_default():
             #     self.model.save_weights('aggregated_agent/networks/' + self.agent_type + '_rl.h5f')
-
-
-def load_model(agent_type, i):
-    with shared_graph.as_default():
-        networks = glob.glob('./networks/*.h5f')
-        if './networks/' + agent_type + '_rl.h5f' not in networks:
-            trained_model = load.load_model(shared_graph, agent_type)
-            for layer in trained_model.layers:
-                layer.trainable = False
-                layer.name = layer.name + "__trained__" + str(i)
-            rl_model = load.load_model(shared_graph, agent_type)
-            for layer in trained_model.layers:
-                layer.name = layer.name + "__rl__" + str(i)
-            # rl_model = load_model('./networks/' + self.agent_type + '.h5')
-            concat_layer = Concatenate()([trained_model(rl_model.input), rl_model.layers[-1].output]) # name='concat2'
-            output_layer = Dense(2, activation='linear')(concat_layer) # name='q_value_output'
-            model = Model(inputs=rl_model.input, outputs=output_layer)
-
-        else:
-            trained_model = load.load_model(agent_type)
-            for layer in trained_model.layers:
-                layer.trainable = False
-                layer.name = layer.name + "__trained__" + str(i)
-            rl_model = load.load_model(agent_type)
-            for layer in trained_model.layers:
-                layer.name = layer.name + "__rl__" + str(i)
-            concat_layer = Concatenate()([trained_model(rl_model.input), rl_model.layers[-1].output]) # name='concat2'
-            output_layer = Dense(2, activation='linear')(concat_layer) # name='q_value_output'
-            model = Model(inputs=rl_model.input, outputs=output_layer)
-            model.load_weights('aggregated_agent/networks/' + agent_type + '_rl.h5f')
-        model.compile(optimizer='adam', loss='mse')
-        # model.summary()
-    return model
-
-# shared global variables
-total_step_count = 0
-total_episode = 0
-scores = []
-target_network = None
-
-# hyperparameter
-c_rb_size = 100000
-c_warm_up_step = 10000
-c_update_step_interval = 50
-lr = 1e-4
-epsilon_min = 0.02
-epsilon_max = 1.0
-epsilon_period_decaying = 100000
-
-# other operating parameters
-n_save_model_episode_interval = 20
-
-# this is a replay memory of buy signal agent
-rb_bsa = deque(maxlen=c_rb_size)
-# this is a replay memory of buy order agent
-rb_boa = deque(maxlen=c_rb_size)
-# this is a replay memory of sell signal agent
-rb_ssa = deque(maxlen=c_rb_size)
-# this is a replay memory of sell order agent
-rb_soa = deque(maxlen=c_rb_size)
-
-# todo : lock declaration!!
-# check lock when thread agent try appending state transition information into replay memory.
-lock_rb_append = threading.Lock()
-# check lock when thread agent try updating policy network
-lock_update_policy_nw = threading.Lock()
-
-
-nw_bsa = load_model(agent_type='bsa', i=1111)
-# t_nw_bsa = load_model(agent_type='bsa')
-#
-nw_boa = load_model(agent_type='boa', i=2222)
-# t_nw_boa = load_model(agent_type='boa')
-#
-nw_ssa = load_model(agent_type='ssa', i=3333)
-# t_nw_ssa = load_model(agent_type='ssa')
-#
-nw_soa = load_model(agent_type='soa', i=4444)
-# t_nw_soa = load_model(agent_type='soa')
-
 
 class Agents(threading.Thread):
     agent_name = ['BSA', 'BOA', 'SSA', 'SOA']
     step_limit = [61, 60, 1, 0]
     additional_reward_rate = 0.1
 
-    def __init__(self, idx, env, n_max_episode, file_dir):
+    def __init__(self, idx, env, n_max_episode, file_dir, nw_bsa, nw_boa, nw_ssa, nw_soa,
+                 t_nw_bsa, t_nw_boa, t_nw_ssa, t_nw_soa, rb_bsa, rb_boa, rb_ssa, rb_soa):
         super(Agents, self).__init__()
         self.env = env
         self.n_max_episode = n_max_episode
         self.train_log_dir = file_dir
         self.idx = idx
 
-        # global bsa
-        # global boa
-        # global ssa
-        # global soa
+        global TOTAL_STEP_COUNT
 
-        global nw_bsa
-        global nw_boa
-        global nw_ssa
-        global nw_soa
-
-        bsa = DDQNAgent(idx, 'bsa', policy_model=nw_bsa, target_model=None, data_num=2, action_size=2, rb=rb_bsa)
-        boa = DDQNAgent(idx, 'boa', policy_model=nw_boa, target_model=None, data_num=3, action_size=2, rb=rb_boa)
-        ssa = DDQNAgent(idx, 'ssa', policy_model=nw_ssa, target_model=None, data_num=4, action_size=2, rb=rb_ssa)
-        soa = DDQNAgent(idx, 'soa', policy_model=nw_soa, target_model=None, data_num=4, action_size=2, rb=rb_soa)
-
-        global total_step_count
+        bsa = DDQNAgent(idx, 'bsa', policy_model=nw_bsa, target_model=t_nw_bsa, data_num=2, action_size=2, rb=rb_bsa)
+        boa = DDQNAgent(idx, 'boa', policy_model=nw_boa, target_model=t_nw_boa, data_num=3, action_size=2, rb=rb_boa)
+        ssa = DDQNAgent(idx, 'ssa', policy_model=nw_ssa, target_model=t_nw_ssa, data_num=4, action_size=2, rb=rb_ssa)
+        soa = DDQNAgent(idx, 'soa', policy_model=nw_soa, target_model=t_nw_soa, data_num=4, action_size=2, rb=rb_soa)
 
         self.agents = [bsa, boa, ssa, soa]
         self.sequence = 0
@@ -452,12 +345,9 @@ class Agents(threading.Thread):
 
     # Thread interactive with environment
     def run(self):
-        global total_episode
-        global total_step_count
-        global shared_graph
-
-        global lock_update_policy_nw
-        global lock_rb_append
+        global TOTAL_EPISODE
+        global TOTAL_STEP_COUNT
+        global SHARED_GRAPH
 
         for ep in range(self.n_max_episode):
             print('{} thread {} episode started'.format(self.idx, ep))
@@ -465,8 +355,8 @@ class Agents(threading.Thread):
             done = False
             state = self.env.reset()
 
-            if self.idx == 0 and total_step_count % c_update_step_interval == 0:
-                    self.update_target_network()
+            if self.idx == 0 and TOTAL_STEP_COUNT % C_SYNC_STEP_INTEVAL == 0:
+                self.update_target_network()
 
             reward_sum = [0, 0, 0, 0]
             step_count = [0, 0, 0, 0]
@@ -501,10 +391,7 @@ class Agents(threading.Thread):
                 if self.sequence == 3 and action == 1:
                     reward[self.agent_name[self.sequence]] = sell_price - buy_price - 0.33
 
-                lock_rb_append.acquire()
-                # print('lock_rb_append acquired')
-                agent_reward = self.append_sample(state, action, reward, next_state, done)
-                lock_rb_append.release()
+                agent_reward = self.append_sample(state, action, reward, next_state, done) #
 
                 if action == 0:
                     reward_sum[prev_sequence] += agent_reward
@@ -515,21 +402,19 @@ class Agents(threading.Thread):
                         reward_sum[idx] += br
                         step_count[idx] += 1
 
-
-                # print('lock_rb_append released')
-
-                total_step_count += 1
+                TOTAL_STEP_COUNT += 1
                 state = next_state
-                if self.trainable and steps % c_update_step_interval == 0:
+                # todo : add thread 0 only update policy network!!
+                if self.idx == 0 and self.trainable and steps % C_UPDATE_STEP_INTERVAL == 0:
                     self.train_agents()
 
                 steps = 0
                 for s in step_count:
                     steps += s
                 # todo : need to change 1hr * 60 mins * 60 secs = 3600 secs - 120 secs needs to get enough observation for the first time
-                if steps >= 1 * 60 * 60:
+                if steps >= 1 * 60 * 60 - 3300:  # todo : -3000 for test
                     done = True
-                    total_episode = total_episode + 1
+                    TOTAL_EPISODE = TOTAL_EPISODE + 1
 
             if step_count[0] > 0:
                 rewards = []
@@ -639,30 +524,19 @@ class MyTGym(tgym.TradingGymEnv):  # MyTGym 수정해야 함 -> agent 별 reward
         return [x1, x2]
 
 
-class FasterDQNAgent:
-    def __init__(self, n_threads, n_max_episode):
-        # todo : add hyperparameters here
-        self.n_threads = n_threads
-        self.n_max_episode = n_max_episode
-
-    def play(self):
-        faster_dqn_agents = []
-        train_log_file_dir = 'train_log.csv'
-
-        for i in range(self.n_threads):
-            env = MyTGym(episode_type='0', percent_goal_profit=2, percent_stop_loss=5, episode_duration_min=63)
-            agent = Agents(i, env, self.n_max_episode, train_log_file_dir)
-            faster_dqn_agents.append(agent)
-
-        sess = tf.InteractiveSession()
-        K.set_session(sess)
-        # sess_shared = tf.Session()
-        sess.run(tf.global_variables_initializer())
-
-        for a in faster_dqn_agents:
-            a.start()
-
-
 if __name__ == '__main__':
-    fa = FasterDQNAgent(16, 40)  # thread, n_max_episode
-    fa.play()
+    train_log_file_dir = 'train_log.csv'
+    faster_dqn_agents = []
+
+    for i in range(N_THREADS):
+        env = MyTGym(episode_type='0', percent_goal_profit=2, percent_stop_loss=5, episode_duration_min=63)
+        agent = Agents(i, env, N_MAX_EPISODE, train_log_file_dir, NW_BSA, NW_BOA, NW_SSA, NW_SOA, T_NW_BSA,
+                       T_NW_BOA, T_NW_SSA, T_NW_SOA, RB_BSA, RB_BOA, RB_SSA, RB_SOA)
+        faster_dqn_agents.append(agent)
+
+    sess = K.get_session()
+    K.set_session(sess)
+    sess.run(tf.global_variables_initializer())
+
+    for a in faster_dqn_agents:
+        a.start()
