@@ -25,14 +25,14 @@ class DDQNAgent:
         self.model = self.load_model()
         self.target_model = self.load_model()
 
-        self.epsilon = 1.0
+        self.epsilon = 0.895
         self.epsilon_min = 0.02
-        self.epsilon_decay = 0.99995
+        self.epsilon_decay = 0.995
         self.batch_size = 512
         self.action_size = action_size
         self.train_start = 3000
         self.target_update_interval = 10000
-        self.memory = deque(maxlen=300000)
+        self.memory = deque(maxlen=100000)
         self.discount_factor = 0.99
         self.data_num = data_num
 
@@ -302,10 +302,10 @@ class MyTGym(tgym.TradingGymEnv):  # MyTGym 수정해야 함 -> agent 별 reward
         for j in range(secs):
             if j == 0:
                 price_at_signal = self.d_episodes_data[self.p_current_episode_ref_idx]['quote'].loc[
-                    self.c_range_timestamp[self.p_current_step_in_episode]]['Price(last excuted)']
+                    self.c_range_timestamp[self.p_current_step_in_episode]]['Price(last executed)']
             else:
                 price = self.d_episodes_data[self.p_current_episode_ref_idx]['quote'].loc[self.c_range_timestamp[
-                    self.p_current_step_in_episode+j]]['Price(last excuted)']
+                    self.p_current_step_in_episode+j]]['Price(last executed)']
                 gap = price - price_at_signal - threshold
                 width += gap
         rewards['BSA'] = width / secs
@@ -315,7 +315,7 @@ class MyTGym(tgym.TradingGymEnv):  # MyTGym 수정해야 함 -> agent 별 reward
         low_price = price_at_signal
         for j in range(secs):                
             price = self.d_episodes_data[self.p_current_episode_ref_idx]['quote'].loc[self.c_range_timestamp[
-                    self.p_current_step_in_episode+j]]['Price(last excuted)']
+                    self.p_current_step_in_episode+j]]['Price(last executed)']
             if j == 0:
                 current_price = price
             low_price = min(low_price, price)
@@ -361,7 +361,7 @@ if __name__ == '__main__':
     all_steps = 0
     EPISODES = 1000000
     for ep in range(EPISODES):
-        if True:
+        try:
             start_time = time.time()
 
             done = False
@@ -464,8 +464,8 @@ if __name__ == '__main__':
                 csv_writer = csv.writer(train_log_file)
                 csv_writer.writerow([ep, rewards[0], rewards[1], rewards[2], rewards[3], profit, avg_profit, profit_comm, avg_profit_comm])
                 train_log_file.close()
-        #except:
-        #    pass
+        except:
+            pass
 
     
 
