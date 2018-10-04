@@ -25,8 +25,8 @@ class DDQNAgent:
         self.model = self.load_model()
         self.target_model = self.load_model()
 
-        self.epsilon = 0.895
-        self.epsilon_min = 0.02
+        self.epsilon = 0.0
+        self.epsilon_min = 0.0
         self.epsilon_decay = 0.995
         self.batch_size = 512
         self.action_size = action_size
@@ -103,6 +103,8 @@ class DDQNAgent:
             for i in range(self.data_num):
                 states.append(np.array([state[i]]))
             q_value = self.model.predict(states)
+
+            q_value[0][1] *= 1.3
             return np.argmax(q_value[0])
 
     def append_sample(self, state, action, reward, next_state, done):
@@ -178,6 +180,7 @@ class Agents:
             self.remain_step -= 1
         if self.sequence >= 1 and self.remain_step <= self.step_limit[self.sequence]:  # limit 시간이 지나면 강제로 action = 1
             return 1
+
         return self.agents[self.sequence].get_action(state)
 
     # action 에 따라 bsa - boa - ssa - soa 순서를 진행한다.
@@ -417,7 +420,7 @@ if __name__ == '__main__':
                         step_count[idx] += 1
 
                 state = next_state
-                if agents.trainable and all_steps >= 1000:
+                if agents.trainable and all_steps >= 1000 and False:
                     agents.train_agents()
                     all_steps = 0
                 steps = 0
