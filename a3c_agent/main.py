@@ -87,10 +87,7 @@ class DDQNAgent:
         self.agent_type = agent_type
         self.data_num = data_num
 
-        # self.global_actor = actor
-        # self.global_critic = critic
-        self.local_sess = tf.Session(graph=g)
-        self.local_sess.run(tf.global_variables_initializer())
+        self.g_n = g
 
         self.actor = actor
         self.critic = critic
@@ -128,7 +125,7 @@ class DDQNAgent:
 
     # todo : this function can synchronize local network same as global network
     def update_target_model(self,  global_network, local_network):
-        with self.local_sess as sess:
+        with self.g_n.as_default():
             global_network.set_weights(local_network.get_weights())
 
     def append_sample(self, state, action, reward, next_state, done):
@@ -149,7 +146,7 @@ class DDQNAgent:
         self.dones.append(done)
 
     def get_action(self, state):
-        with self.local_sess as sess:
+        with self.g_n.as_default():
             policy = self.actor.predict(np.reshape(state, [1, self.state_size]))[0]  # todo : self.state_size
         return np.random.choice(self.action_size, 1, p=policy)[0]
 
@@ -169,7 +166,7 @@ class DDQNAgent:
         discounted_rewards = self.discount_rewards(done)
 
         inputs = []
-        with self.local_sess as sess:
+        with self.g_n.as_default():
             for d_i in range(self.data_num):
                 inputs.append([state[d_i] for state in self.states])
             values = self.critic.predict(inputs)
@@ -196,7 +193,7 @@ class DDQNAgent:
         inputs = []
         for i in range(self.data_num):
             inputs.append(state[i].reshape((1,) + state[i].shape))
-        with self.local_sess as sess:
+        with self.g_n.as_default():
             policy = self.actor.predict(inputs)[0]
         return np.random.choice(self.action_size, 1, p=policy)[0]
 
