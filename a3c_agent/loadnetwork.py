@@ -64,13 +64,11 @@ def load_actor_critic_model(g, agent_type):
             actor.load_weights('aggregated_agent/networks/' + agent_type + '_actor.h5f')
             critic.load_weights('aggregated_agent/networks/' + agent_type + '_critic.h5f')
 
-
         actor._make_predict_function()
         critic._make_predict_function()
 
         actor.compile(optimizer='adam', loss='mse')
         critic.compile(optimizer='adam', loss='mse')
-
 
         actor.summary()
         critic.summary()

@@ -57,7 +57,11 @@ import time
 from keras.optimizers import Adam
 
 SHARED_GRAPH = tf.get_default_graph()
-N_THREADS = 1
+
+SESS = K.get_session()
+SESS.run(tf.global_variables_initializer())
+
+N_THREADS = 4
 N_MAX_EPISODE = 100
 TOTAL_STEP_COUNT = 0
 TOTAL_EPISODE = 0
@@ -81,11 +85,17 @@ class DDQNAgent:
     def __init__(self, g, thread_idx, agent_type, actor, critic, data_num, action_size):
         self.thread_idx = thread_idx
         self.agent_type = agent_type
+        self.data_num = data_num
 
-        self.global_actor = actor
-        self.global_critic = critic
+        # self.global_actor = actor
+        # self.global_critic = critic
+        self.local_sess = tf.Session(graph=g)
+        self.local_sess.run(tf.global_variables_initializer())
 
-        self.actor, self.critic = load_actor_critic_model(g=g, agent_type=self.agent_type)
+        self.actor = actor
+        self.critic = critic
+
+        # self.actor, self.critic = load_actor_critic_model(g=g, agent_type=self.agent_type)
 
         self.optimizer = [self.actor_optimizer(), self.critic_optimizer()]
         self.epsilon = 1.
@@ -96,7 +106,7 @@ class DDQNAgent:
         self.train_start = 1000
         self.target_update_interval = 10000
 
-        # self.states = np.ndarray(shape=(0,))
+        # self.states = np.asarray()
         # self.actions = np.ndarray(shape=(0,2))
         # self.rewards = np.ndarray(shape=(0,1))
         # self.next_states = np.ndarray(shape=(0,))
@@ -115,14 +125,11 @@ class DDQNAgent:
         self.dones = []
 
         self.discount_factor = 0.99
-        self.data_num = data_num
 
     # todo : this function can synchronize local network same as global network
-    def update_target_model(g, global_network, local_network):
-        with SHARED_GRAPH.as_default():
+    def update_target_model(self,  global_network, local_network):
+        with self.local_sess as sess:
             global_network.set_weights(local_network.get_weights())
-
-
 
     def append_sample(self, state, action, reward, next_state, done):
 
@@ -133,13 +140,16 @@ class DDQNAgent:
         # self.dones = np.append(done, self.dones)
 
         self.states.append(state)
-        self.actions.append(action)
+
+        act = np.zeros(2)
+        act[action] = 1
+        self.actions.append(act)
         self.rewards.append(reward)
         self.next_states.append(next_state)
         self.dones.append(done)
 
     def get_action(self, state):
-        with SHARED_GRAPH.as_default():
+        with self.local_sess as sess:
             policy = self.actor.predict(np.reshape(state, [1, self.state_size]))[0]  # todo : self.state_size
         return np.random.choice(self.action_size, 1, p=policy)[0]
 
@@ -158,8 +168,8 @@ class DDQNAgent:
     def train_episode(self, done):
         discounted_rewards = self.discount_rewards(done)
 
-        with SHARED_GRAPH.as_default():
-            inputs = []
+        inputs = []
+        with self.local_sess as sess:
             for d_i in range(self.data_num):
                 inputs.append([state[d_i] for state in self.states])
             values = self.critic.predict(inputs)
@@ -167,15 +177,26 @@ class DDQNAgent:
 
         advantages = discounted_rewards - values
 
-        self.optimizer[0]([np.asarray(self.states), np.asarray(self.actions), advantages])
-        self.optimizer[1]([self.states, discounted_rewards])
+        actor_op_inputs = []
+        for i in range(self.data_num):
+            actor_op_inputs.append(inputs[i])
+        actor_op_inputs.append(self.actions)
+        actor_op_inputs.append(advantages)
+
+        critic_op_inputs = []
+        for i in range(self.data_num):
+            critic_op_inputs.append(inputs[i])
+        critic_op_inputs.append(discounted_rewards)
+
+        self.optimizer[0](actor_op_inputs)
+        self.optimizer[1](critic_op_inputs)
         self.states, self.actions, self.rewards = [], [], []
 
     def get_action(self, state):
         inputs = []
         for i in range(self.data_num):
             inputs.append(state[i].reshape((1,) + state[i].shape))
-        with SHARED_GRAPH.as_default():
+        with self.local_sess as sess:
             policy = self.actor.predict(inputs)[0]
         return np.random.choice(self.action_size, 1, p=policy)[0]
 
@@ -193,7 +214,14 @@ class DDQNAgent:
 
         optimizer = Adam(lr=1e-3) # todo : a3c lr = 1e-3
         updates = optimizer.get_updates(self.actor.trainable_weights, [], actor_loss)
-        train = K.function([self.actor.input, action, advantages], [], updates=updates)
+
+        inputs = []
+        for i in range(self.data_num):
+            inputs.append(self.actor.input[i])
+        inputs.append(action)
+        inputs.append(advantages)
+
+        train = K.function(inputs, [], updates=updates)
         return train
 
     def critic_optimizer(self):
@@ -202,7 +230,13 @@ class DDQNAgent:
         loss = K.mean(K.square(discounted_reward - value))
         optimizer = Adam(lr=1e-3) # todo : a3c lr = 1e-3
         updates = optimizer.get_updates(self.critic.trainable_weights, [], loss)
-        train = K.function([self.critic.input, discounted_reward], [], updates=updates)
+
+        inputs = []
+        for i in range(self.data_num):
+            inputs.append(self.critic.input[i])
+        inputs.append(discounted_reward)
+
+        train = K.function(inputs, [], updates=updates)
         return train
 
 
@@ -224,11 +258,6 @@ class Agents(threading.Thread):
         boa_actor, boa_critic = load_actor_critic_model(g=SHARED_GRAPH, agent_type='boa')
         ssa_actor, ssa_critic = load_actor_critic_model(g=SHARED_GRAPH, agent_type='ssa')
         soa_actor, soa_critic = load_actor_critic_model(g=SHARED_GRAPH, agent_type='soa')
-
-        global bsa_actor, bsa_critic
-        global bsa_actor, boa_critic
-        global ssa_actor, ssa_critic
-        global soa_actor, soa_critic
 
         bsa = DDQNAgent(SHARED_GRAPH, idx, 'bsa', bsa_actor, bsa_critic, data_num=2, action_size=2)
         boa = DDQNAgent(SHARED_GRAPH, idx, 'boa', boa_actor, boa_critic, data_num=3, action_size=2)
@@ -375,7 +404,6 @@ class Agents(threading.Thread):
                         self.env.remain_time = 1
                     else:
                         self.env.remain_time = self.remain_step
-
                 action = self.get_action(state)
                 if self.sequence == 0 and action == 1:
                     buy_count += 1
@@ -532,10 +560,6 @@ if __name__ == '__main__':
         env = MyTGym(episode_type='0', percent_goal_profit=2, percent_stop_loss=5, episode_duration_min=63)
         agent = Agents(i, env, N_MAX_EPISODE, train_log_file_dir)
         agents.append(agent)
-
-    sess = K.get_session()
-    K.set_session(sess)
-    sess.run(tf.global_variables_initializer())
 
     for a in agents:
         a.start()
