@@ -561,6 +561,5 @@ if __name__ == '__main__':
 
     import time
     for a in agents:
-
-        time.sleep(10)
+        time.sleep(1)
         a.start()
