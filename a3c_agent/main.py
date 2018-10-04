@@ -151,11 +151,6 @@ class DDQNAgent:
         self.next_states.append(next_state)
         self.dones.append(done)
 
-    def get_action(self, state):
-        with self.g_n.as_default():
-            policy = self.actor.predict(np.reshape(state, [1, self.state_size]))[0]  # todo : self.state_size
-        return np.random.choice(self.action_size, 1, p=policy)[0]
-
     def discount_rewards(self, done=True):
         discounted_rewards = np.zeros_like(self.rewards)
         running_add = 0
@@ -381,113 +376,115 @@ class Agents(threading.Thread):
         global SHARED_GRAPH
 
         for ep in range(self.n_max_episode):
-            print('{} thread {} episode started'.format(self.idx, ep))
-            episode_start_time = time.time()
-            done = False
-            state = self.env.reset()
+            try:
+                print('{} thread {} episode started'.format(self.idx, ep))
+                episode_start_time = time.time()
+                done = False
+                state = self.env.reset()
 
-            reward_sum = [0, 0, 0, 0]
-            step_count = [0, 0, 0, 0]
-            buy_count = 0
-            profit = 0
-            profit_comm = 0
-            buy_price, sell_price = 0, 0
-            commission = 0.33
+                reward_sum = [0, 0, 0, 0]
+                step_count = [0, 0, 0, 0]
+                buy_count = 0
+                profit = 0
+                profit_comm = 0
+                buy_price, sell_price = 0, 0
+                commission = 0.33
 
-            while not done:
-                if self.sequence == 0:
-                    self.env.remain_time = 120
-                else:
-                    if self.remain_step == 0:
-                        self.env.remain_time = 1
+                while not done:
+                    if self.sequence == 0:
+                        self.env.remain_time = 120
                     else:
-                        self.env.remain_time = self.remain_step
-                action = self.get_action(state)
-                if self.sequence == 0 and action == 1:
-                    buy_count += 1
-                    buy_price = self.env.holder_observation[-1][0] + 100
-                if self.sequence == 3 and action == 1:
-                    sell_price = self.env.holder_observation[-1][0] + 100
-                    if buy_price != 0:
-                        profit += (sell_price - buy_price) / buy_price
-                        profit_comm += (sell_price - buy_price) / buy_price - commission * 0.01
+                        if self.remain_step == 0:
+                            self.env.remain_time = 1
+                        else:
+                            self.env.remain_time = self.remain_step
+                    action = self.get_action(state)
+                    if self.sequence == 0 and action == 1:
+                        buy_count += 1
+                        buy_price = self.env.holder_observation[-1][0] + 100
+                    if self.sequence == 3 and action == 1:
+                        sell_price = self.env.holder_observation[-1][0] + 100
+                        if buy_price != 0:
+                            profit += (sell_price - buy_price) / buy_price
+                            profit_comm += (sell_price - buy_price) / buy_price - commission * 0.01
 
-                next_state, reward, done, info = self.env.step(action)
-                prev_sequence = self.sequence
+                    next_state, reward, done, info = self.env.step(action)
+                    prev_sequence = self.sequence
 
-                if self.sequence == 3 and action == 1:
-                    reward[self.agent_name[self.sequence]] = sell_price - buy_price - 0.33
+                    if self.sequence == 3 and action == 1:
+                        reward[self.agent_name[self.sequence]] = sell_price - buy_price - 0.33
 
-                agent_reward = self.append_sample(state, action, reward, next_state, done)  #
+                    agent_reward = self.append_sample(state, action, reward, next_state, done)  #
 
-                if action == 0:
-                    reward_sum[prev_sequence] += agent_reward
-                    step_count[prev_sequence] += 1
+                    if action == 0:
+                        reward_sum[prev_sequence] += agent_reward
+                        step_count[prev_sequence] += 1
 
-                if prev_sequence == 3 and action == 1:
-                    for idx, br in enumerate(self.buffer_reward):
-                        reward_sum[idx] += br
-                        step_count[idx] += 1
+                    if prev_sequence == 3 and action == 1:
+                        for idx, br in enumerate(self.buffer_reward):
+                            reward_sum[idx] += br
+                            step_count[idx] += 1
 
-                TOTAL_STEP_COUNT += 1
-                state = next_state
+                    TOTAL_STEP_COUNT += 1
+                    state = next_state
 
-                steps = 0
-                for s in step_count:
-                    steps += s
+                    steps = 0
+                    for s in step_count:
+                        steps += s
 
-                # todo : need to change 1hr * 60 mins * 60 secs = 3600 secs - 120 secs needs to get enough observation for the first time
-                if steps >= 1 * 60 * 60 - 3400:  # todo : -3000 for test
-                    done = True
-                    TOTAL_EPISODE = TOTAL_EPISODE + 1
+                    # todo : need to change 1hr * 60 mins * 60 secs = 3600 secs - 120 secs needs to get enough observation for the first time
+                    if steps >= 1 * 60 * 60 - 3400:  # todo : -3000 for test
+                        done = True
+                        TOTAL_EPISODE = TOTAL_EPISODE + 1
 
-                    try:
-                        for i, agent in enumerate(self.agents):
-                            agent.train_episode(True)
-                    except:
-                        print(self.idx, 'thread _ train error')
-                        pass
-
-
-            if step_count[0] > 0:
-                rewards = []
-                for i in range(4):
-                    if step_count[i] == 0:
-                        rewards.append(0)
-                    else:
-                        if i == 3:
+                        try:
+                            for i, agent in enumerate(self.agents):
+                                agent.train_episode(True)
+                        except:
+                            print(self.idx, 'thread _ train error')
                             pass
-                        rewards.append(reward_sum[i]/step_count[i])
 
-                profit = round(profit * 100, 5)
-                profit_comm = round(profit_comm * 100, 5)
-                if buy_count == 0:
-                    avg_profit, avg_profit_comm = 0, 0
-                else:
-                    avg_profit = round(profit / buy_count, 5)
-                    avg_profit_comm = round(profit_comm / buy_count, 5)
 
-                print('ep :', ep, end='  ')
-                print('epsilon :', round(self.agents[0].epsilon, 3), end='  ')
-                print('buy :', buy_count)
-                print('bsa :', round(rewards[0], 5), end='  ')
-                print('boa :', round(rewards[1], 5), end='  ')
-                print('ssa :', round(rewards[2], 5), end='  ')
-                print('soa :', round(rewards[3], 5))
+                if step_count[0] > 0:
+                    rewards = []
+                    for i in range(4):
+                        if step_count[i] == 0:
+                            rewards.append(0)
+                        else:
+                            if i == 3:
+                                pass
+                            rewards.append(reward_sum[i]/step_count[i])
 
-                print('profit sum :', profit, end='  ')
-                print('profit avg :', avg_profit, end='  ')
-                print('profit(commission) sum :', profit_comm, end='  ')
-                print('profit(commission) avg :', avg_profit_comm, end='  ')
-                print('ep time :', int(time.time() - episode_start_time))
+                    profit = round(profit * 100, 5)
+                    profit_comm = round(profit_comm * 100, 5)
+                    if buy_count == 0:
+                        avg_profit, avg_profit_comm = 0, 0
+                    else:
+                        avg_profit = round(profit / buy_count, 5)
+                        avg_profit_comm = round(profit_comm / buy_count, 5)
 
-                # todo : it could occur resource deadlock, so that it could be reason being slow.. but for now, move on!
-                train_log_file = open(self.train_log_dir, 'a', encoding='utf-8', newline='')
-                train_log_writer = csv.writer(train_log_file)
-                train_log_writer.writerow([ep, rewards[0], rewards[1], rewards[2], rewards[3], profit, avg_profit,
-                                           profit_comm, avg_profit_comm])
-                train_log_file.close()
+                    print('ep :', ep, end='  ')
+                    print('epsilon :', round(self.agents[0].epsilon, 3), end='  ')
+                    print('buy :', buy_count)
+                    print('bsa :', round(rewards[0], 5), end='  ')
+                    print('boa :', round(rewards[1], 5), end='  ')
+                    print('ssa :', round(rewards[2], 5), end='  ')
+                    print('soa :', round(rewards[3], 5))
 
+                    print('profit sum :', profit, end='  ')
+                    print('profit avg :', avg_profit, end='  ')
+                    print('profit(commission) sum :', profit_comm, end='  ')
+                    print('profit(commission) avg :', avg_profit_comm, end='  ')
+                    print('ep time :', int(time.time() - episode_start_time))
+
+                    # todo : it could occur resource deadlock, so that it could be reason being slow.. but for now, move on!
+                    train_log_file = open(self.train_log_dir, 'a', encoding='utf-8', newline='')
+                    train_log_writer = csv.writer(train_log_file)
+                    train_log_writer.writerow([ep, rewards[0], rewards[1], rewards[2], rewards[3], profit, avg_profit,
+                                               profit_comm, avg_profit_comm])
+                    train_log_file.close()
+            except:
+                pass
 
 class MyTGym(tgym.TradingGymEnv):  # MyTGym 수정해야 함 -> agent 별 reward 를 줘야 함 (4개 반환해서 agents 가 수정하거나 agent 입력해서 reward 주거나)
     # data shape
