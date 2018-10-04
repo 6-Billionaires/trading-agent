@@ -3,7 +3,6 @@
 Created on Wed Aug 22 21:36:28 2018
  @author: UK JO
 """
-import random
 import numpy as np
 dat = np.arange(1, 13) / 2.0
 

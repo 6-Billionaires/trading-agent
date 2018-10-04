@@ -1,5 +1,9 @@
+<<<<<<< HEAD
 *.h5f
 gipython
+=======
+gipython # todo: anyone who added this?
+>>>>>>> c466845d431b6a774edaf2717a3a29c0e81e0d47
 *.pyc
 .idea
 *.iml
@@ -8,3 +12,4 @@ venv/
 .log
 buy_order_agent/seungho/pickles
 buy_order_agent/seungho/pickles_max_secs
+aggregated_agent/train_log.csv
