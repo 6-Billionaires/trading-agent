@@ -67,7 +67,7 @@ soa_actor, soa_critic = load_actor_critic_model(g=SHARED_GRAPH, agent_type='soa'
 
 SESS.run(tf.global_variables_initializer())
 
-N_THREADS = 32
+N_THREADS = 8
 N_MAX_EPISODE = 100
 TOTAL_STEP_COUNT = 0
 TOTAL_EPISODE = 0
@@ -174,7 +174,7 @@ class DDQNAgent:
         inputs = []
         with self.g_n.as_default():
             for d_i in range(self.data_num):
-                inputs.append(np.array([state[d_i] for state in self.states]))
+                inputs.append([state[d_i] for state in self.states])
             values = self.critic.predict(inputs)
         values = np.reshape(values, len(values))
 
@@ -504,10 +504,10 @@ class MyTGym(tgym.TradingGymEnv):  # MyTGym 수정해야 함 -> agent 별 reward
         for j in range(secs):
             if j == 0:
                 price_at_signal = self.d_episodes_data[self.p_current_episode_ref_idx]['quote'].loc[
-                    self.c_range_timestamp[self.p_current_step_in_episode]]['Price(last executed)']  # 데이터 자체에 오타 나 있으므로 수정 x
+                    self.c_range_timestamp[self.p_current_step_in_episode]]['Price(last excuted)']  # 데이터 자체에 오타 나 있으므로 수정 x
             else:
                 price = self.d_episodes_data[self.p_current_episode_ref_idx]['quote'].loc[self.c_range_timestamp[
-                    self.p_current_step_in_episode+j]]['Price(last executed)']
+                    self.p_current_step_in_episode+j]]['Price(last excuted)']
                 gap = price - price_at_signal - threshold
                 width += gap
         rewards['BSA'] = width / secs
@@ -517,7 +517,7 @@ class MyTGym(tgym.TradingGymEnv):  # MyTGym 수정해야 함 -> agent 별 reward
         low_price = price_at_signal
         for j in range(secs):
             price = self.d_episodes_data[self.p_current_episode_ref_idx]['quote'].loc[self.c_range_timestamp[
-                self.p_current_step_in_episode+j]]['Price(last executed)']
+                self.p_current_step_in_episode+j]]['Price(last excuted)']
             if j == 0:
                 current_price = price
             low_price = min(low_price, price)
@@ -561,5 +561,6 @@ if __name__ == '__main__':
 
     import time
     for a in agents:
-        time.sleep(1)
+
+        time.sleep(10)
         a.start()
