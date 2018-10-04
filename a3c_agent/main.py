@@ -67,7 +67,7 @@ soa_actor, soa_critic = load_actor_critic_model(g=SHARED_GRAPH, agent_type='soa'
 
 SESS.run(tf.global_variables_initializer())
 
-N_THREADS = 4
+N_THREADS = 8
 N_MAX_EPISODE = 100
 TOTAL_STEP_COUNT = 0
 TOTAL_EPISODE = 0
@@ -559,5 +559,8 @@ if __name__ == '__main__':
         agent = Agents(i, env, N_MAX_EPISODE, train_log_file_dir)
         agents.append(agent)
 
+    import time
     for a in agents:
+
+        time.sleep(10)
         a.start()
