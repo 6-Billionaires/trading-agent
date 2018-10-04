@@ -248,9 +248,9 @@ class Agents(threading.Thread):
     step_limit = [61, 60, 1, 0]
     additional_reward_rate = 0.1
 
-    def __init__(self, idx, env, n_max_episode, file_dir):
+    def __init__(self, idx, n_max_episode, file_dir):
         super(Agents, self).__init__()
-        self.env = env
+        self.env = MyTGym(episode_type='0', percent_goal_profit=2, percent_stop_loss=5, episode_duration_min=63)
         self.n_max_episode = n_max_episode
         self.train_log_dir = file_dir
         self.idx = idx
@@ -555,8 +555,7 @@ if __name__ == '__main__':
     agents = []
 
     for i in range(N_THREADS):
-        env = MyTGym(episode_type='0', percent_goal_profit=2, percent_stop_loss=5, episode_duration_min=63)
-        agent = Agents(i, env, N_MAX_EPISODE, train_log_file_dir)
+        agent = Agents(i, N_MAX_EPISODE, train_log_file_dir)
         agents.append(agent)
 
     import time
