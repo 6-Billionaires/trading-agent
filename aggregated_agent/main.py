@@ -3,7 +3,7 @@ import sys
 
 newPath = os.path.dirname(os.path.abspath(os.path.dirname(os.path.abspath(os.path.dirname(os.path.abspath(os.path.dirname(__file__)))))))+ '\\trading_gym'
 sys.path.append(newPath)
-
+sys.path.append('/home/lab4all/ag/trading_gym')
 from gym_core import tgym
 import numpy as np
 import random
@@ -15,6 +15,7 @@ import glob
 import copy
 from aggregated_agent import load
 import csv
+import time
 
 
 class DDQNAgent:
@@ -24,15 +25,15 @@ class DDQNAgent:
         self.model = self.load_model()
         self.target_model = self.load_model()
 
-        self.epsilon = 1.
-        self.epsilon_min = 0.001
-        self.epsilon_decay = 0.9999
-        self.batch_size = 64
+        self.epsilon = 0.01
+        self.epsilon_min = 0.01
+        self.epsilon_decay = 0.995
+        self.batch_size = 1024
         self.action_size = action_size
-        self.train_start = 1000
+        self.train_start = 3000
         self.target_update_interval = 10000
-        self.memory = deque(maxlen=10000)
-        self.discount_factor = 0.999
+        self.memory = deque(maxlen=7000)
+        self.discount_factor = 0.99
         self.data_num = data_num
 
     def load_model(self):
@@ -64,7 +65,7 @@ class DDQNAgent:
             concat_layer = Concatenate(name='concat2')([trained_model(rl_model.input), rl_model.layers[-1].output])
             output_layer = Dense(2, activation='linear', name='q_value_output')(concat_layer)
             model = Model(inputs=rl_model.input, outputs=output_layer)
-            model.load_weights('./networks/' + self.agent_type + '_rl.h5f')
+            model.load_weights('aggregated_agent/networks/' + self.agent_type + '_rl.h5f')
 
             # model = load_model('./networks/' + self.agent_type + '_rl.h5f')  # save weight 방식으로 수정할것
 
@@ -148,7 +149,7 @@ class DDQNAgent:
                 target[i][actions[i]] = rewards[i] + self.discount_factor * (np.amax(target_val[i]))
 
         self.model.fit(input_states, target, batch_size=self.batch_size, epochs=1, verbose=0)
-        self.model.save_weights('./networks/' + self.agent_type + '_rl.h5f')
+        self.model.save_weights('aggregated_agent/networks/' + self.agent_type + '_rl.h5f')
 
 
 class Agents:
@@ -199,7 +200,7 @@ class Agents:
 
         elif self.sequence == 3 and action:
             # additional data 작성
-            self._append_buffer_sample()
+            self.buffer_reward = self._append_buffer_sample()
             self.sample_buffer = list()
             self.sequence = 0
             self.trainable = True
@@ -210,20 +211,22 @@ class Agents:
     # 또한 agent 에 따라 input data 의 모양이 다르므로 그 처리도 여기서 한다.
     # agent 가 전부 구체화되면 완성할 것
     def _process_state(self, state):
-        state = copy.deepcopy(state)
+        state = copy.deepcopy(list(state))
         # if self.sequence == 0:  # BSA
         #     state.append(self.time_to_binary_list(self.remain_step))  # < 테스트 후 지울것 (bsa 네트워크가 없어 boa 사용중이라 넣음)
 
         if self.sequence == 1 and not (self.boa_additional_data is None):  # BOA
             state.append(self.time_to_binary_list(self.remain_step))
+            self.boa_time = self.remain_step  # boa 액션시점 남은시간
 
         if self.sequence == 2 and not (self.ssa_additional_data is None):  # SSA
-            state.append(self.time_to_binary_list(self.remain_step))
-            state.append(self.time_to_binary_list(self.remain_step))
+            state.append(self.time_to_binary_list(self.boa_time-self.remain_step))
+            state.append(self.time_to_binary_list(self.boa_time))
+            self.ssa_time = self.remain_step  # ssa 액션시점 남은시간
 
         if self.sequence == 3 and not (self.soa_additional_data is None):  # SOA
-            state.append(self.time_to_binary_list(self.remain_step))
-            state.append(self.time_to_binary_list(self.remain_step))
+            state.append(self.time_to_binary_list(self.ssa_time))
+            state.append(self.time_to_binary_list(self.ssa_time-self.remain_step))
 
         return np.array(state)
 
@@ -260,13 +263,14 @@ class Agents:
         return reward
 
     def _append_buffer_sample(self):
-        self.sample_buffer[0][2] += (self.sample_buffer[1][2] + self.sample_buffer[3][2]) * self.additional_reward_rate
-        self.sample_buffer[1][2] += self.sample_buffer[3][2] * self.additional_reward_rate
-        self.sample_buffer[2][2] += self.sample_buffer[3][2] * self.additional_reward_rate
+        self.sample_buffer[0][2] += self.sample_buffer[1][2] * self.additional_reward_rate + self.sample_buffer[3][2] * 0.5
+        self.sample_buffer[1][2] += self.sample_buffer[3][2] * 0.5
+        self.sample_buffer[2][2] += self.sample_buffer[3][2] * 0.5
         sb = self.sample_buffer
 
         for idx, agent in enumerate(self.agents):
             agent.append_sample(sb[idx][0], sb[idx][1], sb[idx][2], sb[idx][3], sb[idx][4])
+        return [self.sample_buffer[0][2], self.sample_buffer[1][2], self.sample_buffer[2][2], self.sample_buffer[3][2]]
 
     def train_agents(self):
         for agent in self.agents:
@@ -289,7 +293,7 @@ class MyTGym(tgym.TradingGymEnv):  # MyTGym 수정해야 함 -> agent 별 reward
 
     def _rewards(self, observation, action, done, info):
         rewards = {}
-        secs = 60
+        secs = self.remain_time
 
         # create BSA reward
         width = 0
@@ -298,16 +302,27 @@ class MyTGym(tgym.TradingGymEnv):  # MyTGym 수정해야 함 -> agent 별 reward
         for j in range(secs):
             if j == 0:
                 price_at_signal = self.d_episodes_data[self.p_current_episode_ref_idx]['quote'].loc[
-                    self.c_range_timestamp[self.p_current_step_in_episode]]['Price(last excuted)']  # 데이터 자체에 오타 나 있으므로 수정 x
+                    self.c_range_timestamp[self.p_current_step_in_episode]]['Price(last executed)']
             else:
                 price = self.d_episodes_data[self.p_current_episode_ref_idx]['quote'].loc[self.c_range_timestamp[
-                    self.p_current_step_in_episode+j]]['Price(last excuted)']
+                    self.p_current_step_in_episode+j]]['Price(last executed)']
                 gap = price - price_at_signal - threshold
                 width += gap
         rewards['BSA'] = width / secs
 
         # create BOA rewrad
-        rewards['BOA'] = width / secs
+
+        low_price = price_at_signal
+        for j in range(secs):                
+            price = self.d_episodes_data[self.p_current_episode_ref_idx]['quote'].loc[self.c_range_timestamp[
+                    self.p_current_step_in_episode+j]]['Price(last executed)']
+            if j == 0:
+                current_price = price
+            low_price = min(low_price, price)
+
+
+
+        rewards['BOA'] = low_price - current_price 
 
         # create SSA reward
         rewards['SSA'] = -width / secs
@@ -335,70 +350,122 @@ class MyTGym(tgym.TradingGymEnv):  # MyTGym 수정해야 함 -> agent 별 reward
         return [x1, x2]
 
 if __name__ == '__main__':
-    env = MyTGym(episode_type='0', percent_goal_profit=2, percent_stop_loss=5, episode_duration_min=60)
+    env = MyTGym(episode_type='0', percent_goal_profit=2, percent_stop_loss=5, episode_duration_min=63)
     buy_signal_agent = DDQNAgent('bsa', data_num=2, action_size=2)
     buy_order_agent = DDQNAgent('boa', data_num=3, action_size=2)
     sell_signal_agent = DDQNAgent('ssa', data_num=4, action_size=2)
     sell_order_agent = DDQNAgent('soa', data_num=4, action_size=2)
     agents = Agents(buy_signal_agent, buy_order_agent, sell_signal_agent, sell_order_agent)
-    train_log_file = open('train_log.csv', 'a', encoding='utf-8', newline='')
-    csv_writer = csv.writer(train_log_file)
+    # train_log_file = open('train_log.csv', 'a', encoding='utf-8', newline='')
+    # csv_writer = csv.writer(train_log_file)
 
     EPISODES = 1000000
     for ep in range(EPISODES):
-        done = False
-        state = env.reset()
-        agents.update_target_network()
+        try:
+            start_time = time.time()
 
-        reward_sum = 0
-        step_count = 0
-        buy_count = 0
-        profit = 0
-        profit_comm = 0
+            done = False
+            state = env.reset()
+            agents.update_target_network()
 
-        buy_price, sell_price = 0, 0
-        commission = 0.33
+            reward_sum = [0, 0, 0, 0]
+            step_count = [0, 0, 0, 0]
+            buy_count = 0
+            profit = 0
+            profit_comm = 0
 
-        while not done:
-            action = agents.get_action(state)
-            if agents.sequence == 0 and action == 1:
-                buy_count += 1
-                buy_price = env.holder_observation[-1][0]
-            if agents.sequence == 3 and action == 1:
-                sell_price = env.holder_observation[-1][0]
-                if buy_price != 0:
-                    profit += (sell_price - buy_price) / buy_price
-                    profit_comm += (sell_price - buy_price) / buy_price - commission * 0.01
+            buy_price, sell_price = 0, 0
+            commission = 0.33
 
-            next_state, reward, done, info = env.step(action)
-            reward_sum += agents.append_sample(state, action, reward, next_state, done)
-            step_count += 1
-            state = next_state
-            if agents.trainable:
-                agents.train_agents()
-            if step_count >= 3500:
-                done = True
+            while not done:
+                if agents.sequence == 0:
+                    env.remain_time = 120
+                else:
+                    if agents.remain_step == 0:
+                        env.remain_time = 1
+                    else:
+                        env.remain_time = agents.remain_step
 
-        if step_count > 0:
-            avg_reward = round(reward_sum / step_count, 7)
-            profit = round(profit * 100, 5)
-            profit_comm = round(profit_comm * 100, 5)
-            if buy_count == 0:
-                avg_profit, avg_comm_profit = 0, 0
-            else:
-                avg_profit = profit / buy_count
-                avg_comm_profit = profit_comm / buy_count
-            print('ep :', ep, end='  ')
-            print('avg reward :', avg_reward, end='  ')
-            print('buy :', buy_count, end='  ')
-            print('profit :', profit, end='  ')
-            print('avg profit :', avg_profit, end='  ')
-            print('profit(comm) :', profit_comm, end='  ')
-            print('avg profit(comm) :', avg_comm_profit)
+                action = agents.get_action(state)
+                if agents.sequence == 0 and action == 1:
+                    buy_count += 1
+                    buy_price = env.holder_observation[-1][0] + 100
+                if agents.sequence == 3 and action == 1:
+                    sell_price = env.holder_observation[-1][0] + 100
+                    if buy_price != 0:
+                        profit += (sell_price - buy_price) / buy_price
+                        profit_comm += (sell_price - buy_price) / buy_price - commission * 0.01
 
-            csv_writer.writerow([avg_reward, buy_count, profit])
+                next_state, reward, done, info = env.step(action)
+                prev_sequence = agents.sequence
+                if agents.sequence == 3 and action == 1:
+                    # print(sell_price, buy_price)
+                    reward[agents.agent_name[agents.sequence]] = sell_price - buy_price - 0.33
+                # print(reward)
+                # print(reward)
+                agent_reward = agents.append_sample(state, action, reward, next_state, done)  # 순서가 여기서 넘어감
+                # if agents.sequence == 3:
+                # print(agent_reward, end=' ')
+                if action == 0:
+                    reward_sum[prev_sequence] += agent_reward
+                    step_count[prev_sequence] += 1
 
+                if prev_sequence == 3 and action == 1:
+                    for idx, br in enumerate(agents.buffer_reward):
+                        reward_sum[idx] += br
+                        step_count[idx] += 1
 
+                state = next_state
+                if agents.trainable and step_count[0] % 3 == 1:
+                    agents.train_agents()
+                steps = 0
+                for s in step_count:
+                    steps += s
+                if steps >= 3600:
+                    done = True
+
+            if step_count[0] > 0:
+                rewards = []
+                for i in range(4):
+                    if step_count[i] == 0:
+                        rewards.append(0)
+                    else:
+                        if i == 3:
+                            pass
+                        # print(reward_sum[i])
+                        # print(step_count[i])
+                        rewards.append(reward_sum[i]/step_count[i])
+
+                profit = round(profit * 100, 5)
+                profit_comm = round(profit_comm * 100, 5)
+                if buy_count == 0:
+                    avg_profit, avg_profit_comm = 0, 0
+                else:
+                    avg_profit = round(profit / buy_count, 5)
+                    avg_profit_comm = round(profit_comm / buy_count, 5)
+
+                print('ep :', ep, end='  ')
+                print('epsilon :', round(agents.agents[0].epsilon, 3), end='  ')
+                print('buy :', buy_count)
+                print('bsa :', round(rewards[0], 5), end='  ')
+                print('boa :', round(rewards[1], 5), end='  ')
+                print('ssa :', round(rewards[2], 5), end='  ')
+                print('soa :', round(rewards[3], 5))
+
+                print('profit sum :', profit, end='  ')
+                print('profit avg :', avg_profit, end='  ')
+                print('profit(commission) sum :', profit_comm, end='  ')
+                print('profit avg :', avg_profit_comm, end='  ')
+                print('ep time :', int(time.time() - start_time))
+
+                train_log_file = open('./train_log.csv', 'a', encoding='utf-8', newline='')
+                csv_writer = csv.writer(train_log_file)
+                csv_writer.writerow([ep, rewards[0], rewards[1], rewards[2], rewards[3], profit, avg_profit, profit_comm, avg_profit_comm])
+                train_log_file.close()
+        except:
+            pass
+
+    
 
 
 

@@ -1,3 +1,4 @@
+*.h5f
 gipython
 *.pyc
 .idea
