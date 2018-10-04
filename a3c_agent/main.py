@@ -114,7 +114,8 @@ class DDQNAgent:
         self.dones.append(done)
 
     def get_action(self, state):
-        policy = self.actor.predict(np.reshape(state, [1, self.state_size]))[0]
+        with SHARED_GRAPH.as_default():
+            policy = self.actor.predict(np.reshape(state, [1, self.state_size]))[0]
         return np.random.choice(self.action_size, 1, p=policy)[0]
 
     def discount_rewards(self, done=True):
@@ -131,7 +132,8 @@ class DDQNAgent:
     def train_episode(self, done):
         discounted_rewards = self.discount_rewards(self.rewards, done)
 
-        values = self.critic.predict(np.array(self.states))
+        with SHARED_GRAPH.as_default():
+            values = self.critic.predict(np.array(self.states))
         values = np.reshape(values, len(values))
 
         advantages = discounted_rewards - values
@@ -144,7 +146,8 @@ class DDQNAgent:
         inputs = []
         for i in range(self.data_num):
             inputs.append(state[i].reshape((1,) + state[i].shape))
-        policy = self.actor.predict(inputs)[0]
+        with SHARED_GRAPH.as_default():
+            policy = self.actor.predict(inputs)[0]
         return np.random.choice(self.action_size, 1, p=policy)[0]
 
 
