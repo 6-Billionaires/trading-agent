@@ -191,6 +191,8 @@ class Agents(threading.Thread):
         K.set_session(self.sess)
         self.sess.run(tf.global_variables_initializer())
 
+        global SHARED_GRAPH
+
         bsa_actor, bsa_critic = load_actor_critic_model(g=SHARED_GRAPH, agent_type='bsa')
         boa_actor, boa_critic = load_actor_critic_model(g=SHARED_GRAPH, agent_type='boa')
         ssa_actor, ssa_critic = load_actor_critic_model(g=SHARED_GRAPH, agent_type='ssa')
