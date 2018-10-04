@@ -24,10 +24,10 @@ def load_actor_critic_model(g, agent_type):
         networks = glob.glob('./networks/*.h5f')
         if './networks/' + agent_type + '_actor.h5f' not in networks \
                 or './networks/' + agent_type + '_critic.h5f' not in networks:
-            trained_model = load_model(agent_type)
+            trained_model = load_model(g, agent_type)
             for layer in trained_model.layers:
                 layer.trainable = False
-            shared = load_model(agent_type)
+            shared = load_model(g, agent_type)
 
             concat_layer = Concatenate()([trained_model(shared .input), shared.layers[-1].output]) # name='concat2'
             output_critic_layer = Dense(2, activation='linear')(concat_layer)
@@ -36,11 +36,11 @@ def load_actor_critic_model(g, agent_type):
             critic = Model(inputs=shared.input, outputs=output_critic_layer)
 
         else:
-            trained_model = load_model(agent_type)
+            trained_model = load_model(g, agent_type)
             for layer in trained_model.layers:
                 layer.trainable = False
 
-            shared = load_model(agent_type)
+            shared = load_model(g, agent_type)
 
             concat_layer = Concatenate()([trained_model(shared .input), shared.layers[-1].output]) # name='concat2'
             output_critic_layer = Dense(2, activation='linear')(concat_layer)
@@ -51,9 +51,12 @@ def load_actor_critic_model(g, agent_type):
             actor.load_weights('aggregated_agent/networks/' + agent_type + '_actor.h5f')
             critic.load_weights('aggregated_agent/networks/' + agent_type + '_critic.h5f')
 
+
+        actor._make_predict_function()
+        critic._make_predict_function()
+
         actor.compile(optimizer='adam', loss='mse')
         critic.compile(optimizer='adam', loss='mse')
-
 
 
         actor.summary()
@@ -61,32 +64,34 @@ def load_actor_critic_model(g, agent_type):
     return actor, critic
 
 
-def load_model(model_type):
-    if model_type == 'bsa':
-        model = build_bsa_network(activation='leaky_relu', neurons=100)
-        model.compile(optimizer='adam', loss='mse', metrics=['mae', 'mape', 'mse'])
-        model.load_weights('aggregated_agent/networks/bsa.h5f')
-        return model
+def load_model(g, model_type):
+    with g.as_default():
 
-    if model_type == 'boa':
-        max_len = util.get_maxlen_of_binary_array(120)
-        model = build_boa_network(max_len, neurons=100, activation='leaky_relu')
-        model.compile(optimizer='adam', loss='mse', metrics=['mae', 'mape'])
-        model.load_weights('aggregated_agent/networks/boa.h5f')
-        return model
+        if model_type == 'bsa':
+            model = build_bsa_network(activation='leaky_relu', neurons=100)
+            model.compile(optimizer='adam', loss='mse', metrics=['mae', 'mape', 'mse'])
+            model.load_weights('aggregated_agent/networks/bsa.h5f')
+            return model
 
-    if model_type == 'ssa':
-        model = build_ssa_network()
-        model.compile(optimizer='adam', loss='mse', metrics=['mae', 'mape', 'accuracy'])
-        model.load_weights('aggregated_agent/networks/ssa.h5f')
-        return model
+        if model_type == 'boa':
+            max_len = util.get_maxlen_of_binary_array(120)
+            model = build_boa_network(max_len, neurons=100, activation='leaky_relu')
+            model.compile(optimizer='adam', loss='mse', metrics=['mae', 'mape'])
+            model.load_weights('aggregated_agent/networks/boa.h5f')
+            return model
 
-    if model_type == 'soa':
-        max_len = util.get_maxlen_of_binary_array(120)
-        model = build_soa_network(max_len, neurons=100, activation='leaky_relu')
-        model.compile(optimizer='adam', loss='mse', metrics=['mae', 'mape'])
-        model.load_weights('aggregated_agent/networks/soa.h5f')  # << soa weight 경로
-        return model
+        if model_type == 'ssa':
+            model = build_ssa_network()
+            model.compile(optimizer='adam', loss='mse', metrics=['mae', 'mape', 'accuracy'])
+            model.load_weights('aggregated_agent/networks/ssa.h5f')
+            return model
+
+        if model_type == 'soa':
+            max_len = util.get_maxlen_of_binary_array(120)
+            model = build_soa_network(max_len, neurons=100, activation='leaky_relu')
+            model.compile(optimizer='adam', loss='mse', metrics=['mae', 'mape'])
+            model.load_weights('aggregated_agent/networks/soa.h5f')  # << soa weight 경로
+            return model
 
 _len_observation = 120
 

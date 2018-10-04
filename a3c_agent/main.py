@@ -78,7 +78,7 @@ n_save_model_episode_interval = 20
 
 
 class DDQNAgent:
-    def __init__(self, thread_idx, actor, critic, agent_type, data_num, action_size):
+    def __init__(self, agent_type, thread_idx, actor, critic, data_num, action_size):
         self.thread_idx = thread_idx
         self.actor = actor
         self.critic = critic
@@ -101,6 +101,7 @@ class DDQNAgent:
         self.discount_factor = 0.99
         self.data_num = data_num
 
+    # todo : this function can syncronize local network same as global network
     def update_target_model(self):
         with SHARED_GRAPH.as_default():
             self.target_model.set_weights(self.model.get_weights())
@@ -140,7 +141,10 @@ class DDQNAgent:
         self.states, self.actions, self.rewards = [], [], []
 
     def get_action(self, state):
-        policy = self.actor.predict(np.reshape(state, [1, self.state_size]))[0]
+        inputs = []
+        for i in range(self.data_num):
+            inputs.append(state[i].reshape((1,) + state[i].shape))
+        policy = self.actor.predict(inputs)[0]
         return np.random.choice(self.action_size, 1, p=policy)[0]
 
 
@@ -176,7 +180,7 @@ class Agents(threading.Thread):
     step_limit = [61, 60, 1, 0]
     additional_reward_rate = 0.1
 
-    def __init__(self, env, idx, n_max_episode, file_dir):
+    def __init__(self, idx, env, n_max_episode, file_dir):
         super(Agents, self).__init__()
         self.env = env
         self.n_max_episode = n_max_episode
