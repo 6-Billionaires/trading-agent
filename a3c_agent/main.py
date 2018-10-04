@@ -57,8 +57,14 @@ import time
 from keras.optimizers import Adam
 
 SHARED_GRAPH = tf.get_default_graph()
-
+SESS = tf.Session(graph=SHARED_GRAPH)
 SESS = K.get_session()
+
+bsa_actor, bsa_critic = load_actor_critic_model(g=SHARED_GRAPH, agent_type='bsa')
+boa_actor, boa_critic = load_actor_critic_model(g=SHARED_GRAPH, agent_type='boa')
+ssa_actor, ssa_critic = load_actor_critic_model(g=SHARED_GRAPH, agent_type='ssa')
+soa_actor, soa_critic = load_actor_critic_model(g=SHARED_GRAPH, agent_type='soa')
+
 SESS.run(tf.global_variables_initializer())
 
 N_THREADS = 4
@@ -249,12 +255,7 @@ class Agents(threading.Thread):
         self.train_log_dir = file_dir
         self.idx = idx
 
-        global SHARED_GRAPH
-
-        bsa_actor, bsa_critic = load_actor_critic_model(g=SHARED_GRAPH, agent_type='bsa')
-        boa_actor, boa_critic = load_actor_critic_model(g=SHARED_GRAPH, agent_type='boa')
-        ssa_actor, ssa_critic = load_actor_critic_model(g=SHARED_GRAPH, agent_type='ssa')
-        soa_actor, soa_critic = load_actor_critic_model(g=SHARED_GRAPH, agent_type='soa')
+        global SHARED_GRAPH, bsa_actor, bsa_critic, boa_actor, boa_critic, ssa_actor, ssa_critic, soa_actor, soa_critic
 
         bsa = DDQNAgent(SHARED_GRAPH, idx, 'bsa', bsa_actor, bsa_critic, data_num=2, action_size=2)
         boa = DDQNAgent(SHARED_GRAPH, idx, 'boa', boa_actor, boa_critic, data_num=3, action_size=2)
