@@ -42,11 +42,11 @@ def load_actor_critic_model(g, agent_type):
                 layer.trainable = False
             shared = load_model(g, agent_type)
 
-            concat_layer = Concatenate()([trained_model(shared .input), shared.layers[-1].output]) # name='concat2'
-            output_critic_layer = Dense(2, activation='linear')(concat_layer)
+            concat_layer = Concatenate()([trained_model(shared.input), shared.layers[-1].output]) # name='concat2'
+            # output_critic_layer = Dense(2, activation='linear')(concat_layer)
             output_actor_layer = Dense(2, activation='softmax')(concat_layer)
             actor = Model(inputs=shared.input, outputs=output_actor_layer)
-            critic = Model(inputs=shared.input, outputs=output_critic_layer)
+            critic = Model(inputs=shared.input, outputs=shared.output)
 
         else:
             trained_model = load_model(g, agent_type)
