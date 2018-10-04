@@ -167,7 +167,7 @@ class DDQNAgent:
 
         advantages = discounted_rewards - values
 
-        self.optimizer[0]([self.states, self.actions, advantages])
+        self.optimizer[0]([np.asarray(self.states), np.asarray(self.actions), advantages])
         self.optimizer[1]([self.states, discounted_rewards])
         self.states, self.actions, self.rewards = [], [], []
 
