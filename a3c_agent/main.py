@@ -67,7 +67,7 @@ soa_actor, soa_critic = load_actor_critic_model(g=SHARED_GRAPH, agent_type='soa'
 
 SESS.run(tf.global_variables_initializer())
 
-N_THREADS = 8
+N_THREADS = 32
 N_MAX_EPISODE = 100
 TOTAL_STEP_COUNT = 0
 TOTAL_EPISODE = 0
@@ -174,7 +174,7 @@ class DDQNAgent:
         inputs = []
         with self.g_n.as_default():
             for d_i in range(self.data_num):
-                inputs.append([state[d_i] for state in self.states])
+                inputs.append(np.asarray([state[d_i] for state in self.states]))
             values = self.critic.predict(inputs)
         values = np.reshape(values, len(values))
 
@@ -248,9 +248,9 @@ class Agents(threading.Thread):
     step_limit = [61, 60, 1, 0]
     additional_reward_rate = 0.1
 
-    def __init__(self, idx, env, n_max_episode, file_dir):
+    def __init__(self, idx, n_max_episode, file_dir):
         super(Agents, self).__init__()
-        self.env = env
+        self.env = MyTGym(episode_type='0', percent_goal_profit=2, percent_stop_loss=5, episode_duration_min=63)
         self.n_max_episode = n_max_episode
         self.train_log_dir = file_dir
         self.idx = idx
@@ -440,8 +440,14 @@ class Agents(threading.Thread):
                 if steps >= 1 * 60 * 60 - 3400:  # todo : -3000 for test
                     done = True
                     TOTAL_EPISODE = TOTAL_EPISODE + 1
-                    for i, agent in enumerate(self.agents):
-                        agent.train_episode(True)
+
+                    try:
+                        for i, agent in enumerate(self.agents):
+                            agent.train_episode(True)
+                    except:
+                        print(self.idx, 'thread _ train error')
+                        pass
+
 
             if step_count[0] > 0:
                 rewards = []
@@ -504,10 +510,10 @@ class MyTGym(tgym.TradingGymEnv):  # MyTGym 수정해야 함 -> agent 별 reward
         for j in range(secs):
             if j == 0:
                 price_at_signal = self.d_episodes_data[self.p_current_episode_ref_idx]['quote'].loc[
-                    self.c_range_timestamp[self.p_current_step_in_episode]]['Price(last excuted)']  # 데이터 자체에 오타 나 있으므로 수정 x
+                    self.c_range_timestamp[self.p_current_step_in_episode]]['Price(last executed)']  # 데이터 자체에 오타 나 있으므로 수정 x
             else:
                 price = self.d_episodes_data[self.p_current_episode_ref_idx]['quote'].loc[self.c_range_timestamp[
-                    self.p_current_step_in_episode+j]]['Price(last excuted)']
+                    self.p_current_step_in_episode+j]]['Price(last executed)']
                 gap = price - price_at_signal - threshold
                 width += gap
         rewards['BSA'] = width / secs
@@ -517,7 +523,7 @@ class MyTGym(tgym.TradingGymEnv):  # MyTGym 수정해야 함 -> agent 별 reward
         low_price = price_at_signal
         for j in range(secs):
             price = self.d_episodes_data[self.p_current_episode_ref_idx]['quote'].loc[self.c_range_timestamp[
-                self.p_current_step_in_episode+j]]['Price(last excuted)']
+                self.p_current_step_in_episode+j]]['Price(last executed)']
             if j == 0:
                 current_price = price
             low_price = min(low_price, price)
@@ -555,8 +561,7 @@ if __name__ == '__main__':
     agents = []
 
     for i in range(N_THREADS):
-        env = MyTGym(episode_type='0', percent_goal_profit=2, percent_stop_loss=5, episode_duration_min=63)
-        agent = Agents(i, env, N_MAX_EPISODE, train_log_file_dir)
+        agent = Agents(i, N_MAX_EPISODE, train_log_file_dir)
         agents.append(agent)
 
     import time
