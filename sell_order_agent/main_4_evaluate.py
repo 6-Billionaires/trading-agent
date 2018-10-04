@@ -24,6 +24,7 @@ from core import util
 from datetime import datetime
 import matplotlib.pyplot as plt
 import config
+from keras import metrics
 
 os.environ["CUDA_VISIBLE_DEVICES"] = str(config.SOA_PARAMS['P_TRAINING_GPU'])
 pickle_dir = config.SOA_PARAMS['PICKLE_DIR_FOR_TEST']
@@ -193,11 +194,13 @@ def get_real_data(date, ticker, save_dir, train_data_rows=None):
     return np.asarray(d_x1), np.asarray(d_x2), np.asarray(d_x3), np.asarray(d_x4), np.asarray(d_y1)
 
 def train_using_real_data(pickle_dir, model_dir, model_history_dir, params, max_len):
+    batch_size = params['batchsize']
+    epochs = params['epochs']
     neurons = params['neurons']
     activation = params["activation"]
 
     model = build_network(max_len, neurons=neurons, activation=activation)
-    model.compile(optimizer='adam', loss='mse', metrics=['accuracy', mean_pred, theil_u, r])
+    model.compile(optimizer='adam', loss='mse', metrics=[metrics.mae, metrics.mape, mean_pred, theil_u, r])
     model.summary()
 
     l = load_ticker_yyyymmdd_list_from_directory(pickle_dir)
@@ -220,15 +223,16 @@ def train_using_real_data(pickle_dir, model_dir, model_history_dir, params, max_
     print('total x1 : {}, total x2 : {}, total x3 : {}, total x4 : {}, total y1 : {}'.format(len(t_x1), len(t_x2), len(t_x3), len(t_x4), len(t_y1)))
 
     # {steps} --> this file will be saved whenver it runs every steps as much as {step}
-    checkpoint_weights_filename = model_dir+os.path.sep+'soa_weights_{step}.h5f'
+    checkpoint_weights_filename = model_dir+os.path.sep+'soa_weights_bs' + str(batch_size) + '_ep' + str(epochs) + '_nrs' + str(neurons) + '_act(' + str(activation) + ')_{step}.h5f'
 
     model.load_weights(filepath = checkpoint_weights_filename.format(step='end'), by_name=True)
 
     print('start to evaluate.')
     scores = model.evaluate({'x1': t_x1, 'x2': t_x2, 'x3': t_x3, 'x4': t_x4}, t_y1, verbose=0)
     print("%s: %.2f%%" % (model.metrics_names[1], scores[1] * 100))
+    print(model.metrics_names, scores)
 
-    with open(datetime.now().strftime(model_history_dir+os.path.sep+'soa_model_scores_%Y%m%d_%H%M%S'), 'wb') as file_pi:
+    with open(datetime.now().strftime(model_history_dir+os.path.sep+'soa_model_scores_bs' + str(batch_size) + '_ep' + str(epochs) + '_nrs' + str(neurons) + '_act(' + str(activation) + ')_%Y%m%d_%H%M%S'), 'wb') as file_pi:
         pickle.dump(scores, file_pi)
 
 def mean_pred(y_true, y_pred):

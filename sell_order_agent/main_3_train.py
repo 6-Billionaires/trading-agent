@@ -224,7 +224,7 @@ def train_using_real_data(pickle_dir, metrics_dir, model_dir, model_history_dir,
     print('total x1 : {}, total x2 : {}, total x3 : {}, total x4 : {}, total y1 : {}'.format(len(t_x1), len(t_x2), len(t_x3), len(t_x4), len(t_y1)))
 
     # {steps} --> this file will be saved whenver it runs every steps as much as {step}
-    checkpoint_weights_filename = model_dir+os.path.sep+'soa_weights_{step}.h5f'
+    checkpoint_weights_filename = model_dir+os.path.sep+'soa_weights_bs' + str(batch_size) + '_ep' + str(epochs) + '_nrs' + str(neurons) + '_act(' + str(activation) + ')_{step}.h5f'
 
     # TODO: here we can add hyperparameters information like below!!
     log_filename = 'soa_{}_log.json'.format('fill_params_information_in_here')
@@ -236,7 +236,7 @@ def train_using_real_data(pickle_dir, metrics_dir, model_dir, model_history_dir,
     print('start to train.')
     history = model.fit({'x1': t_x1, 'x2': t_x2, 'x3': t_x3, 'x4': t_x4}, t_y1, epochs=epochs, verbose=2, batch_size=batch_size, validation_split=0.1, callbacks=callbacks)
 
-    with open(datetime.now().strftime(model_history_dir+os.path.sep+'soa_model_history_%Y%m%d_%H%M%S'), 'wb') as file_pi:
+    with open(datetime.now().strftime(model_history_dir+os.path.sep+'soa_model_history_bs' + str(batch_size) + '_ep' + str(epochs) + '_nrs' + str(neurons) + '_act(' + str(activation) + ')_%Y%m%d_%H%M%S'), 'wb') as file_pi:
         pickle.dump(history.history, file_pi)
 
     plot_history(history, params, metrics_dir)
@@ -276,7 +276,7 @@ def plot_history(history, params, save_path):
     plt.switch_backend('agg')
 
     for key in to_plot.keys():
-        file_name = 'soa' + str(batch_size) + '_ep' + str(epochs) + '_nrs' + str(neurons) + '_act(' + str(
+        file_name = 'soa_bs' + str(batch_size) + '_ep' + str(epochs) + '_nrs' + str(neurons) + '_act(' + str(
             activation) + ')_' + key + '.png'
         category = to_plot[key]
         plt.gcf().clear()
