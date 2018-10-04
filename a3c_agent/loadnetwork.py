@@ -17,10 +17,23 @@ import pickle
 from gym_core.ioutil import *  # file i/o to load stock csv files
 from core import util
 import tensorflow as tf
-
+import keras.backend as K
 
 def load_actor_critic_model(g, agent_type):
     with g.as_default():
+
+        # gpu_idx = 4 # cpu
+        # if agent_type  == 'bsa':
+        #     gpu_idx = 0
+        # elif agent_type  == 'bsa':
+        #     gpu_idx = 1
+        # elif agent_type == 'boa':
+        #     gpu_idx = 2
+        # else:
+        #     gpu_idx = 3
+        # 
+        # with K.tf.device('/gpu:0'):
+
         networks = glob.glob('./networks/*.h5f')
         if './networks/' + agent_type + '_actor.h5f' not in networks \
                 or './networks/' + agent_type + '_critic.h5f' not in networks:

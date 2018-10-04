@@ -57,7 +57,7 @@ import time
 from keras.optimizers import Adam
 
 SHARED_GRAPH = tf.get_default_graph()
-N_THREADS = 4
+N_THREADS = 1
 N_MAX_EPISODE = 100
 TOTAL_STEP_COUNT = 0
 TOTAL_EPISODE = 0
@@ -78,12 +78,16 @@ n_save_model_episode_interval = 20
 
 
 class DDQNAgent:
-    def __init__(self, agent_type, thread_idx, actor, critic, data_num, action_size):
+    def __init__(self, g, thread_idx, agent_type, actor, critic, data_num, action_size):
         self.thread_idx = thread_idx
-        self.actor = actor
-        self.critic = critic
-        self.optimizer = [self.actor_optimizer(), self.critic_optimizer()]
         self.agent_type = agent_type
+
+        self.global_actor = actor
+        self.global_critic = critic
+
+        self.actor, self.critic = load_actor_critic_model(g=g, agent_type=self.agent_type)
+
+        self.optimizer = [self.actor_optimizer(), self.critic_optimizer()]
         self.epsilon = 1.
         self.epsilon_min = 0.001
         self.epsilon_decay = 0.9995
@@ -110,15 +114,15 @@ class DDQNAgent:
         self.next_states = []
         self.dones = []
 
-
-
         self.discount_factor = 0.99
         self.data_num = data_num
 
     # todo : this function can synchronize local network same as global network
-    def update_target_model(self):
+    def update_target_model(g, global_network, local_network):
         with SHARED_GRAPH.as_default():
-            self.target_model.set_weights(self.model.get_weights())
+            global_network.set_weights(local_network.get_weights())
+
+
 
     def append_sample(self, state, action, reward, next_state, done):
 
@@ -133,10 +137,6 @@ class DDQNAgent:
         self.rewards.append(reward)
         self.next_states.append(next_state)
         self.dones.append(done)
-
-
-
-
 
     def get_action(self, state):
         with SHARED_GRAPH.as_default():
@@ -179,7 +179,6 @@ class DDQNAgent:
             policy = self.actor.predict(inputs)[0]
         return np.random.choice(self.action_size, 1, p=policy)[0]
 
-
     def actor_optimizer(self):
         action = K.placeholder(shape=(None, 2))
         advantages = K.placeholder(shape=(None, ))
@@ -219,10 +218,6 @@ class Agents(threading.Thread):
         self.train_log_dir = file_dir
         self.idx = idx
 
-        self.sess = tf.InteractiveSession()
-        K.set_session(self.sess)
-        self.sess.run(tf.global_variables_initializer())
-
         global SHARED_GRAPH
 
         bsa_actor, bsa_critic = load_actor_critic_model(g=SHARED_GRAPH, agent_type='bsa')
@@ -230,10 +225,15 @@ class Agents(threading.Thread):
         ssa_actor, ssa_critic = load_actor_critic_model(g=SHARED_GRAPH, agent_type='ssa')
         soa_actor, soa_critic = load_actor_critic_model(g=SHARED_GRAPH, agent_type='soa')
 
-        bsa = DDQNAgent(idx, 'bsa', bsa_actor, bsa_critic, data_num=2, action_size=2)
-        boa = DDQNAgent(idx, 'boa', boa_actor, boa_critic, data_num=3, action_size=2)
-        ssa = DDQNAgent(idx, 'ssa', ssa_actor, ssa_critic, data_num=4, action_size=2)
-        soa = DDQNAgent(idx, 'soa', soa_actor, soa_critic, data_num=4, action_size=2)
+        global bsa_actor, bsa_critic
+        global bsa_actor, boa_critic
+        global ssa_actor, ssa_critic
+        global soa_actor, soa_critic
+
+        bsa = DDQNAgent(SHARED_GRAPH, idx, 'bsa', bsa_actor, bsa_critic, data_num=2, action_size=2)
+        boa = DDQNAgent(SHARED_GRAPH, idx, 'boa', boa_actor, boa_critic, data_num=3, action_size=2)
+        ssa = DDQNAgent(SHARED_GRAPH, idx, 'ssa', ssa_actor, ssa_critic, data_num=4, action_size=2)
+        soa = DDQNAgent(SHARED_GRAPH, idx, 'soa', soa_actor, soa_critic, data_num=4, action_size=2)
 
         self.agents = [bsa, boa, ssa, soa]
         self.sequence = 0
