@@ -92,37 +92,63 @@ class DDQNAgent:
         self.train_start = 1000
         self.target_update_interval = 10000
 
+        # self.states = np.ndarray(shape=(0,))
+        # self.actions = np.ndarray(shape=(0,2))
+        # self.rewards = np.ndarray(shape=(0,1))
+        # self.next_states = np.ndarray(shape=(0,))
+        # self.dones = np.ndarray(shape=(0,1))
+
+        # self.states = None
+        # self.actions = None
+        # self.rewards = None
+        # self.next_states = None
+        # self.dones = None
+
         self.states = []
         self.actions = []
         self.rewards = []
         self.next_states = []
         self.dones = []
 
+
+
         self.discount_factor = 0.99
         self.data_num = data_num
 
-    # todo : this function can syncronize local network same as global network
+    # todo : this function can synchronize local network same as global network
     def update_target_model(self):
         with SHARED_GRAPH.as_default():
             self.target_model.set_weights(self.model.get_weights())
 
     def append_sample(self, state, action, reward, next_state, done):
+
+        # self.actions = np.append(action, self.actions)
+        # self.rewards = np.append(reward, self.rewards)
+        # self.states = np.append(state, self.states)
+        # self.next_states = np.append(next_state, self.next_states)
+        # self.dones = np.append(done, self.dones)
+
         self.states.append(state)
         self.actions.append(action)
         self.rewards.append(reward)
         self.next_states.append(next_state)
         self.dones.append(done)
 
+
+
+
+
     def get_action(self, state):
         with SHARED_GRAPH.as_default():
-            policy = self.actor.predict(np.reshape(state, [1, self.state_size]))[0]
+            policy = self.actor.predict(np.reshape(state, [1, self.state_size]))[0]  # todo : self.state_size
         return np.random.choice(self.action_size, 1, p=policy)[0]
 
     def discount_rewards(self, done=True):
         discounted_rewards = np.zeros_like(self.rewards)
         running_add = 0
         if not done:
-            running_add = self.critic.predict(np.reshape(self.states[-1], (1, self.state_size)))[0]
+            pass
+            # running_add = self.critic.predict(np.reshape(self.states[-1], (1, self.state_size)))[0]
         for t in reversed(range(0, len(self.rewards))):
             running_add = running_add * 0.999 + self.rewards[t]  # todo : a3c discount_factor = 0.999
             discounted_rewards[t] = running_add
@@ -130,10 +156,13 @@ class DDQNAgent:
 
     # update policy network and value network every episode
     def train_episode(self, done):
-        discounted_rewards = self.discount_rewards(self.rewards, done)
+        discounted_rewards = self.discount_rewards(done)
 
         with SHARED_GRAPH.as_default():
-            values = self.critic.predict(np.array(self.states))
+            inputs = []
+            for d_i in range(self.data_num):
+                inputs.append([state[d_i] for state in self.states])
+            values = self.critic.predict(inputs)
         values = np.reshape(values, len(values))
 
         advantages = discounted_rewards - values
@@ -287,7 +316,7 @@ class Agents(threading.Thread):
         bin_list = []
         for b in bin_time:
             bin_list.append(int(b))
-        return bin_list
+        return np.asarray(bin_list)
 
     def append_sample(self, state, action, reward, next_state, done):
         state = self._process_state(state)
@@ -382,11 +411,11 @@ class Agents(threading.Thread):
                     steps += s
 
                 # todo : need to change 1hr * 60 mins * 60 secs = 3600 secs - 120 secs needs to get enough observation for the first time
-                if steps >= 1 * 60 * 60 - 3300:  # todo : -3000 for test
+                if steps >= 1 * 60 * 60 - 3400:  # todo : -3000 for test
                     done = True
                     TOTAL_EPISODE = TOTAL_EPISODE + 1
-                    self.train_episode()
-
+                    for i, agent in enumerate(self.agents):
+                        agent.train_episode(True)
 
             if step_count[0] > 0:
                 rewards = []
