@@ -193,10 +193,10 @@ class DDQNAgent:
     def get_action(self, state):
         if self.agent_type == 'bsa':
             current_price = state[1][-1][0]
-            high_price = current_price
-            for data in state[1]:
-                high_price = max(data[0], high_price)
-            if current_price >= high_price:
+            price_avg = 0
+            for i in range(120):
+                price_avg += state[1][-(i + 1)][0] / 20
+            if price_avg <= current_price:
                 return 1
             else:
                 return 0
