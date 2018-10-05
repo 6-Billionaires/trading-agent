@@ -305,7 +305,7 @@ def train_using_real_data_sparsed(pickle_dir, ssa_model_params=model_params):
     param_epochs = ssa_model_params['epochs']
     param_batch_size = ssa_model_params['batchsize']
     param_neurons = ssa_model_params['neurons']
-    history = model.fit({'x1': t_x1, 'x2': t_x2, 'x3': t_x3, 'x4': t_x4}, t_y1, epochs=param_epochs, verbose=2, batch_size=param_batch_size, callbacks=callbacks)
+    history = model.fit({'x1': t_x1, 'x2': t_x2, 'x3': t_x3, 'x4': t_x4}, t_y1, validation_split=0.1, epochs=param_epochs, verbose=2, batch_size=param_batch_size, callbacks=callbacks)
 
     name_subfix = '_e' + str(param_epochs) + "_b" + str(param_batch_size) + "_n" + str(param_neurons)
 
@@ -425,11 +425,21 @@ def plot_history(history, to_plot, params, save_path):
         file_name = 'bs' + str(batch_size) + '_ep' + str(epochs) + '_nrs' + str(neurons) + '_act(' + str(activation) + ')_'+ key + '.png'
         category = to_plot[key]
         plt.plot(history.history[category])
+        
+        if key != 'Corr':
+          plt.plot(history.history['val_' + category])
+          plt.title(key)
+          plt.ylabel(key)
+          plt.xlabel('Epoch')
+          if key != 'Corr':
+            plt.legend(['Train', 'Validation'], loc='upper left')
+          else:
+            plt.legend(['Train'], loc='upper left')
         # plt.plot(history.history['val_' + category])
-        plt.title(key)
-        plt.ylabel(key)
-        plt.xlabel('Epoch')
-        plt.legend(['Train', 'Validation'], loc='upper left')
+        #plt.title(key)
+        #plt.ylabel(key)
+        #plt.xlabel('Epoch')
+        #plt.legend(['Train', 'Validation'], loc='upper left')
         plt.savefig(save_path + '/' + file_name)
         # plt.show()
 
