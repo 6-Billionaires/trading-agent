@@ -24,7 +24,7 @@ import keras.backend as K
 from keras.models import Model
 from keras.layers import LeakyReLU, Input, Dense, Conv3D, Conv1D, Dense, Flatten, MaxPooling1D, MaxPooling2D,MaxPooling3D,Concatenate
 from gym_core.ioutil import *  # file i/o to load stock csv files
-import sell_signal_agent.ssa_metrics as mt
+import buy_signal_agent.ds.bsa_metrics as mt
 
 
 if args.device is None:
