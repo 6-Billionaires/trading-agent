@@ -399,7 +399,7 @@ def plot_history(history, to_plot, params, save_path):
         # plt.ylabel(key)
         # plt.xlabel('Epoch')
         # plt.legend(['Train', 'Validation'], loc='upper left')
-        # plt.savefig(save_path + '/' + file_name)
+        plt.savefig(save_path + '/' + file_name)
         # plt.show()
 
 
