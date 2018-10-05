@@ -1,13 +1,13 @@
 
 import pickle
 
-path = "D:/98_myway/study/git/trading-agent/sell_signal_agent/"
+path = "D:/98_myway/study/git/trading-agent/buy_signal_agent/ds/"
 pickle_names = [
-                'ssa_model_history_e75_b70_n75',
-                'ssa_model_history_e50_b70_n125',
-                'ssa_model_history_e100_b30_n175',
-                'ssa_model_history_e100_b50_n175',
-                'ssa_model_history_e100_b70_n125'
+                'bsa_model_history_e70_b10_n100',
+                'bsa_model_history_e70_b10_n120',
+                'bsa_model_history_e70_b10_n150',
+                'bsa_model_history_e70_b20_n100',
+                'bsa_model_history_e100_b10_n70'
                 ]
 
 for pickle_name in pickle_names:
@@ -20,11 +20,11 @@ for pickle_name in pickle_names:
 
 print("------------------------------------------------------------------------------------------------------------")
 pickle_names = [
-                'ssa_evaluate_model_history_e75_b70_n75',
-                'ssa_evaluate_model_history_e50_b70_n125',
-                'ssa_evaluate_model_history_e100_b30_n175',
-                'ssa_evaluate_model_history_e100_b50_n175',
-                'ssa_evaluate_model_history_e100_b70_n125'
+                'bsa_evaluate_model_history_e70_b10_n100',
+                'bsa_evaluate_model_history_e70_b10_n120',
+                'bsa_evaluate_model_history_e70_b10_n150',
+                'bsa_evaluate_model_history_e70_b20_n100',
+                'bsa_evaluate_model_history_e100_b10_n70'
                 ]
 
 for pickle_name in pickle_names:
