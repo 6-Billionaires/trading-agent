@@ -223,7 +223,7 @@ t_y1 = np.concatenate(t_y1)
 scores = model.evaluate({'x1': t_x1, 'x2': t_x2}, t_y1, verbose=00)
 print("%s: %.2f    %s: %.2f    %s: %.2f    %s: %.2f" % (model.metrics_names[1], scores[1], model.metrics_names[2], scores[2], model.metrics_names[3], scores[3], model.metrics_names[4], scores[4]))
 
-with open('ssa_evaluate_model_history'+name_subfix, 'wb') as file_pi:
+with open('bsa_evaluate_model_history'+name_subfix, 'wb') as file_pi:
     pickle.dump(scores, file_pi)
 
 
