@@ -421,7 +421,7 @@ if __name__ == '__main__':
 
                 state = next_state
                 if agents.trainable and all_steps >= 1000 and False:
-                    agents.train_agents()
+                    # agents.train_agents()
                     all_steps = 0
                 steps = 0
                 for s in step_count:
@@ -463,7 +463,7 @@ if __name__ == '__main__':
                 print('profit avg :', avg_profit_comm, end='  ')
                 print('ep time :', int(time.time() - start_time))
 
-                train_log_file = open('./train_log.csv', 'a', encoding='utf-8', newline='')
+                train_log_file = open('./test_log.csv', 'a', encoding='utf-8', newline='')
                 csv_writer = csv.writer(train_log_file)
                 csv_writer.writerow([ep, rewards[0], rewards[1], rewards[2], rewards[3], profit, avg_profit, profit_comm, avg_profit_comm])
                 train_log_file.close()
